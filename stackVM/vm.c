@@ -34,6 +34,18 @@ void destroyVM(VM* vm) {
     free(vm);
 }
 
+void print_stack(VM* vm) {
+    if (vm->sp == -1) { // empty stack
+        printf("Stack: []\n");
+        return;
+    }
+    printf("Stack: [");
+    for (int i = 0; i < vm->sp; i++) {
+        printf("%d, ", vm->stack[i]);
+    }
+    printf("%d], sp: %d\n", vm->stack[vm->sp], vm->sp);
+}
+
 void run(VM* vm) {
     printf("Running program...\n");
     do {
@@ -42,6 +54,7 @@ void run(VM* vm) {
 
         switch (opcode) {
             case HALT:
+                printf("Program execution complete\n");
                 return; // stop program
             case CONST_I32:
                 value = NEXT(vm); // get next value in stack
@@ -75,6 +88,12 @@ void run(VM* vm) {
             case POP:
                 --vm->sp; // throw away top of stack
                 break;
+            case DUP:
+                if (vm->sp == -1)
+                    return;
+                int top = vm->stack[0];
+                PUSH(vm, top);
+                break;
             case PRINT:
                 value = POP(vm);
                 printf("%d\n", value);
@@ -94,7 +113,7 @@ void run(VM* vm) {
                 break;
             case LOAD:
                 offset = NEXT(vm);
-                PUSH(vm, vm->stack[vm->fp + offset]); // put on top of stack pointer relative to frame pointer
+                PUSH(vm, vm->locals[vm->fp + offset]); // put on top of stack pointer relative to frame pointer
                 break;
             case GLOAD:
                 addr = POP(vm);
@@ -103,7 +122,7 @@ void run(VM* vm) {
                 break;
             case STORE:
                 value = POP(vm);
-                offset = NEXT(vm);
+                offset = vm->pc + 1;//NEXT(vm);
                 vm->locals[vm->fp + offset] = value;
                 break;
             case GSTORE:
@@ -134,12 +153,13 @@ void run(VM* vm) {
                 printf("Unknown bytecode\n");
                 break;
         }
+        print_stack(vm);
+        printf("%d\n", vm->locals[0]);
     } while (1);
-    printf("Program execution complete\n");
 }
 
 int main(int argc, char** argv) {
-    int code[] = {ADD_I32, 5, 6, HALT};
+    int code[] = {CONST_I32, 5, CONST_I32, 6, ADD_I32, DUP, MUL_I32, STORE, 0, HALT};
     VM* vm = initVM(code, 0, 100);
     run(vm);
     return 0;

@@ -13,6 +13,7 @@ class VM:
         self.pc = pc
         self.fp = 0
         self.locals = []
+        self.globals = []
         self.code = code
 
     def run(self):

@@ -14,6 +14,7 @@ typedef enum {
     GSTORE, // store to global
     PRINT,
     POP,
+    DUP,
     HALT,
     CALL,
     RET
