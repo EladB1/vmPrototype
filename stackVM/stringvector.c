@@ -3,11 +3,15 @@
 #include <string.h>
 #include "stringvector.h"
 
+#define DEFAULT_VECTOR_MAX 256
+#define MAX(a, b) (a >= b ? a : b)
+
 StringVector* createStringVector() {
     StringVector* sv = malloc(sizeof(StringVector));
     sv->length = 0;
     sv->capacity = DEFAULT_VECTOR_MAX;
     sv->strings = malloc(sizeof(char*) * sv->capacity);
+    return sv;
 }
 
 void freeStringVector(StringVector* sv) {
@@ -15,20 +19,24 @@ void freeStringVector(StringVector* sv) {
     free(sv);
 }
 
+char* get(StringVector* sv, int index) {
+    return sv->strings[index];
+}
+
 void addString(StringVector* sv, char* string) {
     if (sv->length == sv->capacity - 1) {
         sv->capacity *= 2;
-        char** temp = sv->strings;
         sv->strings = realloc(sv->strings, sv->capacity);
     }
-    sv->strings[sv->length++] = string;
+    sv->strings[sv->length] = string;
+    sv->length++;
         
 }
 
 StringVector* concat(StringVector* sv1, StringVector* sv2) {
     StringVector* sv3 = createStringVector();
     sv3->length = sv1->length + sv2->length;
-    sv3->capacity = sv3->length >= sv1->capacity && sv2->capacity ? sv1->capacity + sv2->capacity : MAX(sv1->capacity, sv2->capacity);
+    sv3->capacity = sv3->length >= sv1->capacity && sv3->length >= sv2->capacity ? sv1->capacity + sv2->capacity : MAX(sv1->capacity, sv2->capacity);
     sv3->length = sv1->length + sv2->length;
     sv3->strings = realloc(sv3->strings, sizeof(char*) * sv3->capacity);
     memcpy(sv3->strings, sv1->strings, sizeof(char*) * sv1->length);
@@ -42,7 +50,7 @@ void printStringVector(StringVector* sv) {
     }
     printf("@0x%x: [", sv);
     for (int i = 0; i < sv->length - 1; i++) {
-        printf("%s, ", sv->strings[i]);
+        printf("%s, ", get(sv, i));
     }
     printf("%s], length: %d, capacity: %d\n", sv->strings[sv->length - 1], sv->length, sv->capacity);
 }

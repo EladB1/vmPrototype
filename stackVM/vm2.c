@@ -5,32 +5,10 @@
 
 #define STACK_SIZE 100
 
-
-typedef enum {
-    HALT,
-    LOAD_CONST,
-    ADD,
-    MUL,
-    EQ,
-    DUP,
-    POP,
-    STORE,
-    GSTORE,
-    LOAD,
-    GLOAD,
-    LOAD_IDX,
-    STORE_IDX,
-    GLOAD_IDX,
-    GSTORE_IDX,
-    JMPT,
-    JMPF,
-    SELECT
-} opcode;
-
 typedef struct {
     int* locals;
     int* globals;
-    int* code;
+    StringVector* code;
     int* stack;
     int pc;
     int sp;
@@ -40,7 +18,7 @@ typedef struct {
 } VM;
 
 
-VM* init(int* code, int datasize) {
+VM* init(StringVector* code, int datasize) {
     VM* vm = malloc(sizeof(VM));
     vm->code = code;
     vm->pc = 0;
@@ -69,8 +47,8 @@ int pop(VM* vm) {
     return vm->stack[vm->sp--];
 }
 
-int getNext(VM* vm) {
-    return vm->code[vm->pc++];
+char* getNext(VM* vm) {
+    return get(vm->code, vm->pc++);
 }
 
 void print_array(char* array_label, int* array, int array_size) {
@@ -95,107 +73,99 @@ void display(VM* vm) {
 
 void run(VM* vm) {
     printf("Running program...\n");
-    int opcode, value, addr, offset, lhs, rhs, argc, rval;
+    char* opcode;
+    int len, value, addr, lhs, rhs;
+    //int offset, argc, rval;
     while (1) {
         opcode = getNext(vm);
-        switch(opcode) {
-            case HALT:
-                printf("Program execution complete\n");
-                return; // stop program
+        len = strlen(opcode);
+        if (strncmp(opcode, "HALT", len) == 0) {
+            printf("Program execution complete\n");
+            return; // stop program
+        }
+        else if (strncmp(opcode, "LOAD_CONST", len) == 0) {
+            value = atoi(getNext(vm));
+            push(vm, value);
+        }
+        else if (strncmp(opcode, "DUP", len) == 0) {
+            if (vm->sp == -1)
+                return;
+            value = vm->stack[vm->sp];
+            push(vm, value);
+        }
+        else if (strncmp(opcode, "ADD", len) == 0) {
+            rhs = pop(vm);
+            lhs = pop(vm);
+            push(vm, lhs + rhs);
+        }
+        else if (strncmp(opcode, "MUL", len) == 0) {
+            rhs = pop(vm);
+            lhs = pop(vm);
+            push(vm, lhs * rhs);
 
-            case DUP:
-                if (vm->sp == -1)
-                    return;
-                value = vm->stack[vm->sp];
-                push(vm, value);
-                break;
-            
-            case LOAD_CONST:
-                value = getNext(vm);
-                push(vm, value);
-                break;
-
-            case ADD:
-                rhs = pop(vm);
-                lhs = pop(vm);
-                push(vm, lhs + rhs);
-                break;
-
-            case MUL:
-                rhs = pop(vm);
-                lhs = pop(vm);
-                push(vm, lhs * rhs);
-                break;
-
-            case EQ:
-                rhs = pop(vm);
-                lhs = pop(vm);
-                push(vm, (lhs == rhs) ? 1 : 0);
-                break;    
-
-            case STORE:
-                if (vm->sp == -1)
-                    return;
-                value = pop(vm);
-                vm->locals[++vm->lc] = value;
-                break;
-
-            case LOAD:
-                addr = getNext(vm);
-                value = vm->locals[addr];
-                push(vm, value);
-                break;
-
-            case GSTORE:
-                if (vm->sp == -1)
-                    return;
-                value = pop(vm);
-                vm->globals[++vm->gc] = value;
-                break;
-
-            case GLOAD:
-                addr = getNext(vm);
-                value = vm->globals[addr];
-                push(vm, value);
-                break;
-
-            case JMPT:
-                addr = getNext(vm);
-                if (pop(vm))
-                    vm->pc = addr;
-                break;
-
-            case JMPF:
-                addr = getNext(vm);
-                if (!pop(vm))
-                    vm->pc = addr;
-                break;
-
-            case SELECT:
-                addr = getNext(vm);
-                if (pop(vm))
-                    value = vm->code[vm->pc++];
-                else {
-                    vm->pc += 2;
-                    value = vm->code[vm->pc];
-                }
-                push(vm, value);
-
-            default:
-                printf("Unknown bytecode\n");
-                break;
+        }
+        else if (strncmp(opcode, "EQ", len) == 0) {
+            rhs = pop(vm);
+            lhs = pop(vm);
+            push(vm, (lhs == rhs) ? 1 : 0);
+        }
+        else if (strncmp(opcode, "STORE", len) == 0) {
+            if (vm->sp == -1)
+                return;
+            value = pop(vm);
+            vm->locals[++vm->lc] = value;
+        }
+        else if (strncmp(opcode, "LOAD", len) == 0) {
+            addr = atoi(getNext(vm));
+            value = vm->locals[addr];
+            push(vm, value);
+        }
+        else if (strncmp(opcode, "GSTORE", len) == 0) {
+            if (vm->sp == -1)
+                return;
+            value = pop(vm);
+            vm->globals[++vm->gc] = value;
+        }
+        else if (strncmp(opcode, "GLOAD", len) == 0) {
+            addr = atoi(getNext(vm));
+            value = vm->globals[addr];
+            push(vm, value);
+        }
+        else if (strncmp(opcode, "JMPT", len) == 0) {
+            addr = atoi(getNext(vm));
+            if (pop(vm))
+                vm->pc = addr;
+        }
+        else if (strncmp(opcode, "JMPF", len) == 0) {
+            addr = atoi(getNext(vm));
+            printf("addr: %d\n", addr);
+            if (!pop(vm))
+                vm->pc = addr;
+            printf("Jump to: %d(%s)\n", vm->pc, get(vm->code, addr));
+        }
+        else if (strncmp(opcode, "SELECT", len) == 0) {
+            addr = atoi(getNext(vm));
+            if (pop(vm))
+                value = atoi(get(vm->code, vm->pc++));
+            else {
+                vm->pc += 2;
+                value = atoi(get(vm->code, vm->pc));
+            }
+            push(vm, value);
+        }
+        else {
+            printf("Unknown bytecode: %s\n", opcode);
+            break;
         }
         display(vm);
     }
 }
 
-void read_file() {
+StringVector* read_file() {
     FILE* fptr;
     fptr = fopen("input.txt", "r");
     StringVector* line;
     StringVector* out = createStringVector();
-    char** ptr;
-    int index = 0;
     const unsigned int MAX_LENGTH = 256;
     char buff[MAX_LENGTH];
     printf("Reading file...\n");
@@ -205,35 +175,16 @@ void read_file() {
         out = concat(out, line);
         free(line);
     }
-    printStringVector(out);
     fclose(fptr);
-}
-
-int* generateCode(StringVector* contents) {
-    int* code = malloc(sizeof(int) * contents->length);
-    int len;
-    for (int i = 0; i < contents->length; i++) {
-        len = strlen(contents->strings[i]);
-        if (strncmp(contents->strings[i], "LOAD_CONST", len) == 0)
-            code[i] = LOAD_CONST;
-        else if (strncmp(contents->strings[i], "ADD", len) == 0)
-            code[i] = ADD;
-        else if (strncmp(contents->strings[i], "DUP", len) == 0)
-            code[i] = DUP;
-        else if (strncmp(contents->strings[i], "EQ", len) == 0)
-            code[i] = EQ;
-        else if (strncmp(contents->strings[i], "SELECT", len) == 0)
-            code[i] = SELECT;
-        else if (strncmp(contents->strings[i], "HALT", len) == 0)
-            code[i] = HALT;
-    }
-    return code;
+    return out;
 }
 
 int main(int argc, char** argv) {
-    int code[] = {LOAD_CONST, 3, LOAD_CONST, 5, ADD, DUP, EQ, SELECT, 0, 12, HALT};
+    StringVector* code = read_file();
+    printStringVector(code);
     VM* vm = init(code, 100);
-    //run(vm);
-    read_file();
+    run(vm);
+    free(code);
+    destroy(vm);
     return 0;
 }
