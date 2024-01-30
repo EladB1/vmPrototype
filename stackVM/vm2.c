@@ -3,38 +3,16 @@
 #include <string.h>
 #include <stdbool.h>
 #include <ctype.h>
+#include <math.h>
 #include "stringvector.h"
+#include "stackmember.h"
 
 #define STACK_SIZE 100
 
-typedef enum {
-    Addr = 1,
-    Int,
-    Dbl,
-    Str,
-    Arr,
-    Bool
-} Type;
-
-typedef union memberVal {
-    int intVal;
-    double dblVal;
-    bool boolVal;
-    char* strVal;
-    union memberVal* arrayVal;
-} MemberValue;
-
 typedef struct {
-    Type type;
-    MemberValue value;
-    int size;
-} StackMember;
-
-typedef struct {
-    int* locals;
-    int* globals;
+    StackMember* locals;
+    StackMember* globals;
     StringVector* code;
-    //int* stack;
     StackMember* stack;
     int pc;
     int sp;
@@ -42,10 +20,6 @@ typedef struct {
     int lc;
     int gc;
 } VM;
-
-StackMember binaryOperation(StackMember lhs, StackMember rhs, char* operation) {
-
-}
 
 bool constantIsInteger(char* constant) {
     for (int i = 0; i < strlen(constant); i++) {
@@ -105,16 +79,16 @@ char* getNext(VM* vm) {
     return get(vm->code, vm->pc++);
 }
 
-void print_array(char* array_label, int* array, int array_size) {
+void print_array(char* array_label, StackMember* array, int array_size) {
     if (array_size == -1) {
         printf("%s: []\n", array_label);
         return;
     }
     printf("%s: [", array_label);
     for (int i = 0; i < array_size; i++) {
-        printf("%d, ", array[i]);
+        printf("%s, ", toString(array[i]));
     }
-    printf("%d]\n", array[array_size]);
+    printf("%s]\n", toString(array[array_size]));
 
 }
 
@@ -135,13 +109,12 @@ void run(VM* vm) {
     while (1) {
         opcode = getNext(vm);
         len = strlen(opcode);
-        if (strncmp(opcode, "HALT", len) == 0) {
+        if (strncmp(opcode, "HALT", 5) == 0) {
             printf("Program execution complete\n");
             return; // stop program
         }
-        else if (strncmp(opcode, "LOAD_CONST", len) == 0) {
+        else if (strncmp(opcode, "LOAD_CONST", 11) == 0) {
             next = getNext(vm);
-            printf("Is double: %d\n", constantIsDouble(next));
             if (constantIsInteger(next)) {
                 value.type = Int;
                 value.size = 1;
@@ -152,7 +125,13 @@ void run(VM* vm) {
                 value.size = 1;
                 value.value.dblVal = atof(next);
             }
-            //value = atoi(getNext(vm));
+            push(vm, value);
+        }
+        else if (strncmp(opcode, "LOAD_BCONST", 12) == 0) {
+            next = getNext(vm);
+            value.type = Bool;
+            value.size = 1;
+            value.value.boolVal = strncmp(next, "true", strlen(next)) == 0 ? true : false;
             push(vm, value);
         }
         else if (strncmp(opcode, "DUP", len) == 0) {
@@ -161,106 +140,103 @@ void run(VM* vm) {
             value = vm->stack[vm->sp];
             push(vm, value);
         }
-        else if (strncmp(opcode, "ADD", len) == 0) {
+        else if (strncmp(opcode, "ADD", 4) == 0) {
             rhs = pop(vm);
             lhs = pop(vm);
-            if (lhs.type == Dbl || rhs.type == Dbl) {
-                rval.type = Dbl;
-                if (lhs.type == rhs.type)
-                    rval.value.dblVal = lhs.value.dblVal + rhs.value.dblVal;
-                else if (lhs.type == Int)
-                    rval.value.dblVal = lhs.value.intVal + rhs.value.dblVal;
-                else
-                    rval.value.dblVal = lhs.value.dblVal + rhs.value.intVal;
-            }
-                
-            else {
-                rval.type = Int;
-                rval.value.intVal = lhs.value.intVal + rhs.value.intVal;
-            }
+            rval = binaryArithmeticOperation(lhs, rhs, "+");
             push(vm, rval);
         }
-        /*else if (strncmp(opcode, "SUB", len) == 0) {
+        else if (strncmp(opcode, "SUB", 4) == 0) {
             rhs = pop(vm);
             lhs = pop(vm);
-            push(vm, lhs - rhs);
+            rval = binaryArithmeticOperation(lhs, rhs, "-");
+            push(vm, rval);
         }
-        else if (strncmp(opcode, "MUL", len) == 0) {
+        else if (strncmp(opcode, "MUL", 4) == 0) {
             rhs = pop(vm);
             lhs = pop(vm);
-            push(vm, lhs * rhs);
+            rval = binaryArithmeticOperation(lhs, rhs, "*");
+            push(vm, rval);
         }
-        else if (strncmp(opcode, "DIV", len) == 0) {
-            rhs = pop(vm);
-            if (rhs == 0) {
-                printf("Division by zero error\n");
-                return;
-            }
-            lhs = pop(vm);
-            push(vm, lhs / rhs);
-        }
-        else if (strncmp(opcode, "REM", len) == 0) {
-            rhs = pop(vm);
-            if (rhs == 0) {
-                printf("Division by zero error\n");
-                return;
-            }
-            lhs = pop(vm);
-            push(vm, lhs % rhs);
-        }
-        else if (strncmp(opcode, "EQ", len) == 0) {
+        else if (strncmp(opcode, "DIV", 4) == 0) {
             rhs = pop(vm);
             lhs = pop(vm);
-            push(vm, (lhs == rhs) ? 1 : 0);
+            rval = binaryArithmeticOperation(lhs, rhs, "/");
+            push(vm, rval);
         }
-        else if (strncmp(opcode, "STORE", len) == 0) {
+        else if (strncmp(opcode, "REM", 4) == 0) {
+            rhs = pop(vm);
+            lhs = pop(vm);
+            rval = binaryArithmeticOperation(lhs, rhs, "mod");
+            push(vm, rval);
+        }
+        else if (strncmp(opcode, "EQ", 3) == 0) {
+            rhs = pop(vm);
+            lhs = pop(vm);
+            rval.type = Bool;
+            rval.size = 1;
+            rval.value.boolVal = isEqual(lhs, rhs);
+            push(vm, rval);
+        }
+        else if (strncmp(opcode, "STORE", 6) == 0) {
             if (vm->sp == -1)
                 return;
             value = pop(vm);
             vm->locals[++vm->lc] = value;
         }
-        else if (strncmp(opcode, "LOAD", len) == 0) {
+        else if (strncmp(opcode, "LOAD", 5) == 0) {
             addr = atoi(getNext(vm));
+            printf("Address: %d\n", addr);
             value = vm->locals[addr];
             push(vm, value);
         }
-        else if (strncmp(opcode, "GSTORE", len) == 0) {
+        else if (strncmp(opcode, "GSTORE", 7) == 0) {
             if (vm->sp == -1)
                 return;
             value = pop(vm);
             vm->globals[++vm->gc] = value;
         }
-        else if (strncmp(opcode, "GLOAD", len) == 0) {
+        else if (strncmp(opcode, "GLOAD", 6) == 0) {
             addr = atoi(getNext(vm));
             value = vm->globals[addr];
             push(vm, value);
         }
-        else if (strncmp(opcode, "JMP", len) == 0) {
+        else if (strncmp(opcode, "JMP", 4) == 0) {
             addr = atoi(getNext(vm));
             vm->pc = addr;
         }
         else if (strncmp(opcode, "JMPT", len) == 0) {
             addr = atoi(getNext(vm));
-            if (pop(vm))
+            if (pop(vm).value.boolVal)
                 vm->pc = addr;
         }
         else if (strncmp(opcode, "JMPF", len) == 0) {
             addr = atoi(getNext(vm));
             printf("addr: %d\n", addr);
-            if (!pop(vm))
+            if (!pop(vm).value.boolVal)
                 vm->pc = addr;
             printf("Jump to: %d(%s)\n", vm->pc, get(vm->code, addr));
         }
         else if (strncmp(opcode, "SELECT", len) == 0) {
-            addr = atoi(getNext(vm));
-            if (pop(vm))
-                value = atoi(get(vm->code, vm->pc++));
+            if (pop(vm).value.boolVal)
+                next = get(vm->code, vm->pc++);
             else {
-                vm->pc += 2;
-                value = atoi(get(vm->code, vm->pc));
+                vm->pc += 1;
+                next = get(vm->code, vm->pc++);
+            }
+            printf("NEXT: %s\n", next);
+            if (constantIsInteger(next)) {
+                value.size = 1;
+                value.type = Int;
+                value.value.intVal = atoi(next);
+            }
+            else if (constantIsDouble(next)) {
+                value.size = 1;
+                value.type = Dbl;
+                value.value.dblVal = atof(next);
             }
             push(vm, value);
-        }*/
+        }
         else {
             printf("Unknown bytecode: %s\n", opcode);
             break;
