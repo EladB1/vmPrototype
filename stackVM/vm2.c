@@ -182,11 +182,16 @@ void run(VM* vm) {
             if (vm->sp == -1)
                 return;
             value = pop(vm);
-            vm->locals[++vm->lc] = value;
+            next = get(vm->code, vm->pc);
+            if (constantIsInteger(next)) { // overwrite the value of an existing variable
+                vm->locals[atoi(next)] = value;
+                vm->pc++;
+            }
+            else
+                vm->locals[++vm->lc] = value;
         }
         else if (strncmp(opcode, "LOAD", 5) == 0) {
             addr = atoi(getNext(vm));
-            printf("Address: %d\n", addr);
             value = vm->locals[addr];
             push(vm, value);
         }
@@ -194,7 +199,13 @@ void run(VM* vm) {
             if (vm->sp == -1)
                 return;
             value = pop(vm);
-            vm->globals[++vm->gc] = value;
+            next = get(vm->code, vm->pc);
+            if (constantIsInteger(next)) { // overwrite the value of an existing variable
+                vm->globals[atoi(next)] = value;
+                vm->pc++;
+            }
+            else
+                vm->globals[++vm->gc] = value;
         }
         else if (strncmp(opcode, "GLOAD", 6) == 0) {
             addr = atoi(getNext(vm));
@@ -218,13 +229,14 @@ void run(VM* vm) {
             printf("Jump to: %d(%s)\n", vm->pc, get(vm->code, addr));
         }
         else if (strncmp(opcode, "SELECT", len) == 0) {
-            if (pop(vm).value.boolVal)
+            if (pop(vm).value.boolVal) {
                 next = get(vm->code, vm->pc++);
+                vm->pc++;
+            }
             else {
-                vm->pc += 1;
+                vm->pc++;
                 next = get(vm->code, vm->pc++);
             }
-            printf("NEXT: %s\n", next);
             if (constantIsInteger(next)) {
                 value.size = 1;
                 value.type = Int;
