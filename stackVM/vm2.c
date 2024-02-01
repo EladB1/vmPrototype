@@ -10,9 +10,36 @@
 #define STACK_SIZE 100
 
 typedef struct {
+    char* label;
+    StringVector* body;
+} Function;
+
+typedef struct {
+    int length;
+    Function code[256];
+} SourceCode;
+
+void displayCode(SourceCode code) {
+    printf("length: %d\n", code.length);
+    for (int i = 0; i < code.length; i++) {
+        printf("%s => ", code.code[i].label);
+        printStringVector(code.code[i].body);
+        printf("\n");
+    }
+}
+
+int findEntryPoint(SourceCode code) {
+    for (int i = 0; i < code.length; i++) {
+        if (strncmp(code.code[i].label, "_entry", 7) == 0)
+            return i;
+    }
+    return -1;
+}
+
+typedef struct {
     StackMember* locals;
     StackMember* globals;
-    StringVector* code;
+    SourceCode code;
     StackMember* stack;
     int pc;
     int sp;
@@ -21,7 +48,7 @@ typedef struct {
     int gc;
 } VM;
 
-bool constantIsInteger(char* constant) {
+bool isInt(char* constant) {
     for (int i = 0; i < strlen(constant); i++) {
         if (!isdigit(constant[i]))
             return false;
@@ -29,7 +56,7 @@ bool constantIsInteger(char* constant) {
     return true;
 }
 
-bool constantIsDouble(char* constant) {
+bool isDouble(char* constant) {
     int dotCount = 0;
     for (int i = 0; i < strlen(constant); i++) {
         if (constant[i] == '.')
@@ -40,17 +67,17 @@ bool constantIsDouble(char* constant) {
     return dotCount == 1;
 }
 
-bool constantIsBoolean(char* constant) {
+bool isBool(char* constant) {
     int len = strlen(constant);
-    return strncmp(constant, "0", len) == 0 || strncmp(constant, "1", len) == 0;
+    return strncmp(constant, "true", len) == 0 || strncmp(constant, "false", len) == 0;
 }
 
 
-VM* init(StringVector* code, int datasize) {
+VM* init(SourceCode code, int datasize) {
     VM* vm = malloc(sizeof(VM));
     vm->code = code;
     vm->pc = 0;
-    vm->fp = 0;
+    vm->fp = findEntryPoint(code);
     vm->sp = -1;
     vm->lc = -1;
     vm->gc = -1;
@@ -76,7 +103,7 @@ StackMember pop(VM* vm) {
 }
 
 char* getNext(VM* vm) {
-    return get(vm->code, vm->pc++);
+    return getFromSV(vm->code.code[vm->fp].body, vm->pc++);
 }
 
 void print_array(char* array_label, StackMember* array, int array_size) {
@@ -115,12 +142,12 @@ void run(VM* vm) {
         }
         else if (strncmp(opcode, "LOAD_CONST", 11) == 0) {
             next = getNext(vm);
-            if (constantIsInteger(next)) {
+            if (isInt(next)) {
                 value.type = Int;
                 value.size = 1;
                 value.value.intVal = atoi(next);
             }
-            else if (constantIsDouble(next)) {
+            else if (isDouble(next)) {
                 value.type = Dbl;
                 value.size = 1;
                 value.value.dblVal = atof(next);
@@ -182,8 +209,8 @@ void run(VM* vm) {
             if (vm->sp == -1)
                 return;
             value = pop(vm);
-            next = get(vm->code, vm->pc);
-            if (constantIsInteger(next)) { // overwrite the value of an existing variable
+            next = getFromSV(vm->code.code[vm->fp].body, vm->pc);
+            if (isInt(next)) { // overwrite the value of an existing variable
                 vm->locals[atoi(next)] = value;
                 vm->pc++;
             }
@@ -199,8 +226,8 @@ void run(VM* vm) {
             if (vm->sp == -1)
                 return;
             value = pop(vm);
-            next = get(vm->code, vm->pc);
-            if (constantIsInteger(next)) { // overwrite the value of an existing variable
+            next = getFromSV(vm->code.code[vm->fp].body, vm->pc);
+            if (isInt(next)) { // overwrite the value of an existing variable
                 vm->globals[atoi(next)] = value;
                 vm->pc++;
             }
@@ -226,28 +253,34 @@ void run(VM* vm) {
             printf("addr: %d\n", addr);
             if (!pop(vm).value.boolVal)
                 vm->pc = addr;
-            printf("Jump to: %d(%s)\n", vm->pc, get(vm->code, addr));
+            printf("Jump to: %d(%s)\n", vm->pc, getFromSV(vm->code.code[vm->fp].body, addr));
         }
         else if (strncmp(opcode, "SELECT", len) == 0) {
             if (pop(vm).value.boolVal) {
-                next = get(vm->code, vm->pc++);
+                next = getFromSV(vm->code.code[vm->fp].body, vm->pc++);
                 vm->pc++;
             }
             else {
                 vm->pc++;
-                next = get(vm->code, vm->pc++);
+                next = getFromSV(vm->code.code[vm->fp].body, vm->pc++);
             }
-            if (constantIsInteger(next)) {
+            if (isInt(next)) {
                 value.size = 1;
                 value.type = Int;
                 value.value.intVal = atoi(next);
             }
-            else if (constantIsDouble(next)) {
+            else if (isDouble(next)) {
                 value.size = 1;
                 value.type = Dbl;
                 value.value.dblVal = atof(next);
             }
             push(vm, value);
+        }
+        else if (strncmp(opcode, "CALL", len) == 0) {
+
+        }
+        else if (strncmp(opcode, "RET", len) == 0) {
+            
         }
         else {
             printf("Unknown bytecode: %s\n", opcode);
@@ -257,7 +290,19 @@ void run(VM* vm) {
     }
 }
 
-StringVector* read_file() {
+bool startsWith(char* in, char chr) {
+    for (int i = 0; i < strlen(in); i++) {
+        if (in[i] != ' ' &&  in[i] != '\t') {
+            return in[i] == chr;
+        }
+    }
+    return false;
+}
+
+SourceCode read_file() {
+    SourceCode code;
+    code.length = 0;
+    Function func;
     FILE* fptr;
     fptr = fopen("input.txt", "r");
     StringVector* line;
@@ -266,21 +311,35 @@ StringVector* read_file() {
     char buff[MAX_LENGTH];
     printf("Reading file...\n");
     while (fgets(buff, MAX_LENGTH, fptr)) {
-        line = split(buff, " ");
-        trim(line);
-        out = concat(out, line);
-        free(line);
+        if (startsWith(buff, ';'))
+            continue;
+        else if (buff[strlen(buff) - 2] == ':') {
+            func.label = getFromSV(split(buff, ":\n"), 0);
+        }
+        else if (strncmp(buff, "\n", strlen(buff)) == 0) {
+            func.body = out;
+            //free(out);
+            out = createStringVector();
+            code.code[code.length++] = func;
+        }
+        else {
+            line = split(buff, " ");
+            trimSV(line);
+            out = concat(out, line);
+            free(line);
+        }
     }
+    func.body = out;
+    code.code[code.length++] = func;
     fclose(fptr);
-    return out;
+    return code;
 }
 
 int main(int argc, char** argv) {
-    StringVector* code = read_file();
-    printStringVector(code);
+    SourceCode code = read_file();
+    displayCode(code);
     VM* vm = init(code, 100);
     run(vm);
-    free(code);
     destroy(vm);
     return 0;
 }

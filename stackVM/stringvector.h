@@ -6,9 +6,9 @@ typedef struct {
 
 StringVector* createStringVector();
 void freeStringVector(StringVector*);
-char* get(StringVector*, int);
+char* getFromSV(StringVector*, int);
 void addString(StringVector*, char*);
 StringVector* concat(StringVector*, StringVector*);
 void printStringVector(StringVector*);
 StringVector* split(char*, char*);
-void trim(StringVector*);
+void trimSV(StringVector*);

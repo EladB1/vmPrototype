@@ -1,11 +1,19 @@
-LOAD_CONST 3.14
-LOAD_CONST 5
-GSTORE
-DUP
-ADD
-GSTORE 0
-GLOAD 0
-DUP
-EQ
-SELECT 4 2
-HALT
+plus_one:
+    LOAD 0
+    LOAD_CONST 1
+    ADD
+    RET
+
+_entry:
+    LOAD_CONST 3.14
+    LOAD_CONST 5
+    GSTORE
+    DUP
+    ADD
+    GSTORE 0
+    GLOAD 0
+    DUP
+    EQ
+    SELECT 4 2
+    ; CALL plus_one 0
+    HALT

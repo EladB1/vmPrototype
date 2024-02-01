@@ -19,7 +19,7 @@ void freeStringVector(StringVector* sv) {
     free(sv);
 }
 
-char* get(StringVector* sv, int index) {
+char* getFromSV(StringVector* sv, int index) {
     return sv->strings[index];
 }
 
@@ -50,7 +50,7 @@ void printStringVector(StringVector* sv) {
     }
     printf("@0x%x: [", sv);
     for (int i = 0; i < sv->length - 1; i++) {
-        printf("%s, ", get(sv, i));
+        printf("%s, ", getFromSV(sv, i));
     }
     printf("%s], length: %d, capacity: %d\n", sv->strings[sv->length - 1], sv->length, sv->capacity);
 }
@@ -66,7 +66,7 @@ StringVector* split(char* line, char* delim) {
     return strings;
 }
 
-void trim(StringVector* sv) {
+void trimSV(StringVector* sv) {
     int len;
     char* string;
     for (int i = 0; i < sv->length; i++) {
