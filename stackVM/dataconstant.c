@@ -3,9 +3,10 @@
 #include <stdbool.h>
 #include <math.h>
 #include <string.h>
-#include "stackmember.h"
 
-char* toString(StackMember sm) {
+#include "dataconstant.h"
+
+char* toString(DataConstant sm) {
     char string[64];
     if (sm.type == Int)
         snprintf(string, 32, "%d", sm.value.intVal);
@@ -18,7 +19,7 @@ char* toString(StackMember sm) {
     return string;
 }
 
-bool isZero(StackMember sm) {
+bool isZero(DataConstant sm) {
     if (sm.type == Dbl)
         return sm.value.dblVal == 0;
     if (sm.type == Int)
@@ -26,7 +27,7 @@ bool isZero(StackMember sm) {
     return false;
 }
 
-bool isEqual(StackMember lhs, StackMember rhs) {
+bool isEqual(DataConstant lhs, DataConstant rhs) {
     if (!(lhs.type == rhs.type && lhs.size == rhs.size))
         return false;
     if (lhs.type == Int)
@@ -43,8 +44,8 @@ bool isEqual(StackMember lhs, StackMember rhs) {
     return true;
 }
 
-StackMember binaryArithmeticOperation(StackMember lhs, StackMember rhs, char* operation) {
-    StackMember result;
+DataConstant binaryArithmeticOperation(DataConstant lhs, DataConstant rhs, char* operation) {
+    DataConstant result;
     if (strncmp(operation, "+", 2) == 0) {
         if (lhs.type == Dbl || rhs.type == Dbl) {
             result.type = Dbl;
@@ -128,4 +129,12 @@ StackMember binaryArithmeticOperation(StackMember lhs, StackMember rhs, char* op
         }
     }
     return result;
+}
+
+DataConstant toAddress(int value) {
+    DataConstant member;
+    member.type = Addr;
+    member.size = 1;
+    member.value.intVal = value;
+    return member;
 }

@@ -4,10 +4,11 @@
 #include <stdbool.h>
 #include <ctype.h>
 #include <math.h>
-#include "stringvector.h"
-#include "stackmember.h"
+
+#include "frame.h"
 
 #define STACK_SIZE 100
+#define ENTRYPOINT "_entry"
 
 typedef struct {
     char* label;
@@ -19,34 +20,85 @@ typedef struct {
     Function code[256];
 } SourceCode;
 
-void displayCode(SourceCode code) {
-    printf("length: %d\n", code.length);
-    for (int i = 0; i < code.length; i++) {
-        printf("%s => ", code.code[i].label);
-        printStringVector(code.code[i].body);
-        printf("\n");
+void displayCode(SourceCode src) {
+    printf("length: %d\n", src.length);
+    for (int i = 0; i < src.length; i++) {
+        printf("%s => ", src.code[i].label);
+        printStringVector(src.code[i].body);
     }
 }
 
-int findEntryPoint(SourceCode code) {
-    for (int i = 0; i < code.length; i++) {
-        if (strncmp(code.code[i].label, "_entry", 7) == 0)
+int findLabelIndex(SourceCode src, char* label) {
+    for (int i = 0; i < src.length; i++) {
+        if (strncmp(src.code[i].label, label, strlen(label)) == 0)
             return i;
     }
     return -1;
 }
 
 typedef struct {
-    StackMember* locals;
-    StackMember* globals;
-    SourceCode code;
-    StackMember* stack;
+    DataConstant* globals;
+    SourceCode src;
+    Frame** callStack;
     int pc;
-    int sp;
     int fp;
-    int lc;
     int gc;
 } VM;
+
+VM* init(SourceCode src, int datasize) {
+    VM* vm = malloc(sizeof(VM));
+    vm->src = src;
+    vm->pc = 0;
+    vm->fp = 0;
+    vm->gc = -1;
+    vm->globals = malloc(sizeof(int) * datasize);
+    vm->callStack = malloc(sizeof(Frame*) * src.length);
+    int index = findLabelIndex(src, ENTRYPOINT);
+    vm->callStack[vm->fp] = loadFrame(src.code[index].body, vm->pc, index, 0, NULL);
+    return vm;
+}
+
+void destroy(VM* vm) {
+    free(vm->globals);
+    free(vm->callStack);
+    free(vm);
+}
+
+void push(VM* vm, DataConstant value) {
+    framePush(vm->callStack[vm->fp], value);
+}
+
+DataConstant pop(VM* vm) {
+    return framePop(vm->callStack[vm->fp]);
+}
+
+DataConstant top(VM* vm) {
+    return frameTop(vm->callStack[vm->fp]);
+}
+
+char* getNext(VM* vm) {
+    return getNextInstruction(vm->callStack[vm->fp]);
+}
+
+char* peekNext(VM* vm) {
+    return peekNextInstruction(vm->callStack[vm->fp]);
+}
+
+
+
+void display(VM* vm) {
+    printf("pc: %d, fp: %d\n", vm->pc, vm->fp);
+    print_array("Globals", vm->globals, vm->gc);
+    printf("Call Stack:\n");
+    Frame* frame;
+    for (int i = 0; i <= vm->fp; i++) {
+        frame = vm->callStack[i];
+        printf("\tsp: %d, pc: %d\n\t", frame->sp, frame->pc);
+        print_array("Stack", frame->stack, frame->sp);
+        printf("\t");
+        print_array("Locals", frame->locals, frame->lc);
+    }
+}
 
 bool isInt(char* constant) {
     for (int i = 0; i < strlen(constant); i++) {
@@ -68,79 +120,48 @@ bool isDouble(char* constant) {
 }
 
 bool isBool(char* constant) {
-    int len = strlen(constant);
-    return strncmp(constant, "true", len) == 0 || strncmp(constant, "false", len) == 0;
+    return strcmp(constant, "true") == 0 || strcmp(constant, "false") == 0;
 }
 
-
-VM* init(SourceCode code, int datasize) {
-    VM* vm = malloc(sizeof(VM));
-    vm->code = code;
-    vm->pc = 0;
-    vm->fp = findEntryPoint(code);
-    vm->sp = -1;
-    vm->lc = -1;
-    vm->gc = -1;
-    vm->stack = malloc(sizeof(int) * STACK_SIZE);
-    vm->locals = malloc(sizeof(int) * datasize);
-    vm->globals = malloc(sizeof(int) * datasize);
-    return vm;
+void stepOver(VM* vm) {
+    incrementPC(vm->callStack[vm->fp]);
 }
 
-void destroy(VM* vm) {
-    free(vm->locals);
-    free(vm->globals);
-    free(vm->stack);
-    free(vm);
+void jump(VM* vm, int addr) {
+    setPC(vm->callStack[vm->fp], addr);
 }
 
-void push(VM* vm, StackMember value) {
-    vm->stack[++vm->sp] = value;
+DataConstant load(VM* vm) {
+    int addr = atoi(getNext(vm));
+    return loadLocal(vm->callStack[vm->fp], addr);
 }
 
-StackMember pop(VM* vm) {
-    return vm->stack[vm->sp--];
-}
-
-char* getNext(VM* vm) {
-    return getFromSV(vm->code.code[vm->fp].body, vm->pc++);
-}
-
-void print_array(char* array_label, StackMember* array, int array_size) {
-    if (array_size == -1) {
-        printf("%s: []\n", array_label);
-        return;
+void storeValue(VM* vm) {
+    DataConstant value = pop(vm);
+    char* next = peekNext(vm);
+    if (isInt(next)) {
+        storeLocalAtAddr(vm->callStack[vm->fp], value, atoi(next));
+        stepOver(vm);
     }
-    printf("%s: [", array_label);
-    for (int i = 0; i < array_size; i++) {
-        printf("%s, ", toString(array[i]));
+    else {
+        storeLocal(vm->callStack[vm->fp], value);
     }
-    printf("%s]\n", toString(array[array_size]));
-
-}
-
-void display(VM* vm) {
-    printf("pc: %d, fp: %d, sp: %d\n", vm->pc, vm->fp, vm->sp);
-    print_array("Stack", vm->stack, vm->sp);
-    print_array("Locals", vm->locals, vm->lc);
-    print_array("Globals", vm->globals, vm->gc);
 }
 
 void run(VM* vm) {
     printf("Running program...\n");
     char* opcode;
-    StackMember value, lhs, rhs, rval;
+    DataConstant value, lhs, rhs, rval;
+    Frame* currentFrame = vm->callStack[vm->fp];
     char* next;
-    int len, addr;
-    //int offset, argc, rval;
+    int addr, offset, argc;
     while (1) {
         opcode = getNext(vm);
-        len = strlen(opcode);
-        if (strncmp(opcode, "HALT", 5) == 0) {
+        if (strcmp(opcode, "HALT") == 0) {
             printf("Program execution complete\n");
             return; // stop program
         }
-        else if (strncmp(opcode, "LOAD_CONST", 11) == 0) {
+        else if (strcmp(opcode, "LOAD_CONST") == 0) {
             next = getNext(vm);
             if (isInt(next)) {
                 value.type = Int;
@@ -152,52 +173,50 @@ void run(VM* vm) {
                 value.size = 1;
                 value.value.dblVal = atof(next);
             }
+            else if (isBool(next)) {
+                value.type = Bool;
+                value.size = 1;
+                value.value.boolVal = strcmp(next, "true") == 0;
+            }
             push(vm, value);
         }
-        else if (strncmp(opcode, "LOAD_BCONST", 12) == 0) {
-            next = getNext(vm);
-            value.type = Bool;
-            value.size = 1;
-            value.value.boolVal = strncmp(next, "true", strlen(next)) == 0 ? true : false;
-            push(vm, value);
-        }
-        else if (strncmp(opcode, "DUP", len) == 0) {
-            if (vm->sp == -1)
+        else if (strcmp(opcode, "DUP") == 0) {
+            if (stackIsEmpty(currentFrame))
                 return;
-            value = vm->stack[vm->sp];
+            value = top(vm);
             push(vm, value);
         }
-        else if (strncmp(opcode, "ADD", 4) == 0) {
+        else if (strcmp(opcode, "ADD") == 0) {
             rhs = pop(vm);
             lhs = pop(vm);
             rval = binaryArithmeticOperation(lhs, rhs, "+");
             push(vm, rval);
         }
-        else if (strncmp(opcode, "SUB", 4) == 0) {
+        else if (strcmp(opcode, "SUB") == 0) {
             rhs = pop(vm);
             lhs = pop(vm);
             rval = binaryArithmeticOperation(lhs, rhs, "-");
             push(vm, rval);
         }
-        else if (strncmp(opcode, "MUL", 4) == 0) {
+        else if (strcmp(opcode, "MUL") == 0) {
             rhs = pop(vm);
             lhs = pop(vm);
             rval = binaryArithmeticOperation(lhs, rhs, "*");
             push(vm, rval);
         }
-        else if (strncmp(opcode, "DIV", 4) == 0) {
+        else if (strcmp(opcode, "DIV") == 0) {
             rhs = pop(vm);
             lhs = pop(vm);
             rval = binaryArithmeticOperation(lhs, rhs, "/");
             push(vm, rval);
         }
-        else if (strncmp(opcode, "REM", 4) == 0) {
+        else if (strcmp(opcode, "REM") == 0) {
             rhs = pop(vm);
             lhs = pop(vm);
             rval = binaryArithmeticOperation(lhs, rhs, "mod");
             push(vm, rval);
         }
-        else if (strncmp(opcode, "EQ", 3) == 0) {
+        else if (strcmp(opcode, "EQ") == 0) {
             rhs = pop(vm);
             lhs = pop(vm);
             rval.type = Bool;
@@ -205,64 +224,57 @@ void run(VM* vm) {
             rval.value.boolVal = isEqual(lhs, rhs);
             push(vm, rval);
         }
-        else if (strncmp(opcode, "STORE", 6) == 0) {
-            if (vm->sp == -1)
+        else if (strcmp(opcode, "STORE") == 0) {
+            if (stackIsEmpty(currentFrame))
                 return;
             value = pop(vm);
-            next = getFromSV(vm->code.code[vm->fp].body, vm->pc);
-            if (isInt(next)) { // overwrite the value of an existing variable
-                vm->locals[atoi(next)] = value;
-                vm->pc++;
-            }
-            else
-                vm->locals[++vm->lc] = value;
+            storeValue(vm);
         }
-        else if (strncmp(opcode, "LOAD", 5) == 0) {
-            addr = atoi(getNext(vm));
-            value = vm->locals[addr];
+        else if (strcmp(opcode, "LOAD") == 0) {
+            value = load(vm);
             push(vm, value);
         }
-        else if (strncmp(opcode, "GSTORE", 7) == 0) {
-            if (vm->sp == -1)
+        else if (strcmp(opcode, "GSTORE") == 0) {
+            if (stackIsEmpty(currentFrame))
                 return;
             value = pop(vm);
-            next = getFromSV(vm->code.code[vm->fp].body, vm->pc);
+            next = peekNext(vm);
             if (isInt(next)) { // overwrite the value of an existing variable
                 vm->globals[atoi(next)] = value;
-                vm->pc++;
+                stepOver(vm);
             }
             else
                 vm->globals[++vm->gc] = value;
         }
-        else if (strncmp(opcode, "GLOAD", 6) == 0) {
+        else if (strcmp(opcode, "GLOAD") == 0) {
             addr = atoi(getNext(vm));
             value = vm->globals[addr];
             push(vm, value);
         }
-        else if (strncmp(opcode, "JMP", 4) == 0) {
+        else if (strcmp(opcode, "JMP") == 0) {
             addr = atoi(getNext(vm));
-            vm->pc = addr;
+            jump(vm, addr);
         }
-        else if (strncmp(opcode, "JMPT", len) == 0) {
+        else if (strcmp(opcode, "JMPT") == 0) {
             addr = atoi(getNext(vm));
             if (pop(vm).value.boolVal)
-                vm->pc = addr;
+                jump(vm, addr);
         }
-        else if (strncmp(opcode, "JMPF", len) == 0) {
+        else if (strcmp(opcode, "JMPF") == 0) {
             addr = atoi(getNext(vm));
             printf("addr: %d\n", addr);
             if (!pop(vm).value.boolVal)
-                vm->pc = addr;
-            printf("Jump to: %d(%s)\n", vm->pc, getFromSV(vm->code.code[vm->fp].body, addr));
+                jump(vm, addr);
+            printf("Jump to: %d(%s)\n", vm->pc, getFromSV(vm->src.code[vm->fp].body, addr));
         }
-        else if (strncmp(opcode, "SELECT", len) == 0) {
+        else if (strcmp(opcode, "SELECT") == 0) {
             if (pop(vm).value.boolVal) {
-                next = getFromSV(vm->code.code[vm->fp].body, vm->pc++);
-                vm->pc++;
+                next = getNext(vm);
+                stepOver(vm);
             }
             else {
-                vm->pc++;
-                next = getFromSV(vm->code.code[vm->fp].body, vm->pc++);
+                stepOver(vm);
+                next = getNext(vm);
             }
             if (isInt(next)) {
                 value.size = 1;
@@ -276,11 +288,12 @@ void run(VM* vm) {
             }
             push(vm, value);
         }
-        else if (strncmp(opcode, "CALL", len) == 0) {
+        else if (strcmp(opcode, "CALL") == 0) {
+
 
         }
-        else if (strncmp(opcode, "RET", len) == 0) {
-            
+        else if (strcmp(opcode, "RET") == 0) {
+
         }
         else {
             printf("Unknown bytecode: %s\n", opcode);
@@ -316,7 +329,7 @@ SourceCode read_file() {
         else if (buff[strlen(buff) - 2] == ':') {
             func.label = getFromSV(split(buff, ":\n"), 0);
         }
-        else if (strncmp(buff, "\n", strlen(buff)) == 0) {
+        else if (strcmp(buff, "\n") == 0) {
             func.body = out;
             //free(out);
             out = createStringVector();
@@ -336,9 +349,9 @@ SourceCode read_file() {
 }
 
 int main(int argc, char** argv) {
-    SourceCode code = read_file();
-    displayCode(code);
-    VM* vm = init(code, 100);
+    SourceCode src = read_file();
+    displayCode(src);
+    VM* vm = init(src, 100);
     run(vm);
     destroy(vm);
     return 0;

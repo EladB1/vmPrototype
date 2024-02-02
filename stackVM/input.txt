@@ -15,5 +15,5 @@ _entry:
     DUP
     EQ
     SELECT 4 2
-    ; CALL plus_one 0
+    ; CALL plus_one 1
     HALT
