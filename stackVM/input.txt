@@ -1,19 +1,58 @@
+test:
+    LOAD_CONST true
+    RET
+
 plus_one:
     LOAD 0
     LOAD_CONST 1
     ADD
     RET
 
-_entry:
-    LOAD_CONST 3.14
-    LOAD_CONST 5
-    GSTORE
-    DUP
-    ADD
-    GSTORE 0
-    GLOAD 0
-    DUP
+equals_one:
+    LOAD 0
+    LOAD_CONST 1
     EQ
-    SELECT 4 2
-    ; CALL plus_one 1
+    RET
+
+fib:
+    LOAD 0
+    LOAD_CONST 0
+    EQ
+    SJMPT 33
+    LOAD 0
+    LOAD_CONST 1
+    EQ
+    OR
+    JMPT 33
+    LOAD 0
+    LOAD_CONST 1
+    SUB
+    CALL fib 1
+    LOAD 0
+    LOAD_CONST 2
+    SUB
+    CALL fib 1
+    ADD
+    RET
+    LOAD 0
+    RET
+
+_entry:
+    ;LOAD_CONST 3.14
+    ;LOAD_CONST 5
+    ;GSTORE
+    ;DUP
+    ;ADD
+    ;GSTORE 0
+    ;GLOAD 0
+    ;DUP
+    ;EQ
+    ;SELECT 4 2
+    ;CALL plus_one 1
+    ;CALL test 0
+    ;STORE
+    ;LOAD_CONST false
+    ;STORE 0
+    LOAD_CONST 6
+    CALL fib 1
     HALT

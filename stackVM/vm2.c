@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include <ctype.h>
 #include <math.h>
+#include <unistd.h>
 
 #include "frame.h"
 
@@ -30,7 +31,7 @@ void displayCode(SourceCode src) {
 
 int findLabelIndex(SourceCode src, char* label) {
     for (int i = 0; i < src.length; i++) {
-        if (strncmp(src.code[i].label, label, strlen(label)) == 0)
+        if (strcmp(src.code[i].label, label) == 0)
             return i;
     }
     return -1;
@@ -40,7 +41,6 @@ typedef struct {
     DataConstant* globals;
     SourceCode src;
     Frame** callStack;
-    int pc;
     int fp;
     int gc;
 } VM;
@@ -48,13 +48,12 @@ typedef struct {
 VM* init(SourceCode src, int datasize) {
     VM* vm = malloc(sizeof(VM));
     vm->src = src;
-    vm->pc = 0;
     vm->fp = 0;
     vm->gc = -1;
     vm->globals = malloc(sizeof(int) * datasize);
     vm->callStack = malloc(sizeof(Frame*) * src.length);
     int index = findLabelIndex(src, ENTRYPOINT);
-    vm->callStack[vm->fp] = loadFrame(src.code[index].body, vm->pc, index, 0, NULL);
+    vm->callStack[vm->fp] = loadFrame(src.code[index].body, 0, index, 0, NULL);
     return vm;
 }
 
@@ -84,16 +83,14 @@ char* peekNext(VM* vm) {
     return peekNextInstruction(vm->callStack[vm->fp]);
 }
 
-
-
 void display(VM* vm) {
-    printf("pc: %d, fp: %d\n", vm->pc, vm->fp);
+    printf("---\nfp: %d\n", vm->fp);
     print_array("Globals", vm->globals, vm->gc);
     printf("Call Stack:\n");
     Frame* frame;
     for (int i = 0; i <= vm->fp; i++) {
         frame = vm->callStack[i];
-        printf("\tsp: %d, pc: %d\n\t", frame->sp, frame->pc);
+        printf("Frame %d\n\tsp: %d, pc: %d, returnAddr: %d, frameAddr: %d\n\t", i, frame->sp, frame->pc, frame->returnAddr, frame->frameAddr);
         print_array("Stack", frame->stack, frame->sp);
         printf("\t");
         print_array("Locals", frame->locals, frame->lc);
@@ -158,7 +155,7 @@ void run(VM* vm) {
     while (1) {
         opcode = getNext(vm);
         if (strcmp(opcode, "HALT") == 0) {
-            printf("Program execution complete\n");
+            printf("-----\nProgram execution complete\n");
             return; // stop program
         }
         else if (strcmp(opcode, "LOAD_CONST") == 0) {
@@ -224,10 +221,32 @@ void run(VM* vm) {
             rval.value.boolVal = isEqual(lhs, rhs);
             push(vm, rval);
         }
+        else if (strcmp(opcode, "NOT") == 0) {
+            rhs = pop(vm);
+            rval.type = Bool;
+            rval.size = 1;
+            rval.value.boolVal = !rhs.value.boolVal;
+            push(vm, rval);
+        }
+        else if (strcmp(opcode, "OR") == 0) {
+            rhs = pop(vm);
+            lhs = pop(vm);
+            rval.type = Bool;
+            rval.size = 1;
+            rval.value.boolVal = lhs.value.boolVal || rhs.value.boolVal;
+            push(vm, rval);
+        }
+        else if (strcmp(opcode, "AND") == 0) {
+            rhs = pop(vm);
+            lhs = pop(vm);
+            rval.type = Bool;
+            rval.size = 1;
+            rval.value.boolVal = lhs.value.boolVal && rhs.value.boolVal;
+            push(vm, rval);
+        }
         else if (strcmp(opcode, "STORE") == 0) {
             if (stackIsEmpty(currentFrame))
                 return;
-            value = pop(vm);
             storeValue(vm);
         }
         else if (strcmp(opcode, "LOAD") == 0) {
@@ -262,10 +281,20 @@ void run(VM* vm) {
         }
         else if (strcmp(opcode, "JMPF") == 0) {
             addr = atoi(getNext(vm));
-            printf("addr: %d\n", addr);
             if (!pop(vm).value.boolVal)
                 jump(vm, addr);
-            printf("Jump to: %d(%s)\n", vm->pc, getFromSV(vm->src.code[vm->fp].body, addr));
+        }
+        else if (strcmp(opcode, "SJMPT") == 0) {
+            // short circuit for and/or statements
+            addr = atoi(getNext(vm));
+            if (top(vm).value.boolVal)
+                jump(vm, addr);
+        }
+        else if (strcmp(opcode, "SJMPF") == 0) {
+            // short circuit for and/or statements
+            addr = atoi(getNext(vm));
+            if (!top(vm).value.boolVal)
+                jump(vm, addr);
         }
         else if (strcmp(opcode, "SELECT") == 0) {
             if (pop(vm).value.boolVal) {
@@ -289,17 +318,30 @@ void run(VM* vm) {
             push(vm, value);
         }
         else if (strcmp(opcode, "CALL") == 0) {
-
-
+            next = getNext(vm);
+            argc = atoi(getNext(vm));
+            DataConstant params[argc];
+            for (int i = 0; i < argc; i++) {
+                params[i] = pop(vm);
+            }
+            addr = findLabelIndex(vm->src, next);
+            Frame* frame = loadFrame(vm->src.code[addr].body, currentFrame->pc, vm->fp, argc, params);
+            vm->callStack[++vm->fp] = frame;
         }
         else if (strcmp(opcode, "RET") == 0) {
-
+            rval = pop(vm);
+            addr = currentFrame->pc;
+            Frame* caller = vm->callStack[--vm->fp];
+            caller->pc = addr;
+            deleteFrame(vm->callStack[vm->fp + 1]);
+            push(vm, rval);
         }
         else {
             printf("Unknown bytecode: %s\n", opcode);
             break;
         }
         display(vm);
+        sleep(1);
     }
 }
 

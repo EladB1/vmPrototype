@@ -128,6 +128,7 @@ DataConstant binaryArithmeticOperation(DataConstant lhs, DataConstant rhs, char*
             result.value.intVal = lhs.value.intVal % rhs.value.intVal;
         }
     }
+    result.size = 1;
     return result;
 }
 
