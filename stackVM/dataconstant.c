@@ -63,7 +63,7 @@ DataConstant compareData(DataConstant lhs, DataConstant rhs, char* comparison) {
     else if (strcmp(comparison, "!="))
         result.value.boolVal = !isEqual(lhs, rhs);
     else {
-        if ((lhs.type != Int || lhs.type != Dbl) || (rhs.type != Dbl || rhs.type != Int))
+        if ((lhs.type != Int && lhs.type != Dbl) || (rhs.type != Dbl && rhs.type != Int))
             result.value.boolVal = false;
         if (strcmp(comparison, "<") == 0) {
             if (lhs.type == Int)

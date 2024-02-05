@@ -6,20 +6,11 @@
 #include <math.h>
 #include <unistd.h>
 
+#include "filereader.h"
 #include "frame.h"
 
 #define STACK_SIZE 100
 #define ENTRYPOINT "_entry"
-
-typedef struct {
-    char* label;
-    StringVector* body;
-} Function;
-
-typedef struct {
-    int length;
-    Function code[256];
-} SourceCode;
 
 void displayCode(SourceCode src) {
     printf("length: %d\n", src.length);
@@ -151,7 +142,7 @@ void run(VM* vm) {
     DataConstant value, lhs, rhs, rval;
     Frame* currentFrame;
     char* next;
-    int addr, offset, argc;
+    int addr, argc;
     while (1) {
         opcode = getNext(vm);
         currentFrame = vm->callStack[vm->fp];
@@ -397,51 +388,6 @@ void run(VM* vm) {
         }
         display(vm);
     }
-}
-
-bool startsWith(char* in, char chr) {
-    for (int i = 0; i < strlen(in); i++) {
-        if (in[i] != ' ' &&  in[i] != '\t') {
-            return in[i] == chr;
-        }
-    }
-    return false;
-}
-
-SourceCode read_file() {
-    SourceCode code;
-    code.length = 0;
-    Function func;
-    FILE* fptr;
-    fptr = fopen("input.txt", "r");
-    StringVector* line;
-    StringVector* out = createStringVector();
-    const unsigned int MAX_LENGTH = 256;
-    char buff[MAX_LENGTH];
-    printf("Reading file...\n");
-    while (fgets(buff, MAX_LENGTH, fptr)) {
-        if (startsWith(buff, ';'))
-            continue;
-        else if (buff[strlen(buff) - 2] == ':') {
-            func.label = getFromSV(split(buff, ":\n"), 0);
-        }
-        else if (strcmp(buff, "\n") == 0) {
-            func.body = out;
-            //free(out);
-            out = createStringVector();
-            code.code[code.length++] = func;
-        }
-        else {
-            line = split(buff, " ");
-            trimSV(line);
-            out = concat(out, line);
-            free(line);
-        }
-    }
-    func.body = out;
-    code.code[code.length++] = func;
-    fclose(fptr);
-    return code;
 }
 
 int main(int argc, char** argv) {

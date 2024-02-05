@@ -1,3 +1,5 @@
+#ifndef DATACONSTANT_H
+#define DATACONSTANT_H
 #include <stdbool.h>
 
 typedef enum {
@@ -30,3 +32,4 @@ bool isZero(DataConstant data);
 DataConstant compareData(DataConstant lhs, DataConstant rhs, char* comparison);
 DataConstant binaryArithmeticOperation(DataConstant lhs, DataConstant rhs, char* operation);
 DataConstant toAddress(int value);
+#endif
