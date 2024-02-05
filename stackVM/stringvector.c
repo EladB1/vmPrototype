@@ -47,9 +47,9 @@ StringVector* concat(StringVector* sv1, StringVector* sv2) {
 
 void printStringVector(StringVector* sv) {
     if (sv->length == 0) {
-        printf("@0x%x: [], length: 0, capacity: %d\n", sv, sv->capacity);
+        printf("@%p: [], length: 0, capacity: %d\n", sv, sv->capacity);
     }
-    printf("@0x%x: [", sv);
+    printf("@%p: [", sv);
     for (int i = 0; i < sv->length - 1; i++) {
         printf("%s, ", getFromSV(sv, i));
     }

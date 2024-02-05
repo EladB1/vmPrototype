@@ -170,7 +170,6 @@ void run(VM* vm) {
         else if (strcmp(opcode, "ADD") == 0) {
             rhs = pop(vm);
             lhs = pop(vm);
-            printf("Adding\n");
             rval = binaryArithmeticOperation(lhs, rhs, "+");
             push(vm, rval);
         }
@@ -352,6 +351,12 @@ void run(VM* vm) {
                 value.size = 1;
                 value.type = Dbl;
                 value.value.dblVal = atof(next);
+            }
+
+            else if (isBool(next)) {
+                value.size = 1;
+                value.type = Bool;
+                value.value.boolVal = strcmp(next, "true") == 0;
             }
             push(vm, value);
         }
