@@ -6,24 +6,24 @@
 
 #include "dataconstant.h"
 
-char* toString(DataConstant sm) {
+char* toString(DataConstant data) {
     char string[64];
-    if (sm.type == Int)
-        snprintf(string, 32, "%d", sm.value.intVal);
-    if (sm.type == Dbl)
-        snprintf(string, 64, "%f", sm.value.dblVal);
-    if (sm.type == Bool)
-        return sm.value.boolVal ? "true" : "false";
-    if (sm.type == Str)
-        return sm.value.strVal;
+    if (data.type == Int)
+        snprintf(string, 32, "%d", data.value.intVal);
+    if (data.type == Dbl)
+        snprintf(string, 64, "%f", data.value.dblVal);
+    if (data.type == Bool)
+        return data.value.boolVal ? "true" : "false";
+    if (data.type == Str)
+        return data.value.strVal;
     return string;
 }
 
-bool isZero(DataConstant sm) {
-    if (sm.type == Dbl)
-        return sm.value.dblVal == 0;
-    if (sm.type == Int)
-        return sm.value.intVal == 0;
+bool isZero(DataConstant data) {
+    if (data.type == Dbl)
+        return data.value.dblVal == 0;
+    if (data.type == Int)
+        return data.value.intVal == 0;
     return false;
 }
 

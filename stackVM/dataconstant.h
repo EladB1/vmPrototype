@@ -25,8 +25,8 @@ typedef struct {
     int size;
 } DataConstant;
 
-char* toString(DataConstant);
-bool isZero(DataConstant);
-bool isEqual(DataConstant, DataConstant);
-DataConstant binaryArithmeticOperation(DataConstant, DataConstant, char*);
-DataConstant toAddress(int);
+char* toString(DataConstant data);
+bool isZero(DataConstant data);
+bool isEqual(DataConstant lhs, DataConstant rhs);
+DataConstant binaryArithmeticOperation(DataConstant lhs, DataConstant rhs, char* operation);
+DataConstant toAddress(int value);

@@ -5,10 +5,10 @@ typedef struct {
 } StringVector;
 
 StringVector* createStringVector();
-void freeStringVector(StringVector*);
-char* getFromSV(StringVector*, int);
-void addString(StringVector*, char*);
-StringVector* concat(StringVector*, StringVector*);
-void printStringVector(StringVector*);
-StringVector* split(char*, char*);
-void trimSV(StringVector*);
+void freeStringVector(StringVector* sv);
+char* getFromSV(StringVector* sv, int);
+void addString(StringVector* sv, char*);
+StringVector* concat(StringVector* sv1, StringVector* sv2);
+void printStringVector(StringVector* sv);
+StringVector* split(char* line, char* delim);
+void trimSV(StringVector* sv);
