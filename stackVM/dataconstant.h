@@ -33,5 +33,11 @@ bool isZero(DataConstant data);
 DataConstant compareData(DataConstant lhs, DataConstant rhs, char* comparison);
 DataConstant binaryArithmeticOperation(DataConstant lhs, DataConstant rhs, char* operation);
 DataConstant toAddress(int value);
+DataConstant createInt(char* value);
+DataConstant createDouble(char* value);
+DataConstant createBoolean(char* value);
+DataConstant createString(char* value);
+DataConstant createNull();
+DataConstant createNone();
 
 #endif

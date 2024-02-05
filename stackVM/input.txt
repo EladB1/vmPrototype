@@ -72,7 +72,9 @@ _entry:
     CALL plus_one 1
     CALL test 0
     STORE
+    LOAD 0
     LOAD_CONST false
+    OR
     STORE 0
     ;WAIT 1.4132632
     LOAD_CONST 6
@@ -82,4 +84,12 @@ _entry:
     XOR
     LOAD_CONST 1
     B_AND
+    LOAD_CONST 2
+    LOAD_CONST 0.5
+    POW
+    STORE
+    LOAD_CONST "hello"
+    LOAD_CONST NULL
+    EQ
+    STORE 0
     HALT

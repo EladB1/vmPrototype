@@ -144,21 +144,19 @@ void run(VM* vm) {
         }
         else if (strcmp(opcode, "LOAD_CONST") == 0) {
             next = getNext(vm);
-            if (isInt(next)) {
-                value.type = Int;
-                value.size = 1;
-                value.value.intVal = atoi(next);
+            if (isInt(next))
+                value = createInt(next);
+            else if (isDouble(next))
+                value = createDouble(next);
+            else if (isBool(next))
+                value = createBoolean(next);
+            else if (startsWith(next, '"')) {
+                value = createString(next);
             }
-            else if (isDouble(next)) {
-                value.type = Dbl;
-                value.size = 1;
-                value.value.dblVal = atof(next);
-            }
-            else if (isBool(next)) {
-                value.type = Bool;
-                value.size = 1;
-                value.value.boolVal = strcmp(next, "true") == 0;
-            }
+            else if (strcmp(next, "NULL") == 0)
+                value = createNull();
+            else if (strcmp(next, "NONE") == 0)
+                value = createNone();
             push(vm, value);
         }
         else if (strcmp(opcode, "DUP") == 0) {
@@ -195,6 +193,12 @@ void run(VM* vm) {
             rhs = pop(vm);
             lhs = pop(vm);
             rval = binaryArithmeticOperation(lhs, rhs, "mod");
+            push(vm, rval);
+        }
+        else if (strcmp(opcode, "POW") == 0) {
+            rhs = pop(vm);
+            lhs = pop(vm);
+            rval = binaryArithmeticOperation(lhs, rhs, "exp");
             push(vm, rval);
         }
         else if (strcmp(opcode, "EQ") == 0) {
@@ -342,22 +346,12 @@ void run(VM* vm) {
                 stepOver(vm);
                 next = getNext(vm);
             }
-            if (isInt(next)) {
-                value.size = 1;
-                value.type = Int;
-                value.value.intVal = atoi(next);
-            }
-            else if (isDouble(next)) {
-                value.size = 1;
-                value.type = Dbl;
-                value.value.dblVal = atof(next);
-            }
-
-            else if (isBool(next)) {
-                value.size = 1;
-                value.type = Bool;
-                value.value.boolVal = strcmp(next, "true") == 0;
-            }
+            if (isInt(next))
+                value = createInt(next);
+            else if (isDouble(next))
+                value = createDouble(next);
+            else if (isBool(next))
+                value = createBoolean(next);
             push(vm, value);
         }
         else if (strcmp(opcode, "CALL") == 0) {

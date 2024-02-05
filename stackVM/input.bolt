@@ -29,7 +29,8 @@ fn sum(int limit): int {
 fn main() {
     plus_one(x == 3.14 ? 4 : 2);
     boolean result = test();
-    result = false;
+    result = false || result;
     sleep(1.4132632);
-    (fib(6) ^ sum(10)) & 1;
+    int y = (fib(6) ^ sum(10)) & 1;
+    result = "hello" == null;
 }

@@ -95,7 +95,7 @@ DataConstant compareData(DataConstant lhs, DataConstant rhs, char* comparison) {
 
 DataConstant binaryArithmeticOperation(DataConstant lhs, DataConstant rhs, char* operation) {
     DataConstant result;
-    if (strncmp(operation, "+", 2) == 0) {
+    if (strcmp(operation, "+") == 0) {
         if (lhs.type == Dbl || rhs.type == Dbl) {
             result.type = Dbl;
             if (lhs.type == rhs.type)
@@ -110,7 +110,7 @@ DataConstant binaryArithmeticOperation(DataConstant lhs, DataConstant rhs, char*
             result.value.intVal = lhs.value.intVal + rhs.value.intVal;
         }
     }
-    else if (strncmp(operation, "-", 2) == 0) {
+    else if (strcmp(operation, "-") == 0) {
         if (lhs.type == Dbl || rhs.type == Dbl) {
             if (lhs.type == rhs.type)
                 result.value.dblVal = lhs.value.dblVal - rhs.value.dblVal;
@@ -124,7 +124,7 @@ DataConstant binaryArithmeticOperation(DataConstant lhs, DataConstant rhs, char*
             result.value.intVal = lhs.value.intVal - rhs.value.intVal;
         }
     }
-    if (strncmp(operation, "*", 2) == 0) {
+    if (strcmp(operation, "*") == 0) {
         if (lhs.type == Dbl || rhs.type == Dbl) {
             result.type = Dbl;
             if (lhs.type == rhs.type)
@@ -139,7 +139,7 @@ DataConstant binaryArithmeticOperation(DataConstant lhs, DataConstant rhs, char*
             result.value.intVal = lhs.value.intVal * rhs.value.intVal;
         }
     }
-    if (strncmp(operation, "/", 2) == 0) {
+    if (strcmp(operation, "/") == 0) {
         if (isZero(rhs)) {
             printf("Error: Division by zero\n");
             exit(1);
@@ -158,7 +158,7 @@ DataConstant binaryArithmeticOperation(DataConstant lhs, DataConstant rhs, char*
             result.value.intVal = lhs.value.intVal / rhs.value.intVal;
         }
     }
-    if (strncmp(operation, "mod", 4) == 0) {
+    if (strcmp(operation, "mod") == 0) {
         if (isZero(rhs)) {
             printf("Error: Division by zero\n");
             exit(1);
@@ -177,6 +177,21 @@ DataConstant binaryArithmeticOperation(DataConstant lhs, DataConstant rhs, char*
             result.value.intVal = lhs.value.intVal % rhs.value.intVal;
         }
     }
+    if (strcmp(operation, "exp") == 0) {
+        if (lhs.type == Dbl || rhs.type == Dbl) {
+            result.type = Dbl;
+            if (lhs.type == rhs.type)
+                result.value.dblVal = pow(lhs.value.dblVal, rhs.value.dblVal);
+            else if (lhs.type == Int)
+                result.value.dblVal = pow(lhs.value.intVal, rhs.value.dblVal);
+            else
+                result.value.dblVal = pow(lhs.value.dblVal, rhs.value.intVal);
+        }
+        else {
+            result.type = Int;
+            result.value.intVal = (int) lround(pow(lhs.value.intVal, rhs.value.intVal));
+        }
+    }
     result.size = 1;
     return result;
 }
@@ -187,4 +202,50 @@ DataConstant toAddress(int value) {
     member.size = 1;
     member.value.intVal = value;
     return member;
+}
+
+DataConstant createInt(char* value) {
+    DataConstant data;
+    data.size = 1;
+    data.type = Int;
+    data.value.intVal = atoi(value);
+    return data;
+}
+
+DataConstant createDouble(char* value) {
+    DataConstant data;
+    data.size = 1;
+    data.type = Dbl;
+    data.value.dblVal = atof(value);
+    return data;
+}
+
+DataConstant createBoolean(char* value) {
+    DataConstant data;
+    data.type = Bool;
+    data.size = 1;
+    data.value.boolVal = strcmp(value, "true") == 0;
+    return data;
+}
+
+DataConstant createString(char* value) {
+    DataConstant data;
+    data.type = Str;
+    data.size = 1;
+    data.value.strVal = value;
+    return data;
+}
+
+DataConstant createNull() {
+    DataConstant data;
+    data.type = Null;
+    data.size = 1;
+    return data;
+}
+
+DataConstant createNone() {
+    DataConstant data;
+    data.type = None;
+    data.size = 0;
+    return data;
 }

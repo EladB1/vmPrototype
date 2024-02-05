@@ -13,6 +13,7 @@ typedef struct {
     Function code[256];
 } SourceCode;
 
+bool startsWith(char* in, char chr);
 SourceCode read_file(char* filename);
 void displayCode(SourceCode src);
 
