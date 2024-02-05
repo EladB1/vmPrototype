@@ -1,0 +1,35 @@
+int x = 5;
+
+fn test(): boolean {
+    return true;
+}
+
+fn plus_one(int n): int {
+    return n + 1;
+}
+
+fn equals_one(int n): boolean {
+    return n == 1;
+}
+
+fn fib(int n): int {
+    if (n == 0 || n == 1)
+        return n;
+    return fib(n - 1) + fib(n - 2);
+}
+
+fn sum(int limit): int {
+    int sum = 0;
+    for (int i = 0; i < limit; i++) {
+        sum += i;
+    }
+    return sum;
+}
+
+fn main() {
+    plus_one(x == 3.14 ? 4 : 2);
+    boolean result = test();
+    result = false;
+    sleep(1.4132632);
+    (fib(6) ^ sum(10)) & 1;
+}

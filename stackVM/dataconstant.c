@@ -28,20 +28,69 @@ bool isZero(DataConstant data) {
 }
 
 bool isEqual(DataConstant lhs, DataConstant rhs) {
-    if (!(lhs.type == rhs.type && lhs.size == rhs.size))
-        return false;
     if (lhs.type == Int)
-        return lhs.value.intVal == rhs.value.intVal;
+        return rhs.type == Int ? lhs.value.intVal == rhs.value.intVal : lhs.value.intVal == rhs.value.dblVal;
     if (lhs.type == Dbl)
-        return lhs.value.dblVal == rhs.value.dblVal;
-    if (lhs.type == Bool)
+        return rhs.type == Dbl ? lhs.value.dblVal == rhs.value.dblVal : lhs.value.dblVal == rhs.value.intVal;
+    if (lhs.type == Bool && rhs.type == Bool)
         return lhs.value.boolVal == rhs.value.boolVal;
-    if (lhs.type == Str) {
+    if (lhs.type == Str && rhs.type == Str) {
         if (strlen(lhs.value.strVal) != strlen(rhs.value.strVal))
             return false;
-        return strncmp(lhs.value.strVal, rhs.value.strVal, strlen(lhs.value.strVal));
+        return strcmp(lhs.value.strVal, rhs.value.strVal);
     }
-    return true;
+    if (lhs.type == Null && rhs.type == Null)
+        return true;
+    return false;
+}
+
+/**
+ * Cases:
+ *  int (<, <=, >, >=) int
+ *  double (<, <=, >, >=) double
+ *  int (<, <=, >, >=) double
+ *  double (<, <=, >, >=) int
+ *  equality (any matching types)
+ *  equality (any type with null)
+ *  equality (int and double (either way))
+*/
+DataConstant compareData(DataConstant lhs, DataConstant rhs, char* comparison) {
+    DataConstant result;
+    result.type = Bool;
+    result.size = 1;
+    if (strcmp(comparison, "==") == 0)
+        result.value.boolVal = isEqual(lhs, rhs);
+    else if (strcmp(comparison, "!="))
+        result.value.boolVal = !isEqual(lhs, rhs);
+    else {
+        if ((lhs.type != Int || lhs.type != Dbl) || (rhs.type != Dbl || rhs.type != Int))
+            result.value.boolVal = false;
+        if (strcmp(comparison, "<") == 0) {
+            if (lhs.type == Int)
+                result.value.boolVal = rhs.type == Int ? lhs.value.intVal < rhs.value.intVal : lhs.value.intVal < rhs.value.dblVal;
+            if (lhs.type == Dbl)
+                result.value.boolVal = rhs.type == Dbl ? lhs.value.dblVal < rhs.value.dblVal : lhs.value.dblVal < rhs.value.intVal;
+        }
+        if (strcmp(comparison, "<=") == 0) {
+            if (lhs.type == Int)
+                result.value.boolVal = rhs.type == Int ? lhs.value.intVal <= rhs.value.intVal : lhs.value.intVal <= rhs.value.dblVal;
+            if (lhs.type == Dbl)
+                result.value.boolVal = rhs.type == Dbl ? lhs.value.dblVal <= rhs.value.dblVal : lhs.value.dblVal <= rhs.value.intVal;
+        }
+        if (strcmp(comparison, ">") == 0) {
+            if (lhs.type == Int)
+                result.value.boolVal = rhs.type == Int ? lhs.value.intVal > rhs.value.intVal : lhs.value.intVal > rhs.value.dblVal;
+            if (lhs.type == Dbl)
+                result.value.boolVal = rhs.type == Dbl ? lhs.value.dblVal > rhs.value.dblVal : lhs.value.dblVal > rhs.value.intVal;
+        }
+        if (strcmp(comparison, ">=") == 0) {
+            if (lhs.type == Int)
+                result.value.boolVal = rhs.type == Int ? lhs.value.intVal >= rhs.value.intVal : lhs.value.intVal >= rhs.value.dblVal;
+            if (lhs.type == Dbl)
+                result.value.boolVal = rhs.type == Dbl ? lhs.value.dblVal >= rhs.value.dblVal : lhs.value.dblVal >= rhs.value.intVal;
+        }
+    }
+    return result;
 }
 
 DataConstant binaryArithmeticOperation(DataConstant lhs, DataConstant rhs, char* operation) {

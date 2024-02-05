@@ -39,15 +39,34 @@ fib:
     LOAD 0
     RET
 
+sum:
+    LOAD_CONST 0
+    ; loop iterator
+    DUP
+    ; sum
+    STORE
+    STORE
+    LOAD 1
+    LOAD 0
+    LT
+    JMPF 28
+    LOAD 2
+    LOAD 1
+    ADD
+    STORE 2
+    LOAD 1
+    LOAD_CONST 1
+    ADD
+    STORE 1
+    JMP 5
+    LOAD 2
+    RET
+
 _entry:
     LOAD_CONST 3.14
     LOAD_CONST 5
     GSTORE
-    DUP
-    ADD
-    GSTORE 0
     GLOAD 0
-    DUP
     EQ
     SELECT 4 2
     CALL plus_one 1
@@ -55,7 +74,12 @@ _entry:
     STORE
     LOAD_CONST false
     STORE 0
+    WAIT 1.4132632
     LOAD_CONST 6
-    WAIT 5.4132632
     CALL fib 1
+    LOAD_CONST 10
+    CALL sum 1
+    XOR
+    LOAD_CONST 1
+    B_AND
     HALT

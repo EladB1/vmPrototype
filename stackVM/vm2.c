@@ -218,9 +218,37 @@ void run(VM* vm) {
         else if (strcmp(opcode, "EQ") == 0) {
             rhs = pop(vm);
             lhs = pop(vm);
-            rval.type = Bool;
-            rval.size = 1;
-            rval.value.boolVal = isEqual(lhs, rhs);
+            rval = compareData(lhs, rhs, "==");
+            push(vm, rval);
+        }
+        else if (strcmp(opcode, "NE") == 0) {
+            rhs = pop(vm);
+            lhs = pop(vm);
+            rval = compareData(lhs, rhs, "!=");
+            push(vm, rval);
+        }
+        else if (strcmp(opcode, "LT") == 0) {
+            rhs = pop(vm);
+            lhs = pop(vm);
+            rval = compareData(lhs, rhs, "<");
+            push(vm, rval);
+        }
+        else if (strcmp(opcode, "LE") == 0) {
+            rhs = pop(vm);
+            lhs = pop(vm);
+            rval = compareData(lhs, rhs, "<=");
+            push(vm, rval);
+        }
+        else if (strcmp(opcode, "GT") == 0) {
+            rhs = pop(vm);
+            lhs = pop(vm);
+            rval = compareData(lhs, rhs, ">");
+            push(vm, rval);
+        }
+        else if (strcmp(opcode, "GE") == 0) {
+            rhs = pop(vm);
+            lhs = pop(vm);
+            rval = compareData(lhs, rhs, ">=");
             push(vm, rval);
         }
         else if (strcmp(opcode, "NOT") == 0) {
@@ -244,6 +272,28 @@ void run(VM* vm) {
             rval.type = Bool;
             rval.size = 1;
             rval.value.boolVal = lhs.value.boolVal && rhs.value.boolVal;
+            push(vm, rval);
+        }
+        else if (strcmp(opcode, "XOR") == 0) {
+            rhs = pop(vm);
+            lhs = pop(vm);
+            rval.type = Int;
+            rval.size = 1;
+            if (lhs.type == Int)
+                rval.value.intVal = rhs.type == Int ? lhs.value.intVal ^ rhs.value.intVal : lhs.value.intVal ^ rhs.value.boolVal;
+            if (lhs.type == Bool)
+                rval.value.intVal = rhs.type == Bool ? lhs.value.boolVal ^ rhs.value.boolVal : lhs.value.boolVal ^ rhs.value.intVal;
+            push(vm, rval);
+        }
+        else if (strcmp(opcode, "B_AND") == 0) {
+            rhs = pop(vm);
+            lhs = pop(vm);
+            rval.type = Int;
+            rval.size = 1;
+            if (lhs.type == Int)
+                rval.value.intVal = rhs.type == Int ? lhs.value.intVal & rhs.value.intVal : lhs.value.intVal & rhs.value.boolVal;
+            if (lhs.type == Bool)
+                rval.value.intVal = rhs.type == Bool ? lhs.value.boolVal & rhs.value.boolVal : lhs.value.boolVal & rhs.value.intVal;
             push(vm, rval);
         }
         else if (strcmp(opcode, "WAIT") == 0) {
