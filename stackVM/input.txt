@@ -74,7 +74,7 @@ _entry:
     STORE
     LOAD_CONST false
     STORE 0
-    WAIT 1.4132632
+    ;WAIT 1.4132632
     LOAD_CONST 6
     CALL fib 1
     LOAD_CONST 10

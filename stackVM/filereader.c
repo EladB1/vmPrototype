@@ -14,17 +14,16 @@ bool startsWith(char* in, char chr) {
     return false;
 }
 
-SourceCode read_file() {
+SourceCode read_file(char* filename) {
     SourceCode code;
     code.length = 0;
     Function func;
     FILE* fptr;
-    fptr = fopen("input.txt", "r");
+    fptr = fopen(filename, "r");
     StringVector* line;
     StringVector* out = createStringVector();
     const unsigned int MAX_LENGTH = 256;
     char buff[MAX_LENGTH];
-    printf("Reading file...\n");
     while (fgets(buff, MAX_LENGTH, fptr)) {
         if (startsWith(buff, ';'))
             continue;
@@ -47,4 +46,12 @@ SourceCode read_file() {
     code.code[code.length++] = func;
     fclose(fptr);
     return code;
+}
+
+void displayCode(SourceCode src) {
+    printf("length: %d\n", src.length);
+    for (int i = 0; i < src.length; i++) {
+        printf("%s => ", src.code[i].label);
+        printStringVector(src.code[i].body);
+    }
 }

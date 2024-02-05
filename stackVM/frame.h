@@ -1,5 +1,9 @@
+#ifndef FRAME_H
+#define FRAME_H
+
 #include "dataconstant.h"
 #include "stringvector.h"
+
 #define STACK_SIZE 100
 
 typedef struct {
@@ -27,3 +31,5 @@ void incrementPC(Frame* frame);
 void setPC(Frame* frame, int addr);
 void print_array(char* array_label, DataConstant* array, int array_size);
 bool stackIsEmpty(Frame* frame);
+
+#endif

@@ -1,5 +1,6 @@
 #ifndef STRINGVECTOR_H
 #define STRINGVECTOR_H
+
 typedef struct {
     char** strings;
     int length;
@@ -14,4 +15,5 @@ StringVector* concat(StringVector* sv1, StringVector* sv2);
 void printStringVector(StringVector* sv);
 StringVector* split(char* line, char* delim);
 void trimSV(StringVector* sv);
+
 #endif

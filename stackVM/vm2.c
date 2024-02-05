@@ -12,14 +12,6 @@
 #define STACK_SIZE 100
 #define ENTRYPOINT "_entry"
 
-void displayCode(SourceCode src) {
-    printf("length: %d\n", src.length);
-    for (int i = 0; i < src.length; i++) {
-        printf("%s => ", src.code[i].label);
-        printStringVector(src.code[i].body);
-    }
-}
-
 int findLabelIndex(SourceCode src, char* label) {
     for (int i = 0; i < src.length; i++) {
         if (strcmp(src.code[i].label, label) == 0)
@@ -391,7 +383,7 @@ void run(VM* vm) {
 }
 
 int main(int argc, char** argv) {
-    SourceCode src = read_file();
+    SourceCode src = read_file("input.txt");
     displayCode(src);
     VM* vm = init(src, 100);
     run(vm);

@@ -1,5 +1,6 @@
 #ifndef FILEREADER_H
 #define FILEREADER_H
+
 #include "stringvector.h"
 
 typedef struct {
@@ -12,5 +13,7 @@ typedef struct {
     Function code[256];
 } SourceCode;
 
-SourceCode read_file();
+SourceCode read_file(char* filename);
+void displayCode(SourceCode src);
+
 #endif
