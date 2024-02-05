@@ -18,41 +18,44 @@ fib:
     LOAD 0
     LOAD_CONST 0
     EQ
-    SJMPT 33
+    SJMPT 35
     LOAD 0
     LOAD_CONST 1
     EQ
     OR
-    JMPT 33
+    JMPT 35
     LOAD 0
     LOAD_CONST 1
     SUB
-    CALL fib 1
-    LOAD 0
-    LOAD_CONST 2
+    DUP
+    LOAD_CONST 1
     SUB
     CALL fib 1
+    STORE
+    CALL fib 1
+    LOAD 1
     ADD
     RET
     LOAD 0
     RET
 
 _entry:
-    ;LOAD_CONST 3.14
-    ;LOAD_CONST 5
-    ;GSTORE
-    ;DUP
-    ;ADD
-    ;GSTORE 0
-    ;GLOAD 0
-    ;DUP
-    ;EQ
-    ;SELECT 4 2
-    ;CALL plus_one 1
-    ;CALL test 0
-    ;STORE
-    ;LOAD_CONST false
-    ;STORE 0
+    LOAD_CONST 3.14
+    LOAD_CONST 5
+    GSTORE
+    DUP
+    ADD
+    GSTORE 0
+    GLOAD 0
+    DUP
+    EQ
+    SELECT 4 2
+    CALL plus_one 1
+    CALL test 0
+    STORE
+    LOAD_CONST false
+    STORE 0
     LOAD_CONST 6
+    WAIT 5.4132632
     CALL fib 1
     HALT

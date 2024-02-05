@@ -149,11 +149,12 @@ void run(VM* vm) {
     printf("Running program...\n");
     char* opcode;
     DataConstant value, lhs, rhs, rval;
-    Frame* currentFrame = vm->callStack[vm->fp];
+    Frame* currentFrame;
     char* next;
     int addr, offset, argc;
     while (1) {
         opcode = getNext(vm);
+        currentFrame = vm->callStack[vm->fp];
         if (strcmp(opcode, "HALT") == 0) {
             printf("-----\nProgram execution complete\n");
             return; // stop program
@@ -186,6 +187,7 @@ void run(VM* vm) {
         else if (strcmp(opcode, "ADD") == 0) {
             rhs = pop(vm);
             lhs = pop(vm);
+            printf("Adding\n");
             rval = binaryArithmeticOperation(lhs, rhs, "+");
             push(vm, rval);
         }
@@ -243,6 +245,9 @@ void run(VM* vm) {
             rval.size = 1;
             rval.value.boolVal = lhs.value.boolVal && rhs.value.boolVal;
             push(vm, rval);
+        }
+        else if (strcmp(opcode, "WAIT") == 0) {
+            usleep(1000000 * atof(getNext(vm)));
         }
         else if (strcmp(opcode, "STORE") == 0) {
             if (stackIsEmpty(currentFrame))
@@ -330,9 +335,9 @@ void run(VM* vm) {
         }
         else if (strcmp(opcode, "RET") == 0) {
             rval = pop(vm);
-            addr = currentFrame->pc;
+            addr = currentFrame->returnAddr;
             Frame* caller = vm->callStack[--vm->fp];
-            caller->pc = addr;
+            setPC(caller, addr);
             deleteFrame(vm->callStack[vm->fp + 1]);
             push(vm, rval);
         }
@@ -341,7 +346,6 @@ void run(VM* vm) {
             break;
         }
         display(vm);
-        sleep(1);
     }
 }
 
