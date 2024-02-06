@@ -91,8 +91,9 @@ _entry:
     STORE
     LOAD_CONST 3
     LOAD_CONST "hello"
-    CALL at 2
-    LOAD_CONST NULL
-    EQ
-    STORE 0
+    CALL reverse 1
+    ;CALL at 2
+    ;LOAD_CONST NULL
+    ;EQ
+    ;STORE 0
     HALT

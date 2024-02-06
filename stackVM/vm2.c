@@ -156,11 +156,11 @@ void run(VM* vm) {
         else if (strcmp(opcode, "LOAD_CONST") == 0) {
             next = getNext(vm);
             if (isInt(next))
-                value = createInt(next);
+                value = readInt(next);
             else if (isDouble(next))
-                value = createDouble(next);
+                value = readDouble(next);
             else if (isBool(next))
-                value = createBoolean(next);
+                value = readBoolean(next);
             else if (startsWith(next, '"')) {
                 value = createString(removeQuotes(next));
             }
@@ -355,11 +355,11 @@ void run(VM* vm) {
                 next = getNext(vm);
             }
             if (isInt(next))
-                value = createInt(next);
+                value = readInt(next);
             else if (isDouble(next))
-                value = createDouble(next);
+                value = readDouble(next);
             else if (isBool(next))
-                value = createBoolean(next);
+                value = readBoolean(next);
             push(vm, value);
         }
         else if (strcmp(opcode, "CALL") == 0) {

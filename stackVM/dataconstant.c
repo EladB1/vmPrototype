@@ -209,7 +209,7 @@ DataConstant toAddress(int value) {
     return member;
 }
 
-DataConstant createInt(char* value) {
+DataConstant readInt(char* value) {
     DataConstant data;
     data.size = 1;
     data.type = Int;
@@ -217,7 +217,15 @@ DataConstant createInt(char* value) {
     return data;
 }
 
-DataConstant createDouble(char* value) {
+DataConstant createInt(int value) {
+    DataConstant data;
+    data.size = 1;
+    data.type = Int;
+    data.value.intVal = value;
+    return data;
+}
+
+DataConstant readDouble(char* value) {
     DataConstant data;
     data.size = 1;
     data.type = Dbl;
@@ -225,11 +233,27 @@ DataConstant createDouble(char* value) {
     return data;
 }
 
-DataConstant createBoolean(char* value) {
+DataConstant createDouble(double value) {
+    DataConstant data;
+    data.size = 1;
+    data.type = Dbl;
+    data.value.dblVal = value;
+    return data;
+}
+
+DataConstant readBoolean(char* value) {
     DataConstant data;
     data.type = Bool;
     data.size = 1;
     data.value.boolVal = strcmp(value, "true") == 0;
+    return data;
+}
+
+DataConstant createBoolean(bool value) {
+    DataConstant data;
+    data.type = Bool;
+    data.size = 1;
+    data.value.boolVal = value;
     return data;
 }
 

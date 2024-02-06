@@ -3,8 +3,10 @@
 
 #include "dataconstant.h"
 
-DataConstant sleep_(DataConstant seconds);
-DataConstant at(char* str, int index);
-DataConstant startsWith(char* string, char* prefix);
+void sleep_(DataConstant seconds);
+char* at(char* str, int index);
+bool startsWith_(char* string, char* prefix);
+bool endsWith(char* string, char* suffix);
+char* reverse(char* string);
 
 #endif

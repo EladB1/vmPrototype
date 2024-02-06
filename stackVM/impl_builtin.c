@@ -5,45 +5,54 @@
 
 #include "impl_builtin.h"
 
-DataConstant sleep_(DataConstant seconds) {
+void sleep_(DataConstant seconds) {
     if (seconds.type == Dbl)
         usleep(1000000 * seconds.value.dblVal);
     if (seconds.type == Int)
         sleep(seconds.value.intVal);
-    return createNone();
 }
 
-DataConstant at(char* str, int index) {
+char* at(char* str, int index) {
     if (index >= strlen(str)) {
         printf("IndexError: String index out of range in function call 'at(\"%s\", %d)'\n", str, index);
         exit(1);
     }
     char result[2] = {str[index], '\0'};
-    return createString(strdup(result));
+    return strdup(result);
 }
 
-DataConstant startsWith(char* string, char* prefix) {
+bool startsWith_(char* string, char* prefix) {
     int prefix_len = strlen(prefix);
     int len = strlen(string);
     if (len < prefix_len)
-        return createBoolean("false");
+        return false;
     if (len == prefix_len)
-        return createBoolean(strcmp(string, prefix) == 0);
-    return createBoolean(strncmp(string, prefix, prefix_len) == 0);
+        return strcmp(string, prefix) == 0;
+    return strncmp(string, prefix, prefix_len) == 0;
 }
 
-DataConstant endsWith(char* string, char* suffix) {
+bool endsWith(char* string, char* suffix) {
     int suffix_len = strlen(suffix);
     int len = strlen(string);
     if (len < suffix_len)
-        return createBoolean("false");
+        return false;
     if (len == suffix_len)
-        return createBoolean(strcmp(string, suffix) == 0);
+        return strcmp(string, suffix) == 0;
     int j = len - 1;
     for (int i = suffix_len - 1; i >= 0; i--) {
         if (string[j] != suffix[i])
-            return createBoolean("false");
+            return false;
         j--;
     }
-    return createBoolean("true");
+    return true;
+}
+
+char* reverse(char* string) {
+    int len = strlen(string);
+    char out[len + 1];
+    for (int i = len - 1; i >= 0; i--) {
+        out[i] = string[len - i - 1];
+    }
+    out[len] = '\0';
+    return strdup(out);
 }
