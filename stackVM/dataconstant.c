@@ -12,10 +12,15 @@ char* toString(DataConstant data) {
         snprintf(string, 32, "%d", data.value.intVal);
     if (data.type == Dbl)
         snprintf(string, 64, "%f", data.value.dblVal);
+    if (data.type == Addr)
+        snprintf(string, 64, "0x%x (%d)", data.value.intVal, data.size);
     if (data.type == Bool)
         return data.value.boolVal ? "true" : "false";
-    if (data.type == Str)
-        return data.value.strVal;
+    if (data.type == Str) {
+        snprintf(string, 64, "\"%s\"", data.value.strVal);
+    }
+    if (data.type == Null)
+        return "null";
     return string;
 }
 
@@ -247,5 +252,13 @@ DataConstant createNone() {
     DataConstant data;
     data.type = None;
     data.size = 0;
+    return data;
+}
+
+DataConstant createAddr(int size, int addr) {
+    DataConstant data;
+    data.type = Addr;
+    data.size = size;
+    data.value.intVal = addr;
     return data;
 }

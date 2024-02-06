@@ -312,3 +312,25 @@
              54 LOAD_CONST               1 (0)
              56 BINARY_SUBSCR
              60 RETURN_VALUE
+>>> def arr():
+...   return [[], [1,2,3], [None], [3, 2], [1], [], [3, 2, 1]]
+... 
+
+>>> dis(arr)
+  2           0 BUILD_LIST               0
+              2 BUILD_LIST               0
+              4 LOAD_CONST               1 ((1, 2, 3))
+              6 LIST_EXTEND              1
+              8 LOAD_CONST               0 (None)
+             10 BUILD_LIST               1
+             12 LOAD_CONST               2 (3)
+             14 LOAD_CONST               3 (2)
+             16 BUILD_LIST               2
+             18 LOAD_CONST               4 (1)
+             20 BUILD_LIST               1
+             22 BUILD_LIST               0
+             24 BUILD_LIST               0
+             26 LOAD_CONST               5 ((3, 2, 1))
+             28 LIST_EXTEND              1
+             30 BUILD_LIST               7
+             32 RETURN_VALUE

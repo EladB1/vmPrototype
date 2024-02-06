@@ -19,7 +19,6 @@ typedef union memberVal {
     double dblVal;
     bool boolVal;
     char* strVal;
-    union memberVal* arrayVal;
 } DataValue;
 
 typedef struct {

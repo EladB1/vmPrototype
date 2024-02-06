@@ -4,10 +4,10 @@
 #include <stdbool.h>
 #include <ctype.h>
 #include <math.h>
-#include <unistd.h>
 
 #include "filereader.h"
 #include "frame.h"
+#include "builtin.h"
 
 #define STACK_SIZE 100
 #define ENTRYPOINT "_entry"
@@ -103,6 +103,17 @@ bool isBool(char* constant) {
     return strcmp(constant, "true") == 0 || strcmp(constant, "false") == 0;
 }
 
+char* removeQuotes(char* in) {
+    int len = strlen(in);
+    char* out = malloc(sizeof(char) * len - 2);
+    int index = 0;
+    for (int i = 1; i < len - 1; i++) {
+        out[index++] = in[i];
+    }
+    out[index] = '\0';
+    return out;
+}
+
 void stepOver(VM* vm) {
     incrementPC(vm->callStack[vm->fp]);
 }
@@ -151,7 +162,7 @@ void run(VM* vm) {
             else if (isBool(next))
                 value = createBoolean(next);
             else if (startsWith(next, '"')) {
-                value = createString(next);
+                value = createString(removeQuotes(next));
             }
             else if (strcmp(next, "NULL") == 0)
                 value = createNull();
@@ -282,9 +293,6 @@ void run(VM* vm) {
                 rval.value.intVal = rhs.type == Bool ? lhs.value.boolVal & rhs.value.boolVal : lhs.value.boolVal & rhs.value.intVal;
             push(vm, rval);
         }
-        else if (strcmp(opcode, "WAIT") == 0) {
-            usleep(1000000 * atof(getNext(vm)));
-        }
         else if (strcmp(opcode, "STORE") == 0) {
             if (stackIsEmpty(currentFrame))
                 return;
@@ -361,9 +369,16 @@ void run(VM* vm) {
             for (int i = 0; i < argc; i++) {
                 params[i] = pop(vm);
             }
-            addr = findLabelIndex(vm->src, next);
-            Frame* frame = loadFrame(vm->src.code[addr].body, currentFrame->pc, vm->fp, argc, params);
-            vm->callStack[++vm->fp] = frame;
+            if (!isBuiltinFunction(next)) {
+                addr = findLabelIndex(vm->src, next);
+                Frame* frame = loadFrame(vm->src.code[addr].body, currentFrame->pc, vm->fp, argc, params);
+                vm->callStack[++vm->fp] = frame;
+            }
+            else {
+                rval = callBuiltin(next, argc, params);
+                if (rval.type != None)
+                    push(vm, rval);
+            }
         }
         else if (strcmp(opcode, "RET") == 0) {
             rval = pop(vm);
@@ -371,7 +386,8 @@ void run(VM* vm) {
             Frame* caller = vm->callStack[--vm->fp];
             setPC(caller, addr);
             deleteFrame(vm->callStack[vm->fp + 1]);
-            push(vm, rval);
+            if (rval.type != None)
+                push(vm, rval);
         }
         else {
             printf("Unknown bytecode: %s\n", opcode);

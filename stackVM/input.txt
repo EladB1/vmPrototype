@@ -76,7 +76,8 @@ _entry:
     LOAD_CONST false
     OR
     STORE 0
-    ;WAIT 1.4132632
+    LOAD_CONST 1.5
+    CALL sleep 1
     LOAD_CONST 6
     CALL fib 1
     LOAD_CONST 10
@@ -88,7 +89,9 @@ _entry:
     LOAD_CONST 0.5
     POW
     STORE
+    LOAD_CONST 3
     LOAD_CONST "hello"
+    CALL at 2
     LOAD_CONST NULL
     EQ
     STORE 0
