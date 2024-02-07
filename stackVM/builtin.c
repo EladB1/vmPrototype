@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 
 #include "builtin.h"
 #include "impl_builtin.h"
@@ -16,5 +17,9 @@ DataConstant callBuiltin(char* name, int argc, DataConstant* params) {
         return createString(at(params[0].value.strVal, params[1].value.intVal));
     if (strcmp(name, "reverse") == 0)
         return createString(reverse(params[0].value.strVal));
+    if (strcmp(name, "_toInt_s") == 0)
+        return createInt(atoi(params[0].value.strVal));
+    if (strcmp(name, "_toInt_d") == 0)
+        return createInt((int) lround(params[0].value.dblVal));
     return createNone();
 }
