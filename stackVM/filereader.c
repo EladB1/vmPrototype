@@ -18,13 +18,19 @@ SourceCode read_file(char* filename) {
     SourceCode code;
     code.length = 0;
     Function func;
-    FILE* fptr;
-    fptr = fopen(filename, "r");
+    FILE* fp;
+    fp = fopen(filename, "r");
+    if (fp == NULL || ferror(fp)) {
+        char msg[128];
+        sprintf(msg, "Input Error('%s')", filename);
+        perror(msg);
+        exit(-1);
+    }
     StringVector* line;
     StringVector* out = createStringVector();
     const unsigned int MAX_LENGTH = 256;
     char buff[MAX_LENGTH];
-    while (fgets(buff, MAX_LENGTH, fptr)) {
+    while (fgets(buff, MAX_LENGTH, fp)) {
         if (startsWith(buff, ';'))
             continue;
         else if (buff[strlen(buff) - 2] == ':') {
@@ -44,7 +50,7 @@ SourceCode read_file(char* filename) {
     }
     func.body = out;
     code.code[code.length++] = func;
-    fclose(fptr);
+    fclose(fp);
     return code;
 }
 
