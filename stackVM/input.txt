@@ -64,7 +64,7 @@ sum:
 
 _entry:
     LOAD_CONST 3.14
-    LOAD_CONST 5
+    LOAD_CONST -5
     GSTORE
     GLOAD 0
     EQ

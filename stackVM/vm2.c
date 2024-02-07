@@ -82,6 +82,8 @@ void display(VM* vm) {
 
 bool isInt(char* constant) {
     for (int i = 0; i < strlen(constant); i++) {
+        if (i == 0 && constant[i] == '-')
+            continue;
         if (!isdigit(constant[i]))
             return false;
     }
@@ -91,6 +93,8 @@ bool isInt(char* constant) {
 bool isDouble(char* constant) {
     int dotCount = 0;
     for (int i = 0; i < strlen(constant); i++) {
+        if (i == 0 && constant[i] == '-')
+            continue;
         if (constant[i] == '.')
             dotCount++;
         else if (!isdigit(constant[i]))
