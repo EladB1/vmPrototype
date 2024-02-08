@@ -6,7 +6,8 @@
 #include "filereader.h" 
 
 bool startsWith(char* in, char chr) {
-    for (int i = 0; i < strlen(in); i++) {
+    int len = (int) strlen(in);
+    for (int i = 0; i < len; i++) {
         if (in[i] != ' ' &&  in[i] != '\t') {
             return in[i] == chr;
         }

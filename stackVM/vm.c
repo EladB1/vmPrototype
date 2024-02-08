@@ -81,7 +81,8 @@ void display(VM* vm) {
 }
 
 bool isInt(char* constant) {
-    for (int i = 0; i < strlen(constant); i++) {
+    int len = (int) strlen(constant);
+    for (int i = 0; i < len; i++) {
         if (i == 0 && constant[i] == '-')
             continue;
         if (!isdigit(constant[i]))
@@ -92,7 +93,8 @@ bool isInt(char* constant) {
 
 bool isDouble(char* constant) {
     int dotCount = 0;
-    for (int i = 0; i < strlen(constant); i++) {
+    int len = (int) strlen(constant);
+    for (int i = 0; i < len; i++) {
         if (i == 0 && constant[i] == '-')
             continue;
         if (constant[i] == '.')
@@ -196,9 +198,9 @@ void run(VM* vm, bool verbose) {
             else if (argc == 1)
                 push(vm, rhs);
             else {
-                next = rhs.value.strVal;
+                strcpy(next, rhs.value.strVal);
                 for (int i = 1; i < argc; i++) {
-                    next = strcat(strdup(next), rhs.value.strVal);
+                    next = strcat(next, rhs.value.strVal);
                 }
                 push(vm, createString(next));
             }
