@@ -94,6 +94,9 @@ _entry:
     STORE
     LOAD_CONST 3
     LOAD_CONST "hello"
+    REPEATSTR 3
+    LOAD_CONST "world"
+    CONCAT
     CALL reverse 1
     CALL at 2
     CALL println 1

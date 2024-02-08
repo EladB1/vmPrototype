@@ -29,6 +29,8 @@ DataConstant callBuiltin(char* name, int argc, DataConstant* params) {
         print(params[0], false);
     if (strcmp(name, "println") == 0)
         print(params[0], true);
+    if (strcmp(name, "toString") == 0)
+        return createString(toString(params[0]));
     if (strcmp(name, "_toInt_s") == 0)
         return createInt(atoi(params[0].value.strVal));
     if (strcmp(name, "_toInt_d") == 0)

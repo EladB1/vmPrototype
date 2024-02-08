@@ -182,6 +182,27 @@ void run(VM* vm, bool verbose) {
             value = top(vm);
             push(vm, value);
         }
+        else if (strcmp(opcode, "CONCAT") == 0) {
+            rhs = pop(vm);
+            lhs = pop(vm);
+            rval = createString(strcat(lhs.value.strVal, rhs.value.strVal));
+            push(vm, rval);
+        }
+        else if (strcmp(opcode, "REPEATSTR") == 0) {
+            rhs = pop(vm);
+            argc = atoi(getNext(vm));
+            if (argc <= 0)
+                push(vm, createString(""));
+            else if (argc == 1)
+                push(vm, rhs);
+            else {
+                next = rhs.value.strVal;
+                for (int i = 1; i < argc; i++) {
+                    next = strcat(strdup(next), rhs.value.strVal);
+                }
+                push(vm, createString(next));
+            }
+        }
         else if (strcmp(opcode, "ADD") == 0) {
             rhs = pop(vm);
             lhs = pop(vm);
