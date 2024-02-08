@@ -143,8 +143,9 @@ void storeValue(VM* vm) {
     }
 }
 
-void run(VM* vm) {
-    printf("Running program...\n");
+void run(VM* vm, bool verbose) {
+    if (verbose)
+        printf("Running program...\n");
     char* opcode;
     DataConstant value, lhs, rhs, rval;
     Frame* currentFrame;
@@ -154,7 +155,8 @@ void run(VM* vm) {
         opcode = getNext(vm);
         currentFrame = vm->callStack[vm->fp];
         if (strcmp(opcode, "HALT") == 0) {
-            printf("-----\nProgram execution complete\n");
+            if (verbose)
+                printf("-----\nProgram execution complete\n");
             return; // stop program
         }
         else if (strcmp(opcode, "LOAD_CONST") == 0) {
@@ -398,15 +400,18 @@ void run(VM* vm) {
             printf("Unknown bytecode: %s\n", opcode);
             break;
         }
-        display(vm);
+        if (verbose)
+            display(vm);
     }
 }
 
 int main(int argc, char** argv) {
+    bool verbose = argc >= 2 && (strcmp(argv[1], "-v") == 0 || strcmp(argv[1], "--verbose") == 0);
     SourceCode src = read_file("input.txt");
-    displayCode(src);
+    if (verbose)
+        displayCode(src);
     VM* vm = init(src, 100);
-    run(vm);
+    run(vm, verbose);
     destroy(vm);
     return 0;
 }
