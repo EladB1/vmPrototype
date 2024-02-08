@@ -8,5 +8,12 @@ char* at(char* str, int index);
 bool startsWith_(char* string, char* prefix);
 bool endsWith(char* string, char* suffix);
 char* reverse(char* string);
+bool fileExists(char* filePath);
+void createFile(char* filePath);
+char** readFile(char* filePath);
+void writeToFile(char* filePath, char* content, char* mode);
+void renameFile(char* filePath, char* newFilePath);
+void deleteFile(char* filePath);
+void print(DataConstant data, bool newLine);
 
 #endif

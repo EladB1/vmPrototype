@@ -80,6 +80,9 @@ _entry:
     CALL sleep 1
     LOAD_CONST 6
     CALL fib 1
+    STORE
+    LOAD_CONST 10
+    CALL println 1
     LOAD_CONST 10
     CALL sum 1
     XOR
@@ -93,7 +96,8 @@ _entry:
     LOAD_CONST "hello"
     CALL reverse 1
     CALL at 2
-    ;LOAD_CONST NULL
-    ;EQ
-    ;STORE 0
+    CALL println 1
+    LOAD_CONST NULL
+    EQ
+    STORE 0
     HALT

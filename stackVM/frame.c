@@ -4,13 +4,12 @@
 
 #include "frame.h"
 
-#define STACK_SIZE 100
+#define STACK_SIZE 256
 
-Frame* loadFrame(StringVector* code, int pc, int frameAddr, int argc, DataConstant* params) {
+Frame* loadFrame(StringVector* code, int pc, int argc, DataConstant* params) {
     Frame* frame = malloc(sizeof(Frame));
     frame->instructions = code;
     frame->returnAddr = pc;
-    frame->frameAddr = frameAddr;
     frame->pc = 0;
     frame->lc = -1;
     frame->sp = -1;

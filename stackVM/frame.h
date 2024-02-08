@@ -4,8 +4,6 @@
 #include "dataconstant.h"
 #include "stringvector.h"
 
-#define STACK_SIZE 100
-
 typedef struct {
     DataConstant* stack;
     DataConstant* locals;
@@ -13,11 +11,10 @@ typedef struct {
     int pc;
     int sp;
     int lc;
-    int frameAddr;
     int returnAddr;
 } Frame;
 
-Frame* loadFrame(StringVector* code, int pc, int frameAddr, int argc, DataConstant* params);
+Frame* loadFrame(StringVector* code, int pc, int argc, DataConstant* params);
 void deleteFrame(Frame* frame);
 void framePush(Frame* frame, DataConstant value);
 DataConstant framePop(Frame* frame);

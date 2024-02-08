@@ -9,8 +9,8 @@
 #include "frame.h"
 #include "builtin.h"
 
-#define STACK_SIZE 100
 #define ENTRYPOINT "_entry"
+#define MAX_FRAMES 2048
 
 int findLabelIndex(SourceCode src, char* label) {
     for (int i = 0; i < src.length; i++) {
@@ -34,9 +34,9 @@ VM* init(SourceCode src, int datasize) {
     vm->fp = 0;
     vm->gc = -1;
     vm->globals = malloc(sizeof(int) * datasize);
-    vm->callStack = malloc(sizeof(Frame*) * src.length);
+    vm->callStack = malloc(sizeof(Frame*) * MAX_FRAMES);
     int index = findLabelIndex(src, ENTRYPOINT);
-    vm->callStack[vm->fp] = loadFrame(src.code[index].body, 0, index, 0, NULL);
+    vm->callStack[0] = loadFrame(src.code[index].body, 0, 0, NULL);
     return vm;
 }
 
@@ -73,7 +73,7 @@ void display(VM* vm) {
     Frame* frame;
     for (int i = 0; i <= vm->fp; i++) {
         frame = vm->callStack[i];
-        printf("Frame %d\n\tsp: %d, pc: %d, returnAddr: %d, frameAddr: %d\n\t", i, frame->sp, frame->pc, frame->returnAddr, frame->frameAddr);
+        printf("Frame %d\n\tsp: %d, pc: %d, returnAddr: %d\n\t", i, frame->sp, frame->pc, frame->returnAddr);
         print_array("Stack", frame->stack, frame->sp);
         printf("\t");
         print_array("Locals", frame->locals, frame->lc);
@@ -373,23 +373,24 @@ void run(VM* vm) {
             for (int i = 0; i < argc; i++) {
                 params[i] = pop(vm);
             }
-            if (!isBuiltinFunction(next)) {
-                addr = findLabelIndex(vm->src, next);
-                Frame* frame = loadFrame(vm->src.code[addr].body, currentFrame->pc, vm->fp, argc, params);
-                vm->callStack[++vm->fp] = frame;
-            }
-            else {
+            if (isBuiltinFunction(next)) {
                 rval = callBuiltin(next, argc, params);
                 if (rval.type != None)
                     push(vm, rval);
             }
+            else {
+                addr = findLabelIndex(vm->src, next);
+                Frame* frame = loadFrame(vm->src.code[addr].body, currentFrame->pc, argc, params);
+                vm->callStack[++vm->fp] = frame;
+            }
+            
         }
         else if (strcmp(opcode, "RET") == 0) {
             rval = pop(vm);
             addr = currentFrame->returnAddr;
+            deleteFrame(vm->callStack[vm->fp]);
             Frame* caller = vm->callStack[--vm->fp];
             setPC(caller, addr);
-            deleteFrame(vm->callStack[vm->fp + 1]);
             if (rval.type != None)
                 push(vm, rval);
         }

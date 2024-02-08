@@ -20,7 +20,6 @@ void freeStringVector(StringVector* sv) {
 }
 
 char* getFromSV(StringVector* sv, int index) {
-    //printf("Index: %d, Length: %d\n", index, sv->length);
     return sv->strings[index];
 }
 
