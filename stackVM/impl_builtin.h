@@ -15,5 +15,7 @@ void writeToFile(char* filePath, char* content, char* mode);
 void renameFile(char* filePath, char* newFilePath);
 void deleteFile(char* filePath);
 void print(DataConstant data, bool newLine);
+char* slice(char* string, int start, int end);
+bool contains(char* str, char* subStr);
 
 #endif

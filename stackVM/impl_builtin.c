@@ -155,3 +155,33 @@ void print(DataConstant data, bool newLine) {
     if (data.type == Bool)
         printf("%s%c",toString(data), end);
 }
+
+char* slice(char* string, int start, int end) {
+    if (start > end || start >= (int) strlen(string)) {
+        printf("Invalid start value of slice %d\n", start);
+        exit(1);
+    }
+    char sliced[end - start];
+    int index = 0;
+    for (int i = start; i < end; i++) {
+        sliced[index++] = string[i];
+    }
+    return strdup(sliced);
+}
+
+bool contains(char* str, char* subStr) {
+    if (strlen(subStr) == 0)
+        return true;
+    if (strlen(subStr) > strlen(str))
+        return false;
+    while (*str) {
+         const char* sub = subStr;
+         const char* tmp = str;
+         while (*tmp++ == *sub++) {
+            if (!*sub)
+                return true;
+         }
+         str++;
+    }
+    return false;
+}

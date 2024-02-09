@@ -30,6 +30,8 @@ typedef struct {
 char* toString(DataConstant data);
 bool isZero(DataConstant data);
 DataConstant compareData(DataConstant lhs, DataConstant rhs, char* comparison);
+DataConstant getMax(DataConstant lhs, DataConstant rhs);
+DataConstant getMin(DataConstant lhs, DataConstant rhs);
 DataConstant binaryArithmeticOperation(DataConstant lhs, DataConstant rhs, char* operation);
 DataConstant toAddress(int value);
 DataConstant readInt(char* value);

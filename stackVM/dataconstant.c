@@ -98,6 +98,14 @@ DataConstant compareData(DataConstant lhs, DataConstant rhs, char* comparison) {
     return result;
 }
 
+DataConstant getMax(DataConstant lhs, DataConstant rhs) {
+    return compareData(lhs, rhs, ">=").value.boolVal ? lhs : rhs;
+}
+
+DataConstant getMin(DataConstant lhs, DataConstant rhs) {
+    return compareData(lhs, rhs, "<=").value.boolVal ? lhs : rhs;
+}
+
 DataConstant binaryArithmeticOperation(DataConstant lhs, DataConstant rhs, char* operation) {
     DataConstant result;
     if (strcmp(operation, "+") == 0) {
