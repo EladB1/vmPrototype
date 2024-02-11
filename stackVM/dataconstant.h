@@ -8,7 +8,6 @@ typedef enum {
     Int,
     Dbl,
     Str,
-    Arr,
     Bool,
     Null,
     None
@@ -25,6 +24,7 @@ typedef struct {
     Datatype type;
     DataValue value;
     int size;
+    int length;
 } DataConstant;
 
 char* toString(DataConstant data);
@@ -33,7 +33,6 @@ DataConstant compareData(DataConstant lhs, DataConstant rhs, char* comparison);
 DataConstant getMax(DataConstant lhs, DataConstant rhs);
 DataConstant getMin(DataConstant lhs, DataConstant rhs);
 DataConstant binaryArithmeticOperation(DataConstant lhs, DataConstant rhs, char* operation);
-DataConstant toAddress(int value);
 DataConstant readInt(char* value);
 DataConstant createInt(int value);
 DataConstant readDouble(char* value);
@@ -43,5 +42,6 @@ DataConstant createBoolean(bool value);
 DataConstant createString(char* value);
 DataConstant createNull();
 DataConstant createNone();
+DataConstant createAddr(int addr, int capacity, int length);
 
 #endif

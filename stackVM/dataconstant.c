@@ -63,6 +63,7 @@ DataConstant compareData(DataConstant lhs, DataConstant rhs, char* comparison) {
     DataConstant result;
     result.type = Bool;
     result.size = 1;
+    result.length = 1;
     if (strcmp(comparison, "==") == 0)
         result.value.boolVal = isEqual(lhs, rhs);
     else if (strcmp(comparison, "!="))
@@ -154,7 +155,7 @@ DataConstant binaryArithmeticOperation(DataConstant lhs, DataConstant rhs, char*
     }
     if (strcmp(operation, "/") == 0) {
         if (isZero(rhs)) {
-            printf("Error: Division by zero\n");
+            fprintf(stderr, "Error: Division by zero\n");
             exit(1);
         }
         if (lhs.type == Dbl || rhs.type == Dbl) {
@@ -173,7 +174,7 @@ DataConstant binaryArithmeticOperation(DataConstant lhs, DataConstant rhs, char*
     }
     if (strcmp(operation, "mod") == 0) {
         if (isZero(rhs)) {
-            printf("Error: Division by zero\n");
+            fprintf(stderr, "Error: Division by zero\n");
             exit(1);
         }
         if (lhs.type == Dbl || rhs.type == Dbl) {
@@ -206,20 +207,14 @@ DataConstant binaryArithmeticOperation(DataConstant lhs, DataConstant rhs, char*
         }
     }
     result.size = 1;
+    result.length = 1;
     return result;
-}
-
-DataConstant toAddress(int value) {
-    DataConstant member;
-    member.type = Addr;
-    member.size = 1;
-    member.value.intVal = value;
-    return member;
 }
 
 DataConstant readInt(char* value) {
     DataConstant data;
     data.size = 1;
+    data.length = 1;
     data.type = Int;
     data.value.intVal = atoi(value);
     return data;
@@ -228,6 +223,7 @@ DataConstant readInt(char* value) {
 DataConstant createInt(int value) {
     DataConstant data;
     data.size = 1;
+    data.length = 1;
     data.type = Int;
     data.value.intVal = value;
     return data;
@@ -236,6 +232,7 @@ DataConstant createInt(int value) {
 DataConstant readDouble(char* value) {
     DataConstant data;
     data.size = 1;
+    data.length = 1;
     data.type = Dbl;
     data.value.dblVal = atof(value);
     return data;
@@ -244,6 +241,7 @@ DataConstant readDouble(char* value) {
 DataConstant createDouble(double value) {
     DataConstant data;
     data.size = 1;
+    data.length = 1;
     data.type = Dbl;
     data.value.dblVal = value;
     return data;
@@ -253,6 +251,7 @@ DataConstant readBoolean(char* value) {
     DataConstant data;
     data.type = Bool;
     data.size = 1;
+    data.length = 1;
     data.value.boolVal = strcmp(value, "true") == 0;
     return data;
 }
@@ -261,6 +260,7 @@ DataConstant createBoolean(bool value) {
     DataConstant data;
     data.type = Bool;
     data.size = 1;
+    data.length = 1;
     data.value.boolVal = value;
     return data;
 }
@@ -269,6 +269,7 @@ DataConstant createString(char* value) {
     DataConstant data;
     data.type = Str;
     data.size = 1;
+    data.length = 1;
     data.value.strVal = value;
     return data;
 }
@@ -277,6 +278,7 @@ DataConstant createNull() {
     DataConstant data;
     data.type = Null;
     data.size = 1;
+    data.length = 1;
     return data;
 }
 
@@ -284,13 +286,15 @@ DataConstant createNone() {
     DataConstant data;
     data.type = None;
     data.size = 0;
+    data.length = 0;
     return data;
 }
 
-DataConstant createAddr(int size, int addr) {
+DataConstant createAddr(int addr, int capacity, int length) {
     DataConstant data;
     data.type = Addr;
-    data.size = size;
+    data.size = capacity;
+    data.length = length;
     data.value.intVal = addr;
     return data;
 }

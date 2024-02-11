@@ -420,7 +420,7 @@ void run(VM* vm, bool verbose) {
                 push(vm, rval);
         }
         else {
-            printf("Unknown bytecode: %s\n", opcode);
+            fprintf(stderr, "Unknown bytecode: %s\n", opcode);
             break;
         }
         if (verbose)
