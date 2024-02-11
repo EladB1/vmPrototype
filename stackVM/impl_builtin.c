@@ -8,8 +8,10 @@
 #define DEFAULT_LINES 1024
 
 void sleep_(DataConstant seconds) {
-    if (seconds.type == Dbl)
-        usleep(1000000 * seconds.value.dblVal);
+    if (seconds.type == Dbl) {
+        int time = (int) lround(1000000 * seconds.value.dblVal);
+        usleep(time);
+    }
     if (seconds.type == Int)
         sleep(seconds.value.intVal);
 }

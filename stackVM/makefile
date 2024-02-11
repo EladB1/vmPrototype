@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS=-Wall -Wextra -std=c11
+CFLAGS=-Wall -Wextra -std=c11 -lm
 SOURCES=vm.c frame.c dataconstant.c stringvector.c builtin.c impl_builtin.c filereader.c
 TARGET=bolt
 
