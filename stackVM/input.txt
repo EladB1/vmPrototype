@@ -135,4 +135,7 @@ _entry:
     BUILDARR 2 2
     CONCAT
     CALL println 1
+    LOAD 3
+    CALL getType 1
+    CALL println 1
     HALT

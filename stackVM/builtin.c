@@ -21,6 +21,7 @@ bool isBuiltinFunction(char* name) {
         "_slice_a",
         "_contains_s",
         "_contains_a",
+        "indexOf",
         "toString",
         "_toInt_s",
         "_toInt_d",
@@ -31,7 +32,7 @@ bool isBuiltinFunction(char* name) {
         "sleep",
         "exit"
     };
-    int end = 21;
+    int end = 22;
     for (int i = 0; i < end; i++) {
         if (strcmp(name, builtins[i]) == 0)
             return true;
@@ -56,6 +57,8 @@ DataConstant callBuiltin(char* name, int argc, DataConstant* params, DataConstan
         return createInt(params[0].length);
     if (strcmp(name, "capacity") == 0)
         return createInt(params[0].size);
+    if (strcmp(name, "getType") == 0)
+        return createString(getType(params[0], *globals));
     if (strcmp(name, "max") == 0)
         return getMax(params[0], params[1]);
     if (strcmp(name, "min") == 0)
@@ -69,6 +72,8 @@ DataConstant callBuiltin(char* name, int argc, DataConstant* params, DataConstan
         return createBoolean(contains(params[0].value.strVal, params[1].value.strVal));
     if (strcmp(name, "_contains_a") == 0)
         return createBoolean(arrayContains(params[0], params[1], *globals));
+    if (strcmp(name, "indexOf") == 0)
+        return createInt(indexOf(params[0], params[1], *globals));
     if (strcmp(name, "toString") == 0)
         return createString(toString(params[0]));
     if (strcmp(name, "_toInt_s") == 0)

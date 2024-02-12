@@ -220,3 +220,49 @@ bool arrayContains(DataConstant array, DataConstant element, DataConstant* globa
     }
     return false;
 }
+
+int indexOf(DataConstant array, DataConstant element, DataConstant* globals) {
+    if (array.length == 0)
+        return -1;
+    int start = array.value.intVal;
+    int end = start + array.length;
+    for (int i = start; i < end; i++) {
+        if (isEqual(globals[i], element))
+            return i;
+    }
+    return -1;
+}
+
+char* getType(DataConstant data, DataConstant* globals) {
+    switch (data.type) {
+        case Int:
+            return "int";
+        case Dbl:
+            return "double";
+        case Bool:
+            return "boolean";
+        case Null:
+            return "null";
+        case None:
+            return "None";
+        case Addr:
+            if (data.length == 0)
+                return "Array<>";
+            DataConstant elem;
+            char type[128];
+            char* subType = "";
+            int start = data.value.intVal;
+            int end = start + data.length;
+            for (int i = start; i < end; i++) {
+                elem = globals[i];
+                if (elem.type == Addr && elem.length == 0 && i < end - 1)
+                    continue;
+                if (elem.type != Null && elem.type != None) {
+                    subType = getType(elem, globals);
+                    break;
+                }
+            }
+            sprintf(type, "Array<%s>", subType);
+            return strdup(type);
+    }
+}

@@ -19,5 +19,7 @@ void printerr(DataConstant data, bool terminates, int exitCode);
 char* slice(char* string, int start, int end);
 bool contains(char* str, char* subStr);
 bool arrayContains(DataConstant array, DataConstant element, DataConstant* globals);
+int indexOf(DataConstant array, DataConstant element, DataConstant* globals);
+char* getType(DataConstant data, DataConstant* globals);
 
 #endif
