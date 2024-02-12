@@ -300,3 +300,18 @@ DataConstant createAddr(int addr, int capacity, int length) {
     data.value.intVal = addr;
     return data;
 }
+
+DataConstant copyAddr(DataConstant src, int* addr, DataConstant** globals) {
+    DataConstant copy;
+    copy.type = Addr;
+    copy.size = src.size;
+    copy.length = src.length;
+    copy.value.intVal = *addr;
+    int srcAddr = src.value.intVal;
+    for (int i = 0; i < src.size; i++) {
+        globals[*addr] = globals[srcAddr + i];
+        *addr++;
+
+    }
+    return copy;
+}

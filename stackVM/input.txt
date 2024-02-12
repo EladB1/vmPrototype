@@ -76,8 +76,8 @@ _entry:
     LOAD_CONST false
     OR
     STORE 0
-    LOAD_CONST 0
-    CALL sleep 0.01
+    LOAD_CONST 0.01
+    CALL sleep 1
     LOAD_CONST 6
     CALL fib 1
     LOAD_CONST 10
@@ -124,6 +124,15 @@ _entry:
     LOAD_CONST 1
     ASTORE
     STORE 3
+    LOAD_CONST 2
     LOAD 3
+    LOAD_CONST 1
+    AGET
+    CALL _contains_a 2
+    BUILDARR 1 1
+    LOAD_CONST false
+    LOAD_CONST true
+    BUILDARR 2 2
+    CONCAT
     CALL println 1
     HALT

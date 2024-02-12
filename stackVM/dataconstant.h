@@ -29,6 +29,7 @@ typedef struct {
 
 char* toString(DataConstant data);
 bool isZero(DataConstant data);
+bool isEqual(DataConstant lhs, DataConstant rhs);
 DataConstant compareData(DataConstant lhs, DataConstant rhs, char* comparison);
 DataConstant getMax(DataConstant lhs, DataConstant rhs);
 DataConstant getMin(DataConstant lhs, DataConstant rhs);
@@ -43,5 +44,6 @@ DataConstant createString(char* value);
 DataConstant createNull();
 DataConstant createNone();
 DataConstant createAddr(int addr, int capacity, int length);
+DataConstant copyAddr(DataConstant src, int* addr, DataConstant** globals);
 
 #endif

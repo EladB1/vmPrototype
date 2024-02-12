@@ -10,8 +10,11 @@ bool isBuiltinFunction(char* name) {
     char* builtins[] = {
         "print",
         "println",
+        "printerr",
         "_length_s",
         "_length_a",
+        "capacity",
+        "getType",
         "max",
         "min",
         "_slice_s",
@@ -28,7 +31,7 @@ bool isBuiltinFunction(char* name) {
         "sleep",
         "exit"
     };
-    int end = 18;
+    int end = 21;
     for (int i = 0; i < end; i++) {
         if (strcmp(name, builtins[i]) == 0)
             return true;
@@ -41,9 +44,17 @@ DataConstant callBuiltin(char* name, int argc, DataConstant* params, DataConstan
         print(params[0], *globals, false);
     if (strcmp(name, "println") == 0)
         print(params[0], *globals, true);
+    if (strcmp(name, "printerr") == 0) {
+        if (argc == 1)
+            printerr(params[0], false, 0);
+        else
+            printerr(params[0], params[1].value.boolVal, params[2].value.intVal);
+    }
     if (strcmp(name, "_length_s") == 0)
         return createInt((int) strlen(params[0].value.strVal));
     if (strcmp(name, "_length_a") == 0)
+        return createInt(params[0].length);
+    if (strcmp(name, "capacity") == 0)
         return createInt(params[0].size);
     if (strcmp(name, "max") == 0)
         return getMax(params[0], params[1]);
@@ -56,6 +67,8 @@ DataConstant callBuiltin(char* name, int argc, DataConstant* params, DataConstan
     }
     if (strcmp(name, "_contains_s") == 0)
         return createBoolean(contains(params[0].value.strVal, params[1].value.strVal));
+    if (strcmp(name, "_contains_a") == 0)
+        return createBoolean(arrayContains(params[0], params[1], *globals));
     if (strcmp(name, "toString") == 0)
         return createString(toString(params[0]));
     if (strcmp(name, "_toInt_s") == 0)

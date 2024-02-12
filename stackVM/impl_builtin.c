@@ -173,6 +173,12 @@ void print(DataConstant data, DataConstant* globals, bool newLine) {
     }
 }
 
+void printerr(DataConstant data, bool terminates, int exitCode) {
+    fprintf(stderr, "%s\n", data.value.strVal);
+    if (terminates)
+        exit(exitCode);
+}
+
 char* slice(char* string, int start, int end) {
     if (start > end || start >= (int) strlen(string)) {
         fprintf(stderr, "Invalid start value of slice %d\n", start);
@@ -199,6 +205,18 @@ bool contains(char* str, char* subStr) {
                 return true;
          }
          str++;
+    }
+    return false;
+}
+
+bool arrayContains(DataConstant array, DataConstant element, DataConstant* globals) {
+    if (array.length == 0)
+        return false;
+    int start = array.value.intVal;
+    int end = start + array.length;
+    for (int i = start; i < end; i++) {
+        if (isEqual(globals[i], element))
+            return true;
     }
     return false;
 }

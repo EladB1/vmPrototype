@@ -37,5 +37,6 @@ fn main() {
     Array<Array<int>> arr = {{}, {1, 2, 3}};
     println(arr);
     arr[1][2] = arr[1][0];
-    println(arr);
+    contains(arr[1], 2);
+    println([true] + [true, false]);
 }

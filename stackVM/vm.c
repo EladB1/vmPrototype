@@ -68,7 +68,7 @@ char* peekNext(VM* vm) {
 }
 
 void display(VM* vm) {
-    printf("---\nfp: %d\n", vm->fp);
+    printf("---\nfp: %d, gc: %d\n", vm->fp, vm->gc);
     print_array("Globals", vm->globals, vm->gc);
     printf("Call Stack:\n");
     Frame* frame;
@@ -188,7 +188,29 @@ void run(VM* vm, bool verbose) {
         else if (strcmp(opcode, "CONCAT") == 0) {
             rhs = pop(vm);
             lhs = pop(vm);
-            rval = createString(strcat(lhs.value.strVal, rhs.value.strVal));
+            if (lhs.type == Str)
+                rval = createString(strcat(lhs.value.strVal, rhs.value.strVal));
+            else if (lhs.type == Addr) {
+                rval.type = Addr;
+                rval.size = lhs.size + rhs.size;
+                rval.length = lhs.length + rhs.length;
+                rval.value.intVal = ++vm->gc;
+                for (int i = 0; i < lhs.length; i++) {
+                    vm->globals[vm->gc] = vm->globals[lhs.value.intVal + i];
+                    vm->gc++;
+                }
+                for (int i = 0; i < rhs.length; i++) {
+                    vm->globals[vm->gc] = vm->globals[rhs.value.intVal + i];
+                    vm->gc++;
+                }
+                if (rval.size > rval.length) {
+                    for (int i = rval.length; i < rval.size; i++) {
+                        vm->globals[vm->gc] = createNone();
+                        if (i < rval.size - 1)
+                            vm->gc++;
+                    }
+                }
+            }
             push(vm, rval);
         }
         else if (strcmp(opcode, "REPEATSTR") == 0) {
@@ -428,16 +450,18 @@ void run(VM* vm, bool verbose) {
                 exit(2);
             }
             rval = createAddr(++vm->gc, capacity, argc);
-            for (int i = 0; i < argc - 1; i++) {
-                vm->globals[vm->gc++] = pop(vm);
-            }
-            if (argc != 0)
+            for (int i = 0; i < argc; i++) {
                 vm->globals[vm->gc] = pop(vm);
+                if (i < argc - 1)
+                    vm->gc++;
+            }
             if (capacity > argc) {
-                for (int i = argc; i < capacity - 1; i++) {
-                    vm->globals[vm->gc++] = createNone();
+                vm->gc++;
+                for (int i = argc; i < capacity; i++) {
+                    vm->globals[vm->gc] = createNone();
+                    if (i < capacity - 1)
+                        vm->gc++;
                 }
-                vm->globals[vm->gc] = createNone();
             }
             push(vm, rval);
         }
