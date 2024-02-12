@@ -30,7 +30,12 @@ fn main() {
     plus_one(x == 3.14 ? 4 : 2);
     boolean result = test();
     result = false || result;
-    sleep(1.4132632);
+    sleep(0.01);
     int y = (fib(6) ^ sum(10)) & 1;
-    result = at("hello", 3) == null;
+    float root2 = 2 ** 0.5;
+    result = at(reverse(("hello" * 3) + "world"), 3) == null;
+    Array<Array<int>> arr = {{}, {1, 2, 3}};
+    println(arr);
+    arr[1][2] = arr[1][0];
+    println(arr);
 }

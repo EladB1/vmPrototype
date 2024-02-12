@@ -63,10 +63,10 @@ sum:
     RET
 
 _entry:
-    LOAD_CONST 3.14
     LOAD_CONST -5
     GSTORE
     GLOAD 0
+    LOAD_CONST 3.14
     EQ
     SELECT 4 2
     CALL plus_one 1
@@ -77,17 +77,15 @@ _entry:
     OR
     STORE 0
     LOAD_CONST 0
-    CALL sleep 1
+    CALL sleep 0.01
     LOAD_CONST 6
     CALL fib 1
-    STORE
-    LOAD_CONST 10
-    CALL println 1
     LOAD_CONST 10
     CALL sum 1
     XOR
     LOAD_CONST 1
     B_AND
+    STORE
     LOAD_CONST 2
     LOAD_CONST 0.5
     POW
