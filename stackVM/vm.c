@@ -201,9 +201,11 @@ void run(VM* vm, bool verbose) {
                 }
                 for (int i = 0; i < rhs.length; i++) {
                     vm->globals[vm->gc] = vm->globals[rhs.value.intVal + i];
-                    vm->gc++;
+                    if (i < rhs.length - 1)
+                        vm->gc++;
                 }
                 if (rval.size > rval.length) {
+                    vm->gc++;
                     for (int i = rval.length; i < rval.size; i++) {
                         vm->globals[vm->gc] = createNone();
                         if (i < rval.size - 1)

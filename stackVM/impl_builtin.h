@@ -21,5 +21,6 @@ bool contains(char* str, char* subStr);
 bool arrayContains(DataConstant array, DataConstant element, DataConstant* globals);
 int indexOf(DataConstant array, DataConstant element, DataConstant* globals);
 char* getType(DataConstant data, DataConstant* globals);
+char* join(DataConstant array, char* delim, DataConstant* globals);
 
 #endif

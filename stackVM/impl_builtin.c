@@ -241,6 +241,8 @@ char* getType(DataConstant data, DataConstant* globals) {
             return "double";
         case Bool:
             return "boolean";
+        case Str:
+            return "string";
         case Null:
             return "null";
         case None:
@@ -265,4 +267,16 @@ char* getType(DataConstant data, DataConstant* globals) {
             sprintf(type, "Array<%s>", subType);
             return strdup(type);
     }
+}
+
+char* join(DataConstant array, char* delim, DataConstant* globals) {
+    if (array.length == 0)
+        return "";
+    int start = array.value.intVal;
+    int end = start + array.length;
+    char* result = globals[start].value.strVal;
+    for (int i = start+1; i < end; i++) {
+        asprintf(&result, "%s%s%s", result, delim, globals[i].value.strVal);
+    }
+    return result;
 }

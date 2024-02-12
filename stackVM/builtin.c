@@ -28,11 +28,13 @@ bool isBuiltinFunction(char* name) {
         "_toDouble_s",
         "_toDouble_i",
         "at",
+        "_join_1",
+        "_join_2",
         "_reverse_s",
         "sleep",
         "exit"
     };
-    int end = 22;
+    int end = 24;
     for (int i = 0; i < end; i++) {
         if (strcmp(name, builtins[i]) == 0)
             return true;
@@ -86,6 +88,10 @@ DataConstant callBuiltin(char* name, int argc, DataConstant* params, DataConstan
         return createDouble((double) params[0].value.intVal);
     if (strcmp(name, "at") == 0)
         return createString(at(params[0].value.strVal, params[1].value.intVal));
+    if (strcmp(name, "_join_1") == 0)
+        return createString(join(params[0], "", *globals));
+    if (strcmp(name, "_join_2") == 0)
+        return createString(join(params[0], params[1].value.strVal, *globals));
     if (strcmp(name, "_reverse_s") == 0)
         return createString(reverse(params[0].value.strVal));
     if (strcmp(name, "sleep") == 0)
