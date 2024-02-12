@@ -20,7 +20,7 @@ void sleep_(DataConstant seconds) {
 char* at(char* str, int index) {
     if (index >= (int)strlen(str)) {
         fprintf(stderr, "IndexError: String index out of range in function call 'at(\"%s\", %d)'\n", str, index);
-        exit(1);
+        exit(2);
     }
     char result[2] = {str[index], '\0'};
     return strdup(result);
@@ -78,13 +78,13 @@ void createFile(char* filePath) {
 char** readFile(char* filePath) {
     if (!fileExists(filePath)) {
         fprintf(stderr, "FileError: Cannot read file '%s' because it does not exist\n", filePath);
-        exit(1);
+        exit(3);
     }
     FILE* fp = fopen(filePath, "r");
     if (fp == NULL || ferror(fp)) {
         perror("FileError");
         fprintf(stderr, "Cause: '%s'\n", filePath);
-        exit(2);
+        exit(3);
     }
     char** lines = malloc(sizeof(char*) * DEFAULT_LINES);
     int lineCnt = 0;
@@ -110,7 +110,7 @@ void writeToFile(char* filePath, char* content, char* mode) {
     if (fp == NULL || ferror(fp)) {
         perror("FileError");
         fprintf(stderr, "Cause: '%s'\n", filePath);
-        exit(2);
+        exit(3);
     }
     int write = fprintf(fp, "%s", content);
     if (write != 0) {
@@ -124,7 +124,7 @@ void writeToFile(char* filePath, char* content, char* mode) {
 void renameFile(char* filePath, char* newFilePath) {
     if (!fileExists(filePath)) {
         fprintf(stderr, "FileError: Cannot rename file '%s' because it does not exist\n", filePath);
-        exit(1);
+        exit(3);
     }
     int mv = rename(filePath, newFilePath);
     if (mv != 0) {
@@ -137,7 +137,7 @@ void renameFile(char* filePath, char* newFilePath) {
 void deleteFile(char* filePath) {
     if (!fileExists(filePath)) {
         fprintf(stderr, "FileError: Cannot delete file '%s' because it does not exist\n", filePath);
-        exit(1);
+        exit(3);
     }
     int removal = remove(filePath);
     if (removal != 0) {
@@ -176,7 +176,7 @@ void print(DataConstant data, DataConstant* globals, bool newLine) {
 char* slice(char* string, int start, int end) {
     if (start > end || start >= (int) strlen(string)) {
         fprintf(stderr, "Invalid start value of slice %d\n", start);
-        exit(1);
+        exit(2);
     }
     char sliced[end - start];
     int index = 0;

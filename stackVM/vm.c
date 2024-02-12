@@ -425,7 +425,7 @@ void run(VM* vm, bool verbose) {
             argc = atoi(getNext(vm));
             if (argc > capacity) {
                 fprintf(stderr, "Error: Attempted to build array of length %d which exceeds capacity %d\n", argc, capacity);
-                exit(-1);
+                exit(2);
             }
             rval = createAddr(++vm->gc, capacity, argc);
             for (int i = 0; i < argc - 1; i++) {
@@ -447,7 +447,7 @@ void run(VM* vm, bool verbose) {
             addr = lhs.value.intVal;
             if (offset > lhs.size) {
                 fprintf(stderr, "Error: Array index %d out of range %d\n", offset, lhs.size);
-                exit(1);
+                exit(2);
             }
             rval = vm->globals[addr + offset];
             push(vm, rval);
@@ -458,7 +458,7 @@ void run(VM* vm, bool verbose) {
             addr = lhs.value.intVal;
             if (offset > lhs.size) {
                 fprintf(stderr, "Error: Array index %d out of range %d\n", offset, lhs.size);
-                exit(1);
+                exit(2);
             }
             rhs = pop(vm);
             lhs = vm->globals[addr + offset];
@@ -468,7 +468,7 @@ void run(VM* vm, bool verbose) {
         }
         else {
             fprintf(stderr, "Unknown bytecode: %s\n", opcode);
-            break;
+            exit(254);
         }
         if (verbose)
             display(vm);
