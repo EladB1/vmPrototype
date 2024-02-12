@@ -123,5 +123,9 @@ _entry:
     LOAD_CONST 2
     ASTORE
     LOAD 3
+    LOAD_CONST 1
+    ASTORE
+    STORE 3
+    LOAD 3
     CALL println 1
     HALT

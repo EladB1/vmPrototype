@@ -445,7 +445,7 @@ void run(VM* vm, bool verbose) {
             offset = pop(vm).value.intVal;
             lhs = pop(vm);
             addr = lhs.value.intVal;
-            if (offset > lhs.size) {
+            if (offset > lhs.size || offset < 0) {
                 fprintf(stderr, "Error: Array index %d out of range %d\n", offset, lhs.size);
                 exit(2);
             }
@@ -456,15 +456,21 @@ void run(VM* vm, bool verbose) {
             offset = pop(vm).value.intVal;
             lhs = pop(vm);
             addr = lhs.value.intVal;
-            if (offset > lhs.size) {
+            if (offset >= lhs.size || offset < 0) {
                 fprintf(stderr, "Error: Array index %d out of range %d\n", offset, lhs.size);
                 exit(2);
             }
             rhs = pop(vm);
-            lhs = vm->globals[addr + offset];
-            if (lhs.type == None)
+            rval = vm->globals[addr + offset];
+            if (rval.type == None) {
+                if (offset > lhs.length + 1) {
+                    fprintf(stderr, "Error: Cannot write to index %d since previous index values are not initialized\n", offset);
+                    exit(2);
+                }
                 lhs.length++;
+            }
             vm->globals[addr + offset] = rhs;
+            push(vm, lhs);
         }
         else {
             fprintf(stderr, "Unknown bytecode: %s\n", opcode);
