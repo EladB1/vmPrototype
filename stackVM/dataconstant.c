@@ -21,6 +21,8 @@ char* toString(DataConstant data) {
     }
     if (data.type == Null)
         return "null";
+    if (data.type == None)
+        return "None";
     return strdup(string);
 }
 

@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include <ctype.h>
 #include <math.h>
+#include <limits.h>
 
 #include "filereader.h"
 #include "frame.h"
@@ -28,12 +29,12 @@ typedef struct {
     int gc;
 } VM;
 
-VM* init(SourceCode src, int datasize) {
+VM* init(SourceCode src) {
     VM* vm = malloc(sizeof(VM));
     vm->src = src;
     vm->fp = 0;
     vm->gc = -1;
-    vm->globals = malloc(sizeof(int) * datasize);
+    vm->globals = malloc(sizeof(DataConstant) * (INT_MAX - 1));
     vm->callStack = malloc(sizeof(Frame*) * MAX_FRAMES);
     int index = findLabelIndex(src, ENTRYPOINT);
     vm->callStack[0] = loadFrame(src.code[index].body, 0, 0, NULL);
@@ -152,7 +153,7 @@ void run(VM* vm, bool verbose) {
     DataConstant value, lhs, rhs, rval;
     Frame* currentFrame;
     char* next;
-    int addr, argc;
+    int addr, argc, offset;
     while (1) {
         opcode = getNext(vm);
         currentFrame = vm->callStack[vm->fp];
@@ -399,7 +400,7 @@ void run(VM* vm, bool verbose) {
                 params[i] = pop(vm);
             }
             if (isBuiltinFunction(next)) {
-                rval = callBuiltin(next, argc, params);
+                rval = callBuiltin(next, argc, params, &vm->globals);
                 if (rval.type != None)
                     push(vm, rval);
             }
@@ -419,6 +420,52 @@ void run(VM* vm, bool verbose) {
             if (rval.type != None)
                 push(vm, rval);
         }
+        else if (strcmp(opcode, "BUILDARR") == 0) {
+            int capacity = atoi(getNext(vm));
+            argc = atoi(getNext(vm));
+            if (argc > capacity) {
+                fprintf(stderr, "Error: Attempted to build array of length %d which exceeds capacity %d\n", argc, capacity);
+                exit(-1);
+            }
+            rval = createAddr(++vm->gc, capacity, argc);
+            for (int i = 0; i < argc - 1; i++) {
+                vm->globals[vm->gc++] = pop(vm);
+            }
+            if (argc != 0)
+                vm->globals[vm->gc] = pop(vm);
+            if (capacity > argc) {
+                for (int i = argc; i < capacity - 1; i++) {
+                    vm->globals[vm->gc++] = createNone();
+                }
+                vm->globals[vm->gc] = createNone();
+            }
+            push(vm, rval);
+        }
+        else if (strcmp(opcode, "AGET") == 0) {
+            offset = pop(vm).value.intVal;
+            lhs = pop(vm);
+            addr = lhs.value.intVal;
+            if (offset > lhs.size) {
+                fprintf(stderr, "Error: Array index %d out of range %d\n", offset, lhs.size);
+                exit(1);
+            }
+            rval = vm->globals[addr + offset];
+            push(vm, rval);
+        }
+        else if (strcmp(opcode, "ASTORE") == 0) {
+            offset = pop(vm).value.intVal;
+            lhs = pop(vm);
+            addr = lhs.value.intVal;
+            if (offset > lhs.size) {
+                fprintf(stderr, "Error: Array index %d out of range %d\n", offset, lhs.size);
+                exit(1);
+            }
+            rhs = pop(vm);
+            lhs = vm->globals[addr + offset];
+            if (lhs.type == None)
+                lhs.length++;
+            vm->globals[addr + offset] = rhs;
+        }
         else {
             fprintf(stderr, "Unknown bytecode: %s\n", opcode);
             break;
@@ -433,7 +480,7 @@ int main(int argc, char** argv) {
     SourceCode src = read_file("input.txt");
     if (verbose)
         displayCode(src);
-    VM* vm = init(src, 100);
+    VM* vm = init(src);
     run(vm, verbose);
     destroy(vm);
     return 0;

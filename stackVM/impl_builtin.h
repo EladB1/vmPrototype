@@ -14,7 +14,7 @@ char** readFile(char* filePath);
 void writeToFile(char* filePath, char* content, char* mode);
 void renameFile(char* filePath, char* newFilePath);
 void deleteFile(char* filePath);
-void print(DataConstant data, bool newLine);
+void print(DataConstant data, DataConstant* globals, bool newLine);
 char* slice(char* string, int start, int end);
 bool contains(char* str, char* subStr);
 

@@ -36,11 +36,11 @@ bool isBuiltinFunction(char* name) {
     return false;
 }
 
-DataConstant callBuiltin(char* name, int argc, DataConstant* params) {
+DataConstant callBuiltin(char* name, int argc, DataConstant* params, DataConstant** globals) {
     if (strcmp(name, "print") == 0)
-        print(params[0], false);
+        print(params[0], *globals, false);
     if (strcmp(name, "println") == 0)
-        print(params[0], true);
+        print(params[0], *globals, true);
     if (strcmp(name, "_length_s") == 0)
         return createInt((int) strlen(params[0].value.strVal));
     if (strcmp(name, "_length_a") == 0)

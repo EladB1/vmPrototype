@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <math.h>
 
 #include "impl_builtin.h"
 
@@ -146,7 +147,7 @@ void deleteFile(char* filePath) {
     }
 }
 
-void print(DataConstant data, bool newLine) {
+void print(DataConstant data, DataConstant* globals, bool newLine) {
     char end = newLine ? '\n' : '\0';
     if (data.type == Int)
         printf("%d%c", data.value.intVal, end);
@@ -156,10 +157,17 @@ void print(DataConstant data, bool newLine) {
         printf("%s%c", data.value.strVal, end);
     if (data.type == Bool)
         printf("%s%c",toString(data), end);
+    if (data.type == Null)
+        printf("null%c", end);
     if (data.type == Addr) {
         printf("[");
-        for (int i = 0; i < data.size; i++) {
-            // TODO
+        int start = data.value.intVal;
+        int stop = start + data.length;
+        for (int i = start; i < stop; i++) {
+            print(globals[i], globals, false);
+            if (i != stop - 1)
+                printf(", ");
+
         }
         printf("]%c", end);
     }
