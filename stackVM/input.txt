@@ -104,10 +104,12 @@ _entry:
     LOAD_CONST NULL
     EQ
     STORE 0
-    LOAD_CONST 3
-    LOAD_CONST 2
+    LOAD_CONST -3
+    LOAD_CONST 20
     LOAD_CONST 1
     BUILDARR 3 3
+    CALL sort 1
+    HALT
     BUILDARR 3 0
     BUILDARR 2 2
     STORE

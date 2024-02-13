@@ -31,10 +31,12 @@ bool isBuiltinFunction(char* name) {
         "_join_1",
         "_join_2",
         "_reverse_s",
+        "_reverse_a",
+        "sort",
         "sleep",
         "exit"
     };
-    int end = 24;
+    int end = 26;
     for (int i = 0; i < end; i++) {
         if (strcmp(name, builtins[i]) == 0)
             return true;
@@ -94,6 +96,8 @@ DataConstant callBuiltin(char* name, int argc, DataConstant* params, DataConstan
         return createString(join(params[0], params[1].value.strVal, *globals));
     if (strcmp(name, "_reverse_s") == 0)
         return createString(reverse(params[0].value.strVal));
+    if (strcmp(name, "sort") == 0)
+        sort(params[0], *globals);
     if (strcmp(name, "sleep") == 0)
         sleep_(params[0]);
     if (strcmp(name, "exit") == 0) {

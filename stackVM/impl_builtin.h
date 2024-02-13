@@ -22,5 +22,6 @@ bool arrayContains(DataConstant array, DataConstant element, DataConstant* globa
 int indexOf(DataConstant array, DataConstant element, DataConstant* globals);
 char* getType(DataConstant data, DataConstant* globals);
 char* join(DataConstant array, char* delim, DataConstant* globals);
+void sort(DataConstant array, DataConstant* globals);
 
 #endif

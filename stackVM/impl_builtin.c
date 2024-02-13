@@ -280,3 +280,29 @@ char* join(DataConstant array, char* delim, DataConstant* globals) {
     }
     return result;
 }
+
+int comparator(const void* a, const void* b) {
+    DataConstant lhs = *(DataConstant*)a;
+    DataConstant rhs = *(DataConstant*)b;
+    if (lhs.type != rhs.type) {
+        if (lhs.type == Null || rhs.type == Null)
+            return lhs.type == Null ? -1 : 1; // null values come first
+    }
+    if (lhs.type == Str)
+        return strcmp(lhs.value.strVal, rhs.value.strVal);
+    else if (lhs.type == Bool)
+        return lhs.value.boolVal - rhs.value.boolVal;
+    else if (lhs.type == Int)
+        return lhs.value.intVal - rhs.value.intVal;
+    else if (lhs.type == Dbl) {
+        if (lhs.value.dblVal == rhs.value.dblVal)
+            return 0;
+        return lhs.value.dblVal < rhs.value.dblVal ? -1 : 1;
+    }
+}
+
+void sort(DataConstant array, DataConstant* globals) {
+    int addr = array.value.intVal;
+    DataConstant* start = &globals[addr];
+    qsort(start, array.length, sizeof(DataConstant), comparator);
+}
