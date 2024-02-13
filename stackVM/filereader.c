@@ -76,7 +76,7 @@ void displayCode(SourceCode src) {
     for (int i = 0; i < src.length; i++) {
         printf("%s => ", src.code[i].label);
         printStringVector(src.code[i].body);
-        printf("Jumps: [");
+        printf(", Jumps: [");
         for (int j = 0; j < src.code[i].jmpCnt; j++) {
             jmp = src.code[i].jumpPoints[j];
             printf("{%s : %d} ", jmp.label, jmp.index);

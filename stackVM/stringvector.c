@@ -52,7 +52,7 @@ void printStringVector(StringVector* sv) {
     for (int i = 0; i < sv->length - 1; i++) {
         printf("%s, ", getFromSV(sv, i));
     }
-    printf("%s], length: %d, capacity: %d\n", sv->strings[sv->length - 1], sv->length, sv->capacity);
+    printf("%s], length: %d, capacity: %d", sv->strings[sv->length - 1], sv->length, sv->capacity);
 }
 
 StringVector* split(char* line, char* delim) {
