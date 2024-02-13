@@ -1,9 +1,11 @@
 This repo is a prototype of a VM for the backend of a compiler/interpreter
 
+### Byte code
 
 
 ### Exit codes
 
+- 0 - Successful execution
 - 1 - Improper operation (division by zero)
 - 2 - Improper memory access (array bounds error)
 - 3 - File operation error
