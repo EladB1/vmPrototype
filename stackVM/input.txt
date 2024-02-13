@@ -108,7 +108,8 @@ _entry:
     LOAD_CONST 20
     LOAD_CONST 1
     BUILDARR 3 3
-    CALL sort 1
+    COPYARR
+    CALL println 1
     HALT
     BUILDARR 3 0
     BUILDARR 2 2

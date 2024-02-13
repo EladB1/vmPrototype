@@ -198,7 +198,7 @@ void run(VM* vm, bool verbose) {
             rhs = pop(vm);
             lhs = pop(vm);
             if (lhs.type == Str)
-                rval = createString(strcat(lhs.value.strVal, rhs.value.strVal));
+                rval = createString(strncat(lhs.value.strVal, rhs.value.strVal, strlen(rhs.value.strVal)));
             else if (lhs.type == Addr) {
                 rval.type = Addr;
                 rval.size = lhs.size + rhs.size;
@@ -234,7 +234,7 @@ void run(VM* vm, bool verbose) {
             else {
                 strcpy(next, rhs.value.strVal);
                 for (int i = 1; i < argc; i++) {
-                    next = strcat(next, rhs.value.strVal);
+                    next = strncat(next, rhs.value.strVal, strlen(rhs.value.strVal));
                 }
                 push(vm, createString(next));
             }
@@ -467,13 +467,19 @@ void run(VM* vm, bool verbose) {
                     vm->gc++;
             }
             if (capacity > argc) {
-                vm->gc++;
+                if (argc != 0)
+                    vm->gc++;
                 for (int i = argc; i < capacity; i++) {
                     vm->globals[vm->gc] = createNone();
                     if (i < capacity - 1)
                         vm->gc++;
                 }
             }
+            push(vm, rval);
+        }
+        else if (strcmp(opcode, "COPYARR") == 0) {
+            rhs = pop(vm);
+            rval = copyAddr(rhs, &vm->gc, &vm->globals);
             push(vm, rval);
         }
         else if (strcmp(opcode, "AGET") == 0) {

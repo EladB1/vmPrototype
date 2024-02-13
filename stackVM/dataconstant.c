@@ -7,23 +7,23 @@
 #include "dataconstant.h"
 
 char* toString(DataConstant data) {
-    char string[64];
+    char* string = "";
     if (data.type == Int)
-        snprintf(string, 32, "%d", data.value.intVal);
+        asprintf(&string, "%d", data.value.intVal);
     if (data.type == Dbl)
-        snprintf(string, 64, "%f", data.value.dblVal);
+        asprintf(&string, "%f", data.value.dblVal);
     if (data.type == Addr)
-        snprintf(string, 64, "0x%x (%d)", data.value.intVal, data.size);
+        asprintf(&string, "0x%x (%d)", data.value.intVal, data.size);
     if (data.type == Bool)
         return data.value.boolVal ? "true" : "false";
     if (data.type == Str) {
-        snprintf(string, 64, "\"%s\"", data.value.strVal);
+        asprintf(&string, "\"%s\"", data.value.strVal);
     }
     if (data.type == Null)
         return "null";
     if (data.type == None)
         return "None";
-    return strdup(string);
+    return string;
 }
 
 bool isZero(DataConstant data) {
@@ -306,12 +306,11 @@ DataConstant copyAddr(DataConstant src, int* addr, DataConstant** globals) {
     copy.type = Addr;
     copy.size = src.size;
     copy.length = src.length;
-    copy.value.intVal = *addr;
+    copy.value.intVal = *addr + 1;
     int srcAddr = src.value.intVal;
+    DataConstant* globs = *globals;
     for (int i = 0; i < src.size; i++) {
-        globals[*addr] = globals[srcAddr + i];
-        *addr++;
-
+        globs[++(*addr)] = globs[srcAddr + i];
     }
     return copy;
 }

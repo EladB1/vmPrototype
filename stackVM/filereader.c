@@ -25,9 +25,8 @@ SourceCode read_file(char* filename) {
     int count;
     fp = fopen(filename, "r");
     if (fp == NULL || ferror(fp)) {
-        char msg[128];
-        sprintf(msg, "Input Error('%s')", filename);
-        perror(msg);
+        fprintf(stderr, "Input Error('%s')", filename);
+        perror("Error");
         exit(-1);
     }
     StringVector* line;

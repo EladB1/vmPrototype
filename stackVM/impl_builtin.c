@@ -251,7 +251,7 @@ char* getType(DataConstant data, DataConstant* globals) {
             if (data.length == 0)
                 return "Array<>";
             DataConstant elem;
-            char type[128];
+            char* type = "";
             char* subType = "";
             int start = data.value.intVal;
             int end = start + data.length;
@@ -264,8 +264,8 @@ char* getType(DataConstant data, DataConstant* globals) {
                     break;
                 }
             }
-            sprintf(type, "Array<%s>", subType);
-            return strdup(type);
+            asprintf(&type, "Array<%s>", subType);
+            return type;
     }
 }
 
@@ -299,6 +299,8 @@ int comparator(const void* a, const void* b) {
             return 0;
         return lhs.value.dblVal < rhs.value.dblVal ? -1 : 1;
     }
+    // preserve order by default
+    return 0;
 }
 
 void sort(DataConstant array, DataConstant* globals) {
