@@ -5,7 +5,14 @@
 
 typedef struct {
     char* label;
+    int index;
+} JumpPoint;
+
+typedef struct {
+    char* label;
     StringVector* body;
+    JumpPoint jumpPoints[16];
+    int jmpCnt;
 } Function;
 
 typedef struct {

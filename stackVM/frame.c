@@ -1,15 +1,18 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include <string.h>
 
 #include "frame.h"
 
 #define STACK_SIZE 256
 
-Frame* loadFrame(StringVector* code, int pc, int argc, DataConstant* params) {
+Frame* loadFrame(StringVector* code, JumpPoint* jumps, int jc, int pc, int argc, DataConstant* params) {
     Frame* frame = malloc(sizeof(Frame));
     frame->instructions = code;
     frame->returnAddr = pc;
+    frame->jumps = jumps;
+    frame->jc = jc;
     frame->pc = 0;
     frame->lc = -1;
     frame->sp = -1;
@@ -65,6 +68,16 @@ void incrementPC(Frame* frame) {
 
 void setPC(Frame* frame, int addr) {
     frame->pc = addr;
+}
+
+int getJumpIndex(Frame* frame, char* label) {
+    JumpPoint jmp;
+    for (int i = 0; i < frame->jc; i++) {
+        jmp = frame->jumps[i];
+        if (strcmp(jmp.label, label) == 0)
+            return jmp.index;
+    }
+    return -1;
 }
 
 void print_array(char* array_label, DataConstant* array, int array_size) {

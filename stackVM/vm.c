@@ -37,7 +37,7 @@ VM* init(SourceCode src) {
     vm->globals = malloc(sizeof(DataConstant) * (INT_MAX - 1));
     vm->callStack = malloc(sizeof(Frame*) * MAX_FRAMES);
     int index = findLabelIndex(src, ENTRYPOINT);
-    vm->callStack[0] = loadFrame(src.code[index].body, 0, 0, NULL);
+    vm->callStack[0] = loadFrame(src.code[index].body, src.code[index].jumpPoints, src.code[index].jmpCnt, 0, 0, NULL);
     return vm;
 }
 
@@ -125,7 +125,12 @@ void stepOver(VM* vm) {
     incrementPC(vm->callStack[vm->fp]);
 }
 
-void jump(VM* vm, int addr) {
+void jump(VM* vm, char* label) {
+    int addr = getJumpIndex(vm->callStack[vm->fp], label);
+    if (addr == -1) {
+        fprintf(stderr, "Could not find jump point '%s'\n", label);
+        exit(255);
+    }
     setPC(vm->callStack[vm->fp], addr);
 }
 
@@ -157,6 +162,10 @@ void run(VM* vm, bool verbose) {
     while (1) {
         opcode = getNext(vm);
         currentFrame = vm->callStack[vm->fp];
+        if (opcode[0] == '.') {
+            stepOver(vm);
+            continue;
+        }
         if (strcmp(opcode, "HALT") == 0) {
             if (verbose)
                 printf("-----\nProgram execution complete\n");
@@ -374,30 +383,30 @@ void run(VM* vm, bool verbose) {
             push(vm, value);
         }
         else if (strcmp(opcode, "JMP") == 0) {
-            addr = atoi(getNext(vm));
-            jump(vm, addr);
+            next = getNext(vm);
+            jump(vm, next);
         }
         else if (strcmp(opcode, "JMPT") == 0) {
-            addr = atoi(getNext(vm));
+            next = getNext(vm);
             if (pop(vm).value.boolVal)
-                jump(vm, addr);
+                jump(vm, next);
         }
         else if (strcmp(opcode, "JMPF") == 0) {
-            addr = atoi(getNext(vm));
+            next = getNext(vm);
             if (!pop(vm).value.boolVal)
-                jump(vm, addr);
+                jump(vm, next);
         }
         else if (strcmp(opcode, "SJMPT") == 0) {
             // short circuit for and/or statements
-            addr = atoi(getNext(vm));
+            next = getNext(vm);
             if (top(vm).value.boolVal)
-                jump(vm, addr);
+                jump(vm, next);
         }
         else if (strcmp(opcode, "SJMPF") == 0) {
             // short circuit for and/or statements
-            addr = atoi(getNext(vm));
+            next = getNext(vm);
             if (!top(vm).value.boolVal)
-                jump(vm, addr);
+                jump(vm, next);
         }
         else if (strcmp(opcode, "SELECT") == 0) {
             if (pop(vm).value.boolVal) {
@@ -430,7 +439,7 @@ void run(VM* vm, bool verbose) {
             }
             else {
                 addr = findLabelIndex(vm->src, next);
-                Frame* frame = loadFrame(vm->src.code[addr].body, currentFrame->pc, argc, params);
+                Frame* frame = loadFrame(vm->src.code[addr].body, vm->src.code[addr].jumpPoints, vm->src.code[addr].jmpCnt, currentFrame->pc, argc, params);
                 vm->callStack[++vm->fp] = frame;
             }
             

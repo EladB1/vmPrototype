@@ -3,18 +3,21 @@
 
 #include "dataconstant.h"
 #include "stringvector.h"
+#include "filereader.h"
 
 typedef struct {
     DataConstant* stack;
     DataConstant* locals;
     StringVector* instructions;
+    JumpPoint* jumps;
+    int jc;
     int pc;
     int sp;
     int lc;
     int returnAddr;
 } Frame;
 
-Frame* loadFrame(StringVector* code, int pc, int argc, DataConstant* params);
+Frame* loadFrame(StringVector* code, JumpPoint* jumps, int jc, int pc, int argc, DataConstant* params);
 void deleteFrame(Frame* frame);
 void framePush(Frame* frame, DataConstant value);
 DataConstant framePop(Frame* frame);
@@ -26,6 +29,7 @@ void storeLocal(Frame* frame, DataConstant value);
 void storeLocalAtAddr(Frame*, DataConstant value, int addr);
 void incrementPC(Frame* frame);
 void setPC(Frame* frame, int addr);
+int getJumpIndex(Frame* frame, char* label);
 void print_array(char* array_label, DataConstant* array, int array_size);
 bool stackIsEmpty(Frame* frame);
 
