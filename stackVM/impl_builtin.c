@@ -112,8 +112,7 @@ void writeToFile(char* filePath, char* content, char* mode) {
         fprintf(stderr, "Cause: '%s'\n", filePath);
         exit(3);
     }
-    int write = fprintf(fp, "%s", content);
-    printf("Write: %d\n", write);
+    int write = fprintf(fp, "%s\n", content);
     if (write < 0) {
         perror("FileError");
         fprintf(stderr, "Cause: '%s'\n", filePath);

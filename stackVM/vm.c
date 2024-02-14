@@ -112,13 +112,13 @@ bool isBool(char* constant) {
 
 char* removeQuotes(char* in) {
     int len = strlen(in);
-    char* out = malloc(sizeof(char) * len - 2);
+    char out[len - 2];
     int index = 0;
     for (int i = 1; i < len - 1; i++) {
         out[index++] = in[i];
     }
     out[index] = '\0';
-    return out;
+    return strdup(out);
 }
 
 void stepOver(VM* vm) {
@@ -194,11 +194,16 @@ void run(VM* vm, bool verbose) {
             value = top(vm);
             push(vm, value);
         }
+        else if (strcmp(opcode, "POP") == 0) {
+            if (stackIsEmpty(currentFrame))
+                return;
+            pop(vm);
+        }
         else if (strcmp(opcode, "CONCAT") == 0) {
             rhs = pop(vm);
             lhs = pop(vm);
             if (lhs.type == Str)
-                rval = createString(strncat(lhs.value.strVal, rhs.value.strVal, strlen(rhs.value.strVal)));
+                rval = createString(strncat(strdup(lhs.value.strVal), rhs.value.strVal, strlen(rhs.value.strVal)));
             else if (lhs.type == Addr) {
                 rval.type = Addr;
                 rval.size = lhs.size + rhs.size;
