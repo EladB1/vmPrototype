@@ -34,9 +34,15 @@ bool isBuiltinFunction(char* name) {
         "_reverse_a",
         "sort",
         "sleep",
-        "exit"
+        "exit",
+        "fileExists",
+        "createFile",
+        "writeToFile",
+        "appendToFile",
+        "renameFile",
+        "deleteFile"
     };
-    int end = 26;
+    int end = 32;
     for (int i = 0; i < end; i++) {
         if (strcmp(name, builtins[i]) == 0)
             return true;
@@ -105,5 +111,17 @@ DataConstant callBuiltin(char* name, int argc, DataConstant* params, DataConstan
             exit(params[0].value.intVal);
         exit(0);
     }
+    if (strcmp(name, "fileExists") == 0)
+        return createBoolean(fileExists(params[0].value.strVal));
+    if (strcmp(name, "createFile") == 0)
+        createFile(params[0].value.strVal);
+    if (strcmp(name, "writeToFile") == 0)
+        writeToFile(params[0].value.strVal, params[1].value.strVal, "w");
+    if (strcmp(name, "appendToFile") == 0)
+        writeToFile(params[0].value.strVal, params[1].value.strVal, "a");
+    if (strcmp(name, "renameFile") == 0)
+        renameFile(params[0].value.strVal, params[1].value.strVal);
+    if (strcmp(name, "deleteFile") == 0)
+        deleteFile(params[0].value.strVal);
     return createNone();
 }

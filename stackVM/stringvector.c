@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdbool.h>
 #include "stringvector.h"
 
 #define DEFAULT_VECTOR_MAX 256
@@ -55,13 +56,78 @@ void printStringVector(StringVector* sv) {
     printf("%s], length: %d, capacity: %d", sv->strings[sv->length - 1], sv->length, sv->capacity);
 }
 
+StringVector* splitExceptQuotes(char* line, char* delim) {
+    StringVector* strings = createStringVector();
+    bool in_word = false;
+    bool in_quotes = false;
+    bool matching = false;
+    char prev, curr;
+    char* token = "";
+    int k;
+    int end = strlen(line) + 1;
+    int delimEnd = strlen(delim);
+    for (int i = 0; i < end; i++) {
+        prev = curr;
+        curr = line[i];
+        if (!in_word && !matching && curr != delim[0]) {
+            in_word = true;
+            if (curr == '"')
+                in_quotes = true;
+            asprintf(&token, "%c", curr);
+            continue;
+        }
+        if (in_word) {
+            if ((!in_quotes && curr != delim[0]) || in_quotes)
+                asprintf(&token, "%s%c", token, curr);
+            if (!in_quotes && curr == delim[0]) {
+                matching = true;
+                k = i + 1;
+                for (int j = 1; j < delimEnd && k < end; j++, k++) {
+                    if (delim[j] != line[k]) {
+                        matching = false;
+                        break;
+                    }
+                    matching = true;
+                }
+                if (matching) {
+                    addString(strings, token);
+                    token = "";
+                    in_word = false;
+                }
+            }
+        }
+        if (in_quotes && prev != '\\' && curr == '"') {
+            addString(strings, token);
+            token = "";
+            in_quotes = false;
+        }
+        if (!in_word && matching && curr != delim[0]) {
+            in_word = true;
+            if (curr == '"')
+                in_quotes = true;
+            asprintf(&token, "%c", curr);
+            matching = false;
+        }
+    }
+    return strings;
+} 
+
 StringVector* split(char* line, char* delim) {
     char* copy = strdup(line);
     StringVector* strings = createStringVector();
-    char* token = strtok(copy, delim);
-    while (token != NULL) {
-        addString(strings, token);
-        token = strtok(NULL, delim);
+    if (strchr(copy, '"') != NULL) {
+        strings = splitExceptQuotes(line, delim);
+    }
+    else {
+        char* token = strtok(copy, delim);
+        while (token != NULL) {
+            addString(strings, token);
+            if (token[0] == '"') {
+                printf("Token: %s\n", token);
+                break;
+            }
+            token = strtok(NULL, delim);
+        }
     }
     return strings;
 }

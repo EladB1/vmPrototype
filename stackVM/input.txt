@@ -66,6 +66,12 @@ sum:
         RET
 
 _entry:
+    LOAD_CONST "some text"
+    LOAD_CONST "out.txt"
+    DUP
+    CALL createFile 1
+    CALL writeToFile 2
+    HALT
     LOAD_CONST -5
     GSTORE
     GLOAD 0

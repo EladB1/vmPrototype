@@ -113,7 +113,8 @@ void writeToFile(char* filePath, char* content, char* mode) {
         exit(3);
     }
     int write = fprintf(fp, "%s", content);
-    if (write != 0) {
+    printf("Write: %d\n", write);
+    if (write < 0) {
         perror("FileError");
         fprintf(stderr, "Cause: '%s'\n", filePath);
         exit(write);
