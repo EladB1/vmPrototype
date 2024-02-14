@@ -100,9 +100,10 @@ fileWrite:
 
 
 _entry:
-    LOAD_CONST "some text"
+    ;LOAD_CONST "some text\nother text"
     LOAD_CONST "out.txt"
-    CALL fileWrite 2
+    ;CALL fileWrite 2
+    CALL readFile 1
     HALT
     LOAD_CONST -5
     GSTORE

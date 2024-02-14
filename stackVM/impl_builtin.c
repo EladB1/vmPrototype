@@ -75,7 +75,7 @@ void createFile(char* filePath) {
     fclose(fp);
 }
 
-char** readFile(char* filePath) {
+DataConstant readFile(char* filePath, int* globCount, DataConstant** globals) {
     if (!fileExists(filePath)) {
         fprintf(stderr, "FileError: Cannot read file '%s' because it does not exist\n", filePath);
         exit(3);
@@ -86,16 +86,16 @@ char** readFile(char* filePath) {
         fprintf(stderr, "Cause: '%s'\n", filePath);
         exit(3);
     }
-    char** lines = malloc(sizeof(char*) * DEFAULT_LINES);
-    int lineCnt = 0;
-    int limit = DEFAULT_LINES;
+    DataConstant lines;
+    lines.type = Addr;
+    lines.value.intVal = ++(*globCount);
+    lines.length = 0;
+    lines.size = 0;
     char line[DEFAULT_LINES];
     while (fgets(line, DEFAULT_LINES, fp)) {
-        lines[lineCnt++] = line;
-        if (lineCnt == limit - 1) {
-            limit *= 2;
-            lines = realloc(lines, sizeof(char*) * limit);
-        }
+        (*globals)[(*globCount)++] = createString(strdup(line));
+        lines.length++;
+        lines.size++;
     }
     fclose(fp);
     return lines;

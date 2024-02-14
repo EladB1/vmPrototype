@@ -10,7 +10,7 @@ bool endsWith(char* string, char* suffix);
 char* reverse(char* string);
 bool fileExists(char* filePath);
 void createFile(char* filePath);
-char** readFile(char* filePath);
+DataConstant readFile(char* filePath, int* globCount, DataConstant** globals);
 void writeToFile(char* filePath, char* content, char* mode);
 void renameFile(char* filePath, char* newFilePath);
 void deleteFile(char* filePath);

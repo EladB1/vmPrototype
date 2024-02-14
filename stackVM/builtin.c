@@ -37,12 +37,13 @@ bool isBuiltinFunction(char* name) {
         "exit",
         "fileExists",
         "createFile",
+        "readFile",
         "writeToFile",
         "appendToFile",
         "renameFile",
         "deleteFile"
     };
-    int end = 32;
+    int end = 33;
     for (int i = 0; i < end; i++) {
         if (strcmp(name, builtins[i]) == 0)
             return true;
@@ -50,7 +51,7 @@ bool isBuiltinFunction(char* name) {
     return false;
 }
 
-DataConstant callBuiltin(char* name, int argc, DataConstant* params, DataConstant** globals) {
+DataConstant callBuiltin(char* name, int argc, DataConstant* params, int* globCount, DataConstant** globals) {
     if (strcmp(name, "print") == 0)
         print(params[0], *globals, false);
     if (strcmp(name, "println") == 0)
@@ -115,6 +116,8 @@ DataConstant callBuiltin(char* name, int argc, DataConstant* params, DataConstan
         return createBoolean(fileExists(params[0].value.strVal));
     if (strcmp(name, "createFile") == 0)
         createFile(params[0].value.strVal);
+    if (strcmp(name, "readFile") == 0)
+        return readFile(params[0].value.strVal, globCount, globals);
     if (strcmp(name, "writeToFile") == 0)
         writeToFile(params[0].value.strVal, params[1].value.strVal, "w");
     if (strcmp(name, "appendToFile") == 0)

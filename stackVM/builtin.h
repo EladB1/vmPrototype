@@ -4,6 +4,6 @@
 #include "dataconstant.h"
 
 bool isBuiltinFunction(char* name);
-DataConstant callBuiltin(char* name, int argc, DataConstant* params, DataConstant** globals);
+DataConstant callBuiltin(char* name, int argc, DataConstant* params, int* globCount, DataConstant** globals);
 
 #endif

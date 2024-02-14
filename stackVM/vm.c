@@ -438,7 +438,7 @@ void run(VM* vm, bool verbose) {
                 params[i] = pop(vm);
             }
             if (isBuiltinFunction(next)) {
-                rval = callBuiltin(next, argc, params, &vm->globals);
+                rval = callBuiltin(next, argc, params, &vm->gc, &vm->globals);
                 if (rval.type != None)
                     push(vm, rval);
             }
