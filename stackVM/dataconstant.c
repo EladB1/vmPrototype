@@ -314,3 +314,22 @@ DataConstant copyAddr(DataConstant src, int* addr, DataConstant** globals) {
     }
     return copy;
 }
+
+DataConstant partialCopyAddr(DataConstant src, int start, int len, int* addr, DataConstant** globals) {
+    DataConstant copy;
+    copy.type = Addr;
+    copy.size = src.size;
+    copy.length = len;
+    copy.value.intVal = *addr + 1;
+    int srcAddr = start;
+    DataConstant* globs = *globals;
+    for (int i = 0; i < len && i < src.size; i++) {
+        globs[++(*addr)] = globs[srcAddr + i];
+    }
+    if (len < src.size) {
+        for (int i = len; i < src.size; i++) {
+            globs[++(*addr)] = createNone();
+        }
+    }
+    return copy;
+}

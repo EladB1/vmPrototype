@@ -79,6 +79,11 @@ DataConstant callBuiltin(char* name, int argc, DataConstant* params, int* globCo
         int end = argc == 2 ? (int) strlen(string) : params[2].value.intVal;
         return createString(slice(string, params[1].value.intVal, end));
     }
+    if (strcmp(name, "_slice_a") == 0) {
+        DataConstant array = params[0];
+        int end = argc == 2 ? array.length : params[2].value.intVal;
+        return sliceArr(array, params[1].value.intVal, end, globCount, globals);
+    }
     if (strcmp(name, "_contains_s") == 0)
         return createBoolean(contains(params[0].value.strVal, params[1].value.strVal));
     if (strcmp(name, "_contains_a") == 0)

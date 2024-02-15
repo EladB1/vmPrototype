@@ -22,8 +22,9 @@ char* at(char* str, int index) {
         fprintf(stderr, "IndexError: String index out of range in function call 'at(\"%s\", %d)'\n", str, index);
         exit(2);
     }
-    char result[2] = {str[index], '\0'};
-    return strdup(result);
+    char* result = "";
+    asprintf(&result, "%c", str[index]);
+    return result;
 }
 
 bool startsWith_(char* string, char* prefix) {
@@ -180,7 +181,7 @@ void printerr(DataConstant data, bool terminates, int exitCode) {
 }
 
 char* slice(char* string, int start, int end) {
-    if (start > end || start >= (int) strlen(string)) {
+    if (start < 0 || start > end || start >= (int) strlen(string)) {
         fprintf(stderr, "Invalid start value of slice %d\n", start);
         exit(2);
     }
@@ -190,6 +191,16 @@ char* slice(char* string, int start, int end) {
         sliced[index++] = string[i];
     }
     return strdup(sliced);
+}
+
+DataConstant sliceArr(DataConstant array, int start, int end, int* globCount, DataConstant** globals) {
+    if (start < 0 || start > end || start >= array.length || end > array.length) {
+        fprintf(stderr, "Array index out of bounds in call to slice. start: %d, end: %d\n", start, end);
+        exit(2);
+    }
+    int addr = array.value.intVal + start;
+    int len = array.value.intVal + end - addr;
+    return partialCopyAddr(array, addr, len, globCount, globals);
 }
 
 bool contains(char* str, char* subStr) {

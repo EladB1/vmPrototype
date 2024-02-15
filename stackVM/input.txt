@@ -100,11 +100,6 @@ fileWrite:
 
 
 _entry:
-    ;LOAD_CONST "some text\nother text"
-    LOAD_CONST "out.txt"
-    ;CALL fileWrite 2
-    CALL readFile 1
-    HALT
     LOAD_CONST -5
     GSTORE
     GLOAD 0
@@ -143,10 +138,17 @@ _entry:
     LOAD_CONST NULL
     EQ
     STORE 0
+    LOAD_CONST 3
+    LOAD_CONST 2
     LOAD_CONST -3
     LOAD_CONST 20
     LOAD_CONST 1
     BUILDARR 3 3
+    DUP
+    CALL println 1
+    CALL _slice_a 3
+    CALL println 1
+    HALT
     COPYARR
     CALL println 1
     HALT

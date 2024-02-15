@@ -17,6 +17,7 @@ void deleteFile(char* filePath);
 void print(DataConstant data, DataConstant* globals, bool newLine);
 void printerr(DataConstant data, bool terminates, int exitCode);
 char* slice(char* string, int start, int end);
+DataConstant sliceArr(DataConstant array, int start, int end, int* globCount, DataConstant** globals);
 bool contains(char* str, char* subStr);
 bool arrayContains(DataConstant array, DataConstant element, DataConstant* globals);
 int indexOf(DataConstant array, DataConstant element, DataConstant* globals);

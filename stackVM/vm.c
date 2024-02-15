@@ -203,7 +203,7 @@ void run(VM* vm, bool verbose) {
             rhs = pop(vm);
             lhs = pop(vm);
             if (lhs.type == Str)
-                rval = createString(strncat(strdup(lhs.value.strVal), rhs.value.strVal, strlen(rhs.value.strVal)));
+                rval = createString(strncat(lhs.value.strVal, rhs.value.strVal, strlen(rhs.value.strVal)));
             else if (lhs.type == Addr) {
                 rval.type = Addr;
                 rval.size = lhs.size + rhs.size;
