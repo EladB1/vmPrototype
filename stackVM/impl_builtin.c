@@ -63,6 +63,22 @@ char* reverse(char* string) {
     return strdup(out);
 }
 
+void reverseArr(DataConstant array, DataConstant** globals) {
+    if (array.length <= 1)
+        return;
+    DataConstant temp;
+    int j, addr, half = array.length / 2;
+    DataConstant* globs = *globals;
+    for (int i = 0; i < half; i++) {
+        j = array.value.intVal + (array.length - i - 1);
+        addr = array.value.intVal + i;
+        printf("%d, %d\n", addr, j);
+        temp = globs[addr];
+        globs[addr] = globs[j];
+        globs[j] = temp;
+    }
+}
+
 bool fileExists(char* filePath) {
     return access(filePath, F_OK) == 0;
 }
@@ -319,3 +335,14 @@ void sort(DataConstant array, DataConstant* globals) {
     DataConstant* start = &globals[addr];
     qsort(start, array.length, sizeof(DataConstant), comparator);
 }
+
+void removeByIndex(DataConstant* array, int index, DataConstant** globals) {
+    if (index < 0 || index > (*array).size) {
+        fprintf(stderr, "Array index out of bounds\n");
+        exit(2);
+    }
+    memmove(&globals[index], &globals[index+1], sizeof(array[0]) * (array->length - index - 1));
+    array->length--;
+    printf("%d\n", array->length);
+    (*globals)[array->value.intVal + array->length] = createNone();
+} 

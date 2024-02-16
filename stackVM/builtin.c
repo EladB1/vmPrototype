@@ -19,6 +19,9 @@ bool isBuiltinFunction(char* name) {
         "min",
         "_slice_s",
         "_slice_a",
+        "_remove_indx_a",
+        "_remove_val_a",
+        "_remove_all_val_a",
         "_contains_s",
         "_contains_a",
         "indexOf",
@@ -28,8 +31,7 @@ bool isBuiltinFunction(char* name) {
         "_toDouble_s",
         "_toDouble_i",
         "at",
-        "_join_1",
-        "_join_2",
+        "join",
         "_reverse_s",
         "_reverse_a",
         "sort",
@@ -43,7 +45,7 @@ bool isBuiltinFunction(char* name) {
         "renameFile",
         "deleteFile"
     };
-    int end = 33;
+    int end = 35;
     for (int i = 0; i < end; i++) {
         if (strcmp(name, builtins[i]) == 0)
             return true;
@@ -84,6 +86,25 @@ DataConstant callBuiltin(char* name, int argc, DataConstant* params, int* globCo
         int end = argc == 2 ? array.length : params[2].value.intVal;
         return sliceArr(array, params[1].value.intVal, end, globCount, globals);
     }
+    if (strcmp(name, "_remove_indx_a") == 0) {
+        int index = params[1].value.intVal;
+        removeByIndex(&params[0], index, globals);
+        return params[0];
+    }
+    if (strcmp(name, "_remove_val_a") == 0) {
+        int index = indexOf(params[0], params[1], *globals);
+        if (index != -1)
+            removeByIndex(&params[0], index, globals);
+        return params[0];
+    }
+    if (strcmp(name, "_remove_all_val_a") == 0) {
+        int index = indexOf(params[0], params[1], *globals);
+        while (index != -1) {
+            removeByIndex(&params[0], index, globals);
+            index = indexOf(params[0], params[1], *globals);
+        }
+        return params[0];
+    }
     if (strcmp(name, "_contains_s") == 0)
         return createBoolean(contains(params[0].value.strVal, params[1].value.strVal));
     if (strcmp(name, "_contains_a") == 0)
@@ -102,12 +123,16 @@ DataConstant callBuiltin(char* name, int argc, DataConstant* params, int* globCo
         return createDouble((double) params[0].value.intVal);
     if (strcmp(name, "at") == 0)
         return createString(at(params[0].value.strVal, params[1].value.intVal));
-    if (strcmp(name, "_join_1") == 0)
-        return createString(join(params[0], "", *globals));
-    if (strcmp(name, "_join_2") == 0)
-        return createString(join(params[0], params[1].value.strVal, *globals));
+    if (strcmp(name, "join") == 0) {
+        char* delim = argc == 1 ? "" : params[1].value.strVal;
+        return createString(join(params[0], delim, *globals));
+    }
     if (strcmp(name, "_reverse_s") == 0)
         return createString(reverse(params[0].value.strVal));
+    if (strcmp(name, "_reverse_a") == 0) {
+        reverseArr(params[0], globals);
+        return params[0];
+    }
     if (strcmp(name, "sort") == 0)
         sort(params[0], *globals);
     if (strcmp(name, "sleep") == 0)

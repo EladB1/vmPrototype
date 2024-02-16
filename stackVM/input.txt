@@ -138,15 +138,21 @@ _entry:
     LOAD_CONST NULL
     EQ
     STORE 0
-    LOAD_CONST 3
+    ;LOAD_CONST 3
     LOAD_CONST 2
     LOAD_CONST -3
     LOAD_CONST 20
     LOAD_CONST 1
     BUILDARR 3 3
     DUP
+    DUP
+    STORE
     CALL println 1
-    CALL _slice_a 3
+    ;CALL _slice_a 3
+    ;CALL _remove_indx_a 2
+    CALL _reverse_a 1
+    STORE 3
+    LOAD 3
     CALL println 1
     HALT
     COPYARR

@@ -36,6 +36,8 @@ When a function returns, the top of the stack is popped, the frame is popped off
 
 Built-in functions are somewhat similar in behavior. The only difference is they don't create a frame; instead they pop parameters, run some C code, and push the return value onto the stack (if not `None`).
 
+When a function call happens, the VM first check if the name matches any of the built-in function names. If not, the VM searches the source code for defined functions and returns the index of the chunk of source code representing that function. Functions must be separated by new lines. The name of the function must be followed by a semicolon then the instructions.
+
 Example:
 
 This byte code
@@ -66,6 +68,8 @@ is equivalent to this source code
         exit();
     }
 ```
+
+> `println` is a built-in function
 
 ### Byte code
 

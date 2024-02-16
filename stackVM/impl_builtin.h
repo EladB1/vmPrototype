@@ -8,6 +8,7 @@ char* at(char* str, int index);
 bool startsWith_(char* string, char* prefix);
 bool endsWith(char* string, char* suffix);
 char* reverse(char* string);
+void reverseArr(DataConstant array, DataConstant** globals);
 bool fileExists(char* filePath);
 void createFile(char* filePath);
 DataConstant readFile(char* filePath, int* globCount, DataConstant** globals);
@@ -24,5 +25,6 @@ int indexOf(DataConstant array, DataConstant element, DataConstant* globals);
 char* getType(DataConstant data, DataConstant* globals);
 char* join(DataConstant array, char* delim, DataConstant* globals);
 void sort(DataConstant array, DataConstant* globals);
+void removeByIndex(DataConstant* array, int index, DataConstant** globals);
 
 #endif
