@@ -333,3 +333,23 @@ DataConstant partialCopyAddr(DataConstant src, int start, int len, int* addr, Da
     }
     return copy;
 }
+
+DataConstant expandExistingAddr(DataConstant src, int capacity, int* addr, DataConstant** globals) {
+    // TODO: remove old array from globals
+    DataConstant copy;
+    copy.type = Addr;
+    copy.size = capacity;
+    copy.length = src.length;
+    copy.value.intVal = *addr + 1;
+    int srcAddr = src.value.intVal;
+    DataConstant* globs = *globals;
+    for (int i = 0; i < src.size; i++) {
+        globs[++(*addr)] = globs[srcAddr + i];
+    }
+    if (src.size < copy.size) {
+        for (int i = src.size; i < copy.size; i++) {
+            globs[++(*addr)] = createNone();
+        }
+    }
+    return copy;
+}

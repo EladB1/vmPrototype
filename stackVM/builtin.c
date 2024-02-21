@@ -21,6 +21,9 @@ bool isBuiltinFunction(char* name) {
         "replaceAll",
         "_slice_s",
         "_slice_a",
+        "append",
+        "prepend",
+        "insert",
         "_remove_indx_a",
         "_remove_val_a",
         "_remove_all_val_a",
@@ -47,7 +50,7 @@ bool isBuiltinFunction(char* name) {
         "renameFile",
         "deleteFile"
     };
-    int end = 37;
+    int end = 40;
     for (int i = 0; i < end; i++) {
         if (strcmp(name, builtins[i]) == 0)
             return true;
@@ -91,6 +94,21 @@ DataConstant callBuiltin(char* name, int argc, DataConstant* params, int* globCo
         DataConstant array = params[0];
         int end = argc == 2 ? array.length : params[2].value.intVal;
         return sliceArr(array, params[1].value.intVal, end, globCount, globals);
+    }
+    if (strcmp(name, "append") == 0) {
+        DataConstant array = params[0];
+        append(&array, params[1], globals);
+        return array;
+    }
+    if (strcmp(name, "prepend") == 0) {
+        DataConstant array = params[0];
+        prepend(&array, params[1], globals);
+        return array;
+    }
+    if (strcmp(name, "insert") == 0) {
+        DataConstant array = params[0];
+        insert(&array, params[1], params[2].value.intVal, globals);
+        return array;
     }
     if (strcmp(name, "_remove_indx_a") == 0) {
         int index = params[1].value.intVal;

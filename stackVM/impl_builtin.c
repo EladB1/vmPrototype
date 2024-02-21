@@ -362,8 +362,49 @@ void removeByIndex(DataConstant* array, int index, DataConstant** globals) {
         fprintf(stderr, "Array index out of bounds\n");
         exit(2);
     }
-    memmove(&globals[index], &globals[index+1], sizeof(array[0]) * (array->length - index - 1));
+    int addr = array->value.intVal + index;
+    memmove(&globals[addr], &globals[addr + 1], sizeof(DataConstant) * (array->length - index - 1));
     array->length--;
     printf("%d\n", array->length);
     (*globals)[array->value.intVal + array->length] = createNone();
-} 
+}
+
+void append(DataConstant* array, DataConstant elem, DataConstant** globals) {
+    if (array->length == array->size) {
+        fprintf(stderr, "Array size limit %d reached. Cannot insert into array.\n" , array->size);
+        exit(2);
+    }
+    int addr = array->value.intVal + array->length;
+    (*globals)[addr] = elem;
+    array->length++; 
+}
+
+void prepend(DataConstant* array, DataConstant elem, DataConstant** globals) {
+    if (array->length == array->size) {
+        fprintf(stderr, "Array size limit %d reached. Cannot insert into array.\n" , array->size);
+        exit(2);
+    }
+    int addr = array->value.intVal;
+    memmove(&globals[addr + 1], &globals[addr], sizeof(DataConstant) * (array->length + 1));
+    (*globals)[addr] = elem;
+    array->length++; 
+}
+
+void insert(DataConstant* array, DataConstant elem, int index, DataConstant** globals) {
+    if (array->length == array->size) {
+        fprintf(stderr, "Array size limit %d reached. Cannot insert into array.\n" , array->size);
+        exit(2);
+    }
+    if (index == 0) {
+        prepend(array, elem, globals);
+        return;
+    }
+    if (index == array->length) {
+        append(array, elem, globals);
+        return;
+    }
+    int addr = array->value.intVal + index;
+    memmove(&globals[addr + 1], &globals[addr], sizeof(DataConstant) * (array->length - index + 1));
+    (*globals)[addr] = elem;
+    array->length++; 
+}

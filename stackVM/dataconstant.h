@@ -46,5 +46,6 @@ DataConstant createNone();
 DataConstant createAddr(int addr, int capacity, int length);
 DataConstant copyAddr(DataConstant src, int* addr, DataConstant** globals);
 DataConstant partialCopyAddr(DataConstant src, int start, int len, int* addr, DataConstant** globals);
+DataConstant expandExistingAddr(DataConstant src, int capacity, int* addr, DataConstant** globals);
 
 #endif
