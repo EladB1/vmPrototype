@@ -17,6 +17,8 @@ bool isBuiltinFunction(char* name) {
         "getType",
         "max",
         "min",
+        "replace",
+        "replaceAll",
         "_slice_s",
         "_slice_a",
         "_remove_indx_a",
@@ -45,7 +47,7 @@ bool isBuiltinFunction(char* name) {
         "renameFile",
         "deleteFile"
     };
-    int end = 35;
+    int end = 37;
     for (int i = 0; i < end; i++) {
         if (strcmp(name, builtins[i]) == 0)
             return true;
@@ -76,6 +78,10 @@ DataConstant callBuiltin(char* name, int argc, DataConstant* params, int* globCo
         return getMax(params[0], params[1]);
     if (strcmp(name, "min") == 0)
         return getMax(params[0], params[1]);
+    if (strcmp(name, "replace") == 0)
+        return createString(replace(params[0].value.strVal, params[1].value.strVal, params[2].value.strVal, false));
+    if (strcmp(name, "replaceAll") == 0)
+        return createString(replace(params[0].value.strVal, params[1].value.strVal, params[2].value.strVal, true));
     if (strcmp(name, "_slice_s") == 0) {
         char* string = params[0].value.strVal;
         int end = argc == 2 ? (int) strlen(string) : params[2].value.intVal;

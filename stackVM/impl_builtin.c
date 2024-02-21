@@ -63,6 +63,44 @@ char* reverse(char* string) {
     return strdup(out);
 }
 
+bool contains(char* str, char* subStr) {
+    if (strlen(subStr) == 0)
+        return true;
+    if (strlen(subStr) > strlen(str))
+        return false;
+    while (*str) {
+         const char* sub = subStr;
+         const char* tmp = str;
+         while (*tmp++ == *sub++) {
+            if (!*sub)
+                return true;
+         }
+         str++;
+    }
+    return false;
+}
+
+char* replace(char* string, char* old, char* new, bool multiple) {
+    size_t len = strlen(string);
+    size_t old_len = strlen(old);
+    size_t new_len = strlen(new);
+    size_t end;
+    if (len <= old_len && strstr(old, string))
+        return new;
+    char* replaced = malloc(len - old_len + new_len + 1);
+    do {
+        char* temp = strstr(string, old);
+        if (temp == NULL)
+            return string;
+        end = len - strlen(temp);
+        strncpy(replaced, string, end);
+        replaced[end] = '\0';
+        sprintf(&replaced[end], "%s%s", new, temp + old_len);
+        string = strdup(replaced);
+    } while (multiple && strstr(string, old));
+    return replaced;
+}
+
 void reverseArr(DataConstant array, DataConstant** globals) {
     if (array.length <= 1)
         return;
@@ -217,23 +255,6 @@ DataConstant sliceArr(DataConstant array, int start, int end, int* globCount, Da
     int addr = array.value.intVal + start;
     int len = array.value.intVal + end - addr;
     return partialCopyAddr(array, addr, len, globCount, globals);
-}
-
-bool contains(char* str, char* subStr) {
-    if (strlen(subStr) == 0)
-        return true;
-    if (strlen(subStr) > strlen(str))
-        return false;
-    while (*str) {
-         const char* sub = subStr;
-         const char* tmp = str;
-         while (*tmp++ == *sub++) {
-            if (!*sub)
-                return true;
-         }
-         str++;
-    }
-    return false;
 }
 
 bool arrayContains(DataConstant array, DataConstant element, DataConstant* globals) {
