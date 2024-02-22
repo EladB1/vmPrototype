@@ -48,9 +48,11 @@ bool isBuiltinFunction(char* name) {
         "writeToFile",
         "appendToFile",
         "renameFile",
-        "deleteFile"
+        "deleteFile",
+        "getEnv",
+        "setEnv"
     };
-    int end = 40;
+    int end = 42;
     for (int i = 0; i < end; i++) {
         if (strcmp(name, builtins[i]) == 0)
             return true;
@@ -180,5 +182,16 @@ DataConstant callBuiltin(char* name, int argc, DataConstant* params, int* globCo
         renameFile(params[0].value.strVal, params[1].value.strVal);
     if (strcmp(name, "deleteFile") == 0)
         deleteFile(params[0].value.strVal);
+    if (strcmp(name, "getEnv") == 0)
+        return createString(getenv(params[0].value.strVal));
+    if (strcmp(name, "setEnv") == 0) {
+        char* envStr;
+        asprintf(&envStr, "%s=%s", params[0].value.strVal, params[1].value.strVal);
+        int set = putenv(envStr);
+        if (set != 0) {
+            fprintf(stderr, "Failed to set environment variable\n");
+            exit(set);
+        }
+    }
     return createNone();
 }
