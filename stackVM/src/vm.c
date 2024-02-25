@@ -6,8 +6,7 @@
 #include <math.h>
 #include <limits.h>
 
-#include "filereader.h"
-#include "frame.h"
+#include "vm.h"
 #include "builtin.h"
 
 #define ENTRYPOINT "_entry"
@@ -20,14 +19,6 @@ int findLabelIndex(SourceCode src, char* label) {
     }
     return -1;
 }
-
-typedef struct {
-    DataConstant* globals;
-    SourceCode src;
-    Frame** callStack;
-    int fp;
-    int gc;
-} VM;
 
 VM* init(SourceCode src) {
     VM* vm = malloc(sizeof(VM));
@@ -525,15 +516,4 @@ void run(VM* vm, bool verbose) {
         if (verbose)
             display(vm);
     }
-}
-
-int main(int argc, char** argv) {
-    bool verbose = argc >= 2 && (strcmp(argv[1], "-v") == 0 || strcmp(argv[1], "--verbose") == 0);
-    SourceCode src = read_file("input.txt");
-    if (verbose)
-        displayCode(src);
-    VM* vm = init(src);
-    run(vm, verbose);
-    destroy(vm);
-    return 0;
 }
