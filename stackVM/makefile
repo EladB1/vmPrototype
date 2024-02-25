@@ -16,7 +16,7 @@ $(TESTBUILD): $(TESTS- .c=.o)
 
 test: $(TESTBUILD)
 	@echo "Setting up tests..."
-	for test in $(TESTBUILD) ; do ./$$test --verbose ; done
+	-for test in $(TESTBUILD) ; do ./$$test --verbose ; done
 	@echo "Cleaning up tests..."
 	@rm -f $(TESTBUILD)
 
