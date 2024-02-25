@@ -32,11 +32,13 @@ SourceCode read_file(char* filename) {
     StringVector* line;
     StringVector* out = createStringVector();
     const unsigned int MAX_LENGTH = 256;
+    bool prevWasBlank = false;
     char buff[MAX_LENGTH];
     while (fgets(buff, MAX_LENGTH, fp)) {
         if (startsWith(buff, ';'))
             continue;
         else if (!startsWith(buff, '.') && buff[strlen(buff) - 2] == ':') {
+            prevWasBlank = false;
             func.label = getFromSV(split(buff, ":\n"), 0);
         }
         else if (startsWith(buff, '.') && buff[strlen(buff) - 2] == ':') {
@@ -48,11 +50,14 @@ SourceCode read_file(char* filename) {
             func.jumpPoints[func.jmpCnt++] = jmp;
         }
         else if (strcmp(buff, "\n") == 0) {
-            func.body = out;
-            out = createStringVector();
-            code.code[code.length++] = func;
-            count = 0;
-            func.jmpCnt = 0;
+            if (!prevWasBlank) {
+                func.body = out;
+                out = createStringVector();
+                code.code[code.length++] = func;
+                count = 0;
+                func.jmpCnt = 0;
+                prevWasBlank = true;
+            }
             continue;
         }
         else {
