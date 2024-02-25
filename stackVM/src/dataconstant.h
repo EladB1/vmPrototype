@@ -27,13 +27,6 @@ typedef struct {
     int length;
 } DataConstant;
 
-char* toString(DataConstant data);
-bool isZero(DataConstant data);
-bool isEqual(DataConstant lhs, DataConstant rhs);
-DataConstant compareData(DataConstant lhs, DataConstant rhs, char* comparison);
-DataConstant getMax(DataConstant lhs, DataConstant rhs);
-DataConstant getMin(DataConstant lhs, DataConstant rhs);
-DataConstant binaryArithmeticOperation(DataConstant lhs, DataConstant rhs, char* operation);
 DataConstant readInt(char* value);
 DataConstant createInt(int value);
 DataConstant readDouble(char* value);
@@ -44,6 +37,15 @@ DataConstant createString(char* value);
 DataConstant createNull();
 DataConstant createNone();
 DataConstant createAddr(int addr, int capacity, int length);
+
+char* toString(DataConstant data);
+bool isZero(DataConstant data);
+bool isEqual(DataConstant lhs, DataConstant rhs);
+DataConstant compareData(DataConstant lhs, DataConstant rhs, char* comparison);
+DataConstant getMax(DataConstant lhs, DataConstant rhs);
+DataConstant getMin(DataConstant lhs, DataConstant rhs);
+DataConstant binaryArithmeticOperation(DataConstant lhs, DataConstant rhs, char* operation);
+
 DataConstant copyAddr(DataConstant src, int* addr, DataConstant** globals);
 DataConstant partialCopyAddr(DataConstant src, int start, int len, int* addr, DataConstant** globals);
 DataConstant expandExistingAddr(DataConstant src, int capacity, int* addr, DataConstant** globals);
