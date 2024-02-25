@@ -1,5 +1,13 @@
 CC=gcc
-CFLAGS=-Wall -Wextra -std=c11 -lm
+OS := $(shell $(CC) -dumpmachine)
+
+ifneq (, $(findstring linux, $(OS))) 
+	STANDARD=gnu11
+else
+	STANDARD=c11
+endif
+
+CFLAGS=-Wall -Wextra -std=$(STANDARD) -lm
 SOURCES=src/*.c
 TESTS=tests/*.c
 TARGET=bolt

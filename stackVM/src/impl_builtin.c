@@ -314,6 +314,8 @@ char* getType(DataConstant data, DataConstant* globals) {
             }
             asprintf(&type, "Array<%s>", subType);
             return type;
+        default:
+            return "Unknown";
     }
 }
 

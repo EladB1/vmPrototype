@@ -1,4 +1,5 @@
 #include <stdbool.h>
+#include <string.h>
 
 #include "filereader.h"
 #include "vm.h"
