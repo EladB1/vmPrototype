@@ -40,11 +40,11 @@ ParameterizedTest(double* dbl, DataConstant, createDouble) {
 typedef struct {
     char* str;
     bool value;
-} readBoolean_input;
+} readBooleanInput;
 
 void free_readBool_input(struct criterion_test_params* inputs) {
-    readBoolean_input* params = (readBoolean_input*) inputs->params;
-    readBoolean_input* param;
+    readBooleanInput* params = (readBooleanInput*) inputs->params;
+    readBooleanInput* param;
     for (size_t i = 0; i < inputs->length; i++) {
         param = params + i;
         cr_free(param->str);
@@ -54,14 +54,14 @@ void free_readBool_input(struct criterion_test_params* inputs) {
 
 ParameterizedTestParameters(DataConstant, readBoolean) {
     size_t count = 2;
-    readBoolean_input* values = cr_malloc(sizeof(readBoolean_input) * count);
-    values[0] = (readBoolean_input) {cr_strdup("true"), true};
-    values[1] = (readBoolean_input) {cr_strdup("false"), false};
+    readBooleanInput* values = cr_malloc(sizeof(readBooleanInput) * count);
+    values[0] = (readBooleanInput) {cr_strdup("true"), true};
+    values[1] = (readBooleanInput) {cr_strdup("false"), false};
     
-    return cr_make_param_array(readBoolean_input, values, count, free_readBool_input);
+    return cr_make_param_array(readBooleanInput, values, count, free_readBool_input);
 }
 
-ParameterizedTest(readBoolean_input* bools, DataConstant, readBoolean) {
+ParameterizedTest(readBooleanInput* bools, DataConstant, readBoolean) {
     DataConstant data = readBoolean(bools->str);
     cr_expect(data.type == Bool);
     cr_expect(data.value.boolVal == bools->value);
@@ -99,11 +99,11 @@ Test(DataConstant, createAddr) {
 typedef struct {
     DataConstant data;
     char* representation;
-} toString_input;
+} toStringInput;
 
 void free_toString_input(struct criterion_test_params* inputs) {
-    toString_input* params = (toString_input*) inputs->params;
-    toString_input* param;
+    toStringInput* params = (toStringInput*) inputs->params;
+    toStringInput* param;
     for (size_t i = 0; i < inputs->length; i++) {
         param = params + i;
         cr_free(param->representation);
@@ -114,19 +114,19 @@ void free_toString_input(struct criterion_test_params* inputs) {
 
 ParameterizedTestParameters(DataConstant, toString) {
     size_t count = 8;
-    toString_input* values = cr_malloc(sizeof(toString_input) * count);
-    values[0] = (toString_input) {createInt(10), cr_strdup("10")};
-    values[1] = (toString_input) {createDouble(2.78), cr_strdup("2.780000")};
-    values[2] = (toString_input) {createBoolean(true), cr_strdup("true")};
-    values[3] = (toString_input) {createBoolean(false), cr_strdup("false")};
-    values[4] = (toString_input) {createString(cr_strdup("Hello")), cr_strdup("\"Hello\"")};
-    values[5] = (toString_input) {createAddr(15, 10, 4), cr_strdup("0xf (10)")};
-    values[6] = (toString_input) {createNull(), cr_strdup("null")};
-    values[7] = (toString_input) {createNone(), cr_strdup("None")};
-    return cr_make_param_array(toString_input, values, count, free_toString_input);
+    toStringInput* values = cr_malloc(sizeof(toStringInput) * count);
+    values[0] = (toStringInput) {createInt(10), cr_strdup("10")};
+    values[1] = (toStringInput) {createDouble(2.78), cr_strdup("2.780000")};
+    values[2] = (toStringInput) {createBoolean(true), cr_strdup("true")};
+    values[3] = (toStringInput) {createBoolean(false), cr_strdup("false")};
+    values[4] = (toStringInput) {createString(cr_strdup("Hello")), cr_strdup("\"Hello\"")};
+    values[5] = (toStringInput) {createAddr(15, 10, 4), cr_strdup("0xf (10)")};
+    values[6] = (toStringInput) {createNull(), cr_strdup("null")};
+    values[7] = (toStringInput) {createNone(), cr_strdup("None")};
+    return cr_make_param_array(toStringInput, values, count, free_toString_input);
 }
 
-ParameterizedTest(toString_input* data, DataConstant, toString) {
+ParameterizedTest(toStringInput* data, DataConstant, toString) {
     cr_log_info("%s, %s\n", toString(data->data), data->representation);
     cr_expect_str_eq(toString(data->data), data->representation);
 }

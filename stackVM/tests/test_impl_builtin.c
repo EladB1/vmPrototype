@@ -9,11 +9,11 @@ TestSuite(impl_builtin);
 typedef struct {
     int index;
     char* result;
-} at_input;
+} atInput;
 
 void free_at_input(struct criterion_test_params* test_params) {
-    at_input* params = (at_input*) test_params->params;
-    at_input* param;
+    atInput* params = (atInput*) test_params->params;
+    atInput* param;
     for (size_t i = 0; i < test_params->length; i++) {
         param = params + i;
         cr_free(param->result);
@@ -23,16 +23,16 @@ void free_at_input(struct criterion_test_params* test_params) {
 
 ParameterizedTestParameters(impl_builtin, at_valid) {
     size_t count = 3;
-    at_input* values = cr_malloc(sizeof(at_input) * count);
+    atInput* values = cr_malloc(sizeof(atInput) * count);
     
-    values[0] = (at_input) {0, cr_strdup("l")};
-    values[1] = (at_input) {1, cr_strdup("a")};
-    values[2] = (at_input) {7, cr_strdup("e")};
+    values[0] = (atInput) {0, cr_strdup("l")};
+    values[1] = (atInput) {1, cr_strdup("a")};
+    values[2] = (atInput) {7, cr_strdup("e")};
     
-    return cr_make_param_array(at_input, values, count, free_at_input);
+    return cr_make_param_array(atInput, values, count, free_at_input);
 }
 
-ParameterizedTest(at_input* input, impl_builtin, at_valid) {
+ParameterizedTest(atInput* input, impl_builtin, at_valid) {
     char* string = "language";
     char* result = at(string, input->index);
     // cr_log_info("Result: %s\n", result);
