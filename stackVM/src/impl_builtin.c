@@ -158,16 +158,16 @@ char* replace(char* string, char* old, char* new, bool multiple) {
     if (len <= old_len && strstr(old, string))
         return new;
     char* replaced = malloc(len - old_len + new_len + 1);
-    do {
-        char* temp = strstr(string, old);
-        if (temp == NULL)
-            return string;
-        end = len - strlen(temp);
-        strncpy(replaced, string, end);
-        replaced[end] = '\0';
-        sprintf(&replaced[end], "%s%s", new, temp + old_len);
-        string = strdup(replaced);
-    } while (multiple && strstr(string, old));
+    char* temp = strstr(string, old);
+    if (temp == NULL)
+        return string;
+    end = len - strlen(temp);
+    strncpy(replaced, string, end);
+    replaced[end] = '\0';
+    sprintf(&replaced[end], "%s%s", new, temp + old_len);
+    while (multiple && strstr(replaced, old)) {
+        replaced = replace(replaced, old, new, multiple);
+    }
     return replaced;
 }
 
@@ -176,6 +176,8 @@ char* slice(char* string, int start, int end) {
         fprintf(stderr, "Invalid start value of slice %d\n", start);
         exit(2);
     }
+    if (start == 0 && end == (int) strlen(string))
+        return string;
     char sliced[end - start];
     int index = 0;
     for (int i = start; i < end; i++) {

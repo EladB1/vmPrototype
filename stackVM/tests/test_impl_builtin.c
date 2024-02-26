@@ -56,9 +56,21 @@ Test(impl_builtin, endsWith_false) {
     cr_expect(!endsWith("Typescript", "Java"));
 }
 
+Test(impl_builtin, reverse_empty) {
+    cr_expect_str_eq(reverse(""), "");
+}
+
 Test(impl_builtin, reverse) {
     char* reversed = reverse("what");
     cr_expect_str_eq("tahw", reversed);
+}
+
+Test(impl_builtin, contains_empty) {
+    cr_expect(contains("hello", ""));
+}
+
+Test(impl_builtin, contains_bigger_false) {
+    cr_expect(!contains("hello", "hello, world!"));
 }
 
 Test(impl_builtin, contains_true) {
@@ -69,7 +81,39 @@ Test(impl_builtin, contains_false) {
     cr_expect(!contains("helLo", "ll"));
 }
 
-Test(impl_builtin, slice_str) {
+Test(impl_builtin, replace_single_full) {
+    char* replaced = replace("Javascript", "Javascript", "TS", false);
+    cr_expect_str_eq(replaced, "TS");
+}
+
+Test(impl_builtin, replace_single) {
+    char* replaced = replace("Good books look cool", "oo", "-", false);
+    cr_expect_str_eq(replaced, "G-d books look cool");
+}
+
+Test(impl_builtin, replace_multiple) {
+    char* replaced = replace("Good books look cool", "oo", "-", true);
+    cr_expect_str_eq(replaced, "G-d b-ks l-k c-l");
+}
+
+Test(impl_builtin, replace_single_not_found) {
+    char* replaced = replace("Kotlin", "ll", "-", false);
+    cr_expect_str_eq(replaced, "Kotlin");
+}
+
+Test(impl_builtin, replace_multiple_not_found) {
+    char* replaced = replace("Kotlin", "ll", "-", true);
+    cr_expect_str_eq(replaced, "Kotlin");
+}
+
+
+Test(impl_builtin, slice_str_valid_full) {
+    char* sliced = slice("Ten", 0, 3);
+    // cr_log_info("%s", sliced);
+    cr_expect_str_eq(sliced, "Ten");
+}
+
+Test(impl_builtin, slice_str_valid) {
     char* sliced = slice("What time is it?", 5, 9);
     // cr_log_info("%s", sliced);
     cr_expect_str_eq(sliced, "time");

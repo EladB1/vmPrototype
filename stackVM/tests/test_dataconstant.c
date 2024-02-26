@@ -127,7 +127,7 @@ ParameterizedTestParameters(DataConstant, toString) {
 }
 
 ParameterizedTest(toStringInput* data, DataConstant, toString) {
-    cr_log_info("%s, %s\n", toString(data->data), data->representation);
+    // cr_log_info("%s, %s\n", toString(data->data), data->representation);
     cr_expect_str_eq(toString(data->data), data->representation);
 }
 
