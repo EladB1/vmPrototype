@@ -1,8 +1,7 @@
-#include <string.h>
-
 #include <criterion/criterion.h>
 #include <criterion/parameterized.h>
 
+#include "utils.h"
 #include "../src/dataconstant.h"
 
 TestSuite(DataConstant);
@@ -43,17 +42,29 @@ typedef struct {
     bool value;
 } readBoolean_input;
 
-ParameterizedTestParameters(DataConstant, readBoolean) {
-    static readBoolean_input values[] = {{"true", true}, {"false", false}};
-    size_t count = sizeof(values) / sizeof(readBoolean_input);
+void free_readBool_input(struct criterion_test_params* inputs) {
+    readBoolean_input* params = (readBoolean_input*) inputs->params;
+    readBoolean_input* param;
+    for (size_t i = 0; i < inputs->length; i++) {
+        param = params + i;
+        cr_free(param->str);
+    }
+    cr_free(inputs->params);
+}
 
-    return cr_make_param_array(readBoolean_input, values, count);
+ParameterizedTestParameters(DataConstant, readBoolean) {
+    size_t count = 2;
+    readBoolean_input* values = cr_malloc(sizeof(readBoolean_input) * count);
+    values[0] = (readBoolean_input) {cr_strdup("true"), true};
+    values[1] = (readBoolean_input) {cr_strdup("false"), false};
+    
+    return cr_make_param_array(readBoolean_input, values, count, free_readBool_input);
 }
 
 ParameterizedTest(readBoolean_input* bools, DataConstant, readBoolean) {
-    DataConstant data = readBoolean((*bools).str);
+    DataConstant data = readBoolean(bools->str);
     cr_expect(data.type == Bool);
-    cr_expect(data.value.boolVal == (*bools).value);
+    cr_expect(data.value.boolVal == bools->value);
 }
 
 Test(DataConstant, createBoolean) {
@@ -65,7 +76,7 @@ Test(DataConstant, createBoolean) {
 Test(DataConstant, createString) {
     DataConstant data = createString("Hello, world!");
     cr_expect(data.type == Str);
-    cr_expect(strcmp(data.value.strVal, "Hello, world!") == 0);
+    cr_expect_str_eq(data.value.strVal, "Hello, world!");
 }
 
 Test(DataConstant, createNull) {
@@ -90,33 +101,34 @@ typedef struct {
     char* representation;
 } toString_input;
 
+void free_toString_input(struct criterion_test_params* inputs) {
+    toString_input* params = (toString_input*) inputs->params;
+    toString_input* param;
+    for (size_t i = 0; i < inputs->length; i++) {
+        param = params + i;
+        cr_free(param->representation);
+        cr_free(param);
+    }
+    cr_free(inputs->params);
+}
+
 ParameterizedTestParameters(DataConstant, toString) {
     size_t count = 8;
     toString_input* values = cr_malloc(sizeof(toString_input) * count);
-    values[0].data = createInt(10);
-    values[0].representation = "10";
-    values[1].data = createDouble(2.78);
-    values[1].representation = "2.780000";
-    values[2].data = createBoolean(true);
-    values[2].representation = "true";
-    values[3].data = createBoolean(false);
-    values[3].representation = "false";
-    values[4].data = createString("Hello");
-    values[4].representation = "\"Hello\"";
-    values[5].data = createAddr(15, 10, 4);
-    values[5].representation = "0xf (10)";
-    values[6].data = createNull(); 
-    values[6].representation = "null";
-    values[7].data = createNone();
-    values[7].representation = "None";
-    return cr_make_param_array(toString_input, values, count, (void *)cr_free);
+    values[0] = (toString_input) {createInt(10), cr_strdup("10")};
+    values[1] = (toString_input) {createDouble(2.78), cr_strdup("2.780000")};
+    values[2] = (toString_input) {createBoolean(true), cr_strdup("true")};
+    values[3] = (toString_input) {createBoolean(false), cr_strdup("false")};
+    values[4] = (toString_input) {createString(cr_strdup("Hello")), cr_strdup("\"Hello\"")};
+    values[5] = (toString_input) {createAddr(15, 10, 4), cr_strdup("0xf (10)")};
+    values[6] = (toString_input) {createNull(), cr_strdup("null")};
+    values[7] = (toString_input) {createNone(), cr_strdup("None")};
+    return cr_make_param_array(toString_input, values, count, free_toString_input);
 }
 
 ParameterizedTest(toString_input* data, DataConstant, toString) {
-    char* repr = (*data).representation;
-    char* stringValue = toString((*data).data);
-    // cr_log_info("%s, %s\n", repr, stringValue);
-    cr_expect(strcmp(stringValue, repr) == 0);
+    cr_log_info("%s, %s\n", toString(data->data), data->representation);
+    cr_expect_str_eq(toString(data->data), data->representation);
 }
 
 ParameterizedTestParameters(DataConstant, isZero) {

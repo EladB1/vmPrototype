@@ -244,6 +244,7 @@ char* slice(char* string, int start, int end) {
     for (int i = start; i < end; i++) {
         sliced[index++] = string[i];
     }
+    sliced[index] = '\0';
     return strdup(sliced);
 }
 
