@@ -8,6 +8,76 @@
 
 #define DEFAULT_LINES 1024
 
+void print(DataConstant data, DataConstant* globals, bool newLine) {
+    char end = newLine ? '\n' : '\0';
+    if (data.type == Int)
+        printf("%d%c", data.value.intVal, end);
+    if (data.type == Dbl)
+        printf("%f%c", data.value.dblVal, end);
+    if (data.type == Str)
+        printf("%s%c", data.value.strVal, end);
+    if (data.type == Bool)
+        printf("%s%c",toString(data), end);
+    if (data.type == Null)
+        printf("null%c", end);
+    if (data.type == Addr) {
+        printf("[");
+        int start = data.value.intVal;
+        int stop = start + data.length;
+        for (int i = start; i < stop; i++) {
+            print(globals[i], globals, false);
+            if (i != stop - 1)
+                printf(", ");
+
+        }
+        printf("]%c", end);
+    }
+}
+
+void printerr(DataConstant data, bool terminates, int exitCode) {
+    fprintf(stderr, "%s\n", data.value.strVal);
+    if (terminates)
+        exit(exitCode);
+}
+
+char* getType(DataConstant data, DataConstant* globals) {
+    switch (data.type) {
+        case Int:
+            return "int";
+        case Dbl:
+            return "double";
+        case Bool:
+            return "boolean";
+        case Str:
+            return "string";
+        case Null:
+            return "null";
+        case None:
+            return "None";
+        case Addr:
+            if (data.length == 0)
+                return "Array<>";
+            DataConstant elem;
+            char* type = "";
+            char* subType = "";
+            int start = data.value.intVal;
+            int end = start + data.length;
+            for (int i = start; i < end; i++) {
+                elem = globals[i];
+                if (elem.type == Addr && elem.length == 0 && i < end - 1)
+                    continue;
+                if (elem.type != Null && elem.type != None) {
+                    subType = getType(elem, globals);
+                    break;
+                }
+            }
+            asprintf(&type, "Array<%s>", subType);
+            return type;
+        default:
+            return "Unknown";
+    }
+}
+
 void sleep_(DataConstant seconds) {
     if (seconds.type == Dbl) {
         int time = (int) lround(1000000 * seconds.value.dblVal);
@@ -101,20 +171,18 @@ char* replace(char* string, char* old, char* new, bool multiple) {
     return replaced;
 }
 
-void reverseArr(DataConstant array, DataConstant** globals) {
-    if (array.length <= 1)
-        return;
-    DataConstant temp;
-    int j, addr, half = array.length / 2;
-    DataConstant* globs = *globals;
-    for (int i = 0; i < half; i++) {
-        j = array.value.intVal + (array.length - i - 1);
-        addr = array.value.intVal + i;
-        printf("%d, %d\n", addr, j);
-        temp = globs[addr];
-        globs[addr] = globs[j];
-        globs[j] = temp;
+char* slice(char* string, int start, int end) {
+    if (start < 0 || start > end || start >= (int) strlen(string)) {
+        fprintf(stderr, "Invalid start value of slice %d\n", start);
+        exit(2);
     }
+    char sliced[end - start];
+    int index = 0;
+    for (int i = start; i < end; i++) {
+        sliced[index++] = string[i];
+    }
+    sliced[index] = '\0';
+    return strdup(sliced);
 }
 
 bool fileExists(char* filePath) {
@@ -202,50 +270,20 @@ void deleteFile(char* filePath) {
     }
 }
 
-void print(DataConstant data, DataConstant* globals, bool newLine) {
-    char end = newLine ? '\n' : '\0';
-    if (data.type == Int)
-        printf("%d%c", data.value.intVal, end);
-    if (data.type == Dbl)
-        printf("%f%c", data.value.dblVal, end);
-    if (data.type == Str)
-        printf("%s%c", data.value.strVal, end);
-    if (data.type == Bool)
-        printf("%s%c",toString(data), end);
-    if (data.type == Null)
-        printf("null%c", end);
-    if (data.type == Addr) {
-        printf("[");
-        int start = data.value.intVal;
-        int stop = start + data.length;
-        for (int i = start; i < stop; i++) {
-            print(globals[i], globals, false);
-            if (i != stop - 1)
-                printf(", ");
-
-        }
-        printf("]%c", end);
+void reverseArr(DataConstant array, DataConstant** globals) {
+    if (array.length <= 1)
+        return;
+    DataConstant temp;
+    int j, addr, half = array.length / 2;
+    DataConstant* globs = *globals;
+    for (int i = 0; i < half; i++) {
+        j = array.value.intVal + (array.length - i - 1);
+        addr = array.value.intVal + i;
+        printf("%d, %d\n", addr, j);
+        temp = globs[addr];
+        globs[addr] = globs[j];
+        globs[j] = temp;
     }
-}
-
-void printerr(DataConstant data, bool terminates, int exitCode) {
-    fprintf(stderr, "%s\n", data.value.strVal);
-    if (terminates)
-        exit(exitCode);
-}
-
-char* slice(char* string, int start, int end) {
-    if (start < 0 || start > end || start >= (int) strlen(string)) {
-        fprintf(stderr, "Invalid start value of slice %d\n", start);
-        exit(2);
-    }
-    char sliced[end - start];
-    int index = 0;
-    for (int i = start; i < end; i++) {
-        sliced[index++] = string[i];
-    }
-    sliced[index] = '\0';
-    return strdup(sliced);
 }
 
 DataConstant sliceArr(DataConstant array, int start, int end, int* globCount, DataConstant** globals) {
@@ -280,44 +318,6 @@ int indexOf(DataConstant array, DataConstant element, DataConstant* globals) {
             return i;
     }
     return -1;
-}
-
-char* getType(DataConstant data, DataConstant* globals) {
-    switch (data.type) {
-        case Int:
-            return "int";
-        case Dbl:
-            return "double";
-        case Bool:
-            return "boolean";
-        case Str:
-            return "string";
-        case Null:
-            return "null";
-        case None:
-            return "None";
-        case Addr:
-            if (data.length == 0)
-                return "Array<>";
-            DataConstant elem;
-            char* type = "";
-            char* subType = "";
-            int start = data.value.intVal;
-            int end = start + data.length;
-            for (int i = start; i < end; i++) {
-                elem = globals[i];
-                if (elem.type == Addr && elem.length == 0 && i < end - 1)
-                    continue;
-                if (elem.type != Null && elem.type != None) {
-                    subType = getType(elem, globals);
-                    break;
-                }
-            }
-            asprintf(&type, "Array<%s>", subType);
-            return type;
-        default:
-            return "Unknown";
-    }
 }
 
 char* join(DataConstant array, char* delim, DataConstant* globals) {
