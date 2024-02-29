@@ -1,10 +1,81 @@
 #include <criterion/criterion.h>
 #include <criterion/parameterized.h>
+#include <criterion/redirect.h>
 
 #include "utils.h"
 #include "../src/impl_builtin.h"
 
 TestSuite(impl_builtin);
+
+typedef struct {
+    DataConstant dc;
+    char* result;
+} getTypeInput;
+
+void free_getTypeInput(struct criterion_test_params* test_params) {
+    getTypeInput* params = (getTypeInput*) test_params->params;
+    getTypeInput* param;
+    for (size_t i = 0; i < test_params->length; i++) {
+        param = params + i;
+        cr_free(param->result);
+    }
+    cr_free(test_params->params);
+}
+
+ParameterizedTestParameters(impl_builtin, print_non_array) {
+    size_t count = 5;
+    getTypeInput* values = cr_malloc(sizeof(getTypeInput) * count);
+    
+    values[0] = (getTypeInput) {createInt(0), cr_strdup("0\n")};
+    values[1] = (getTypeInput) {createDouble(1.4), cr_strdup("1.400000\n")};
+    values[2] = (getTypeInput) {createBoolean(false), cr_strdup("false\n")};
+    values[3] = (getTypeInput) {createNull(), cr_strdup("null\n")};
+    values[4] = (getTypeInput) {createString(cr_strdup("whoami")), cr_strdup("whoami\n")};
+    return cr_make_param_array(getTypeInput, values, count, free_getTypeInput);
+}
+
+/* NOTE: There is a bug with cr_assert_stdout_eq_str that doesn't handle printing without new line characters*/
+ParameterizedTest(getTypeInput* input, impl_builtin, print_non_array, .init = cr_redirect_stdout) {
+    DataConstant fakeGlobals[0] = {};
+    setbuf(stdout, NULL);
+    print(input->dc, fakeGlobals, true);
+    cr_assert_stdout_eq_str(input->result);
+}
+
+Test(impl_builtin, printerr_non_terminating, .init = cr_redirect_stderr, .exit_code = 0) {
+    DataConstant message = createString("Could not open socket");
+    printerr(message, false, 1);
+    cr_assert_stderr_eq_str("Could not open socket\n");
+}
+
+Test(impl_builtin, printerr_terminating, .init = cr_redirect_stderr, .exit_code = 1) {
+    DataConstant message = createString("Could not open socket");
+    printerr(message, true, 1);
+    cr_assert_stderr_eq_str("Could not open socket\n");
+}
+
+ParameterizedTestParameters(impl_builtin, getType) {
+    size_t count = 8;
+    getTypeInput* values = cr_malloc(sizeof(getTypeInput) * count);
+    
+    values[0] = (getTypeInput) {createInt(0), cr_strdup("int")};
+    values[1] = (getTypeInput) {createDouble(1.4), cr_strdup("double")};
+    values[2] = (getTypeInput) {createBoolean(false), cr_strdup("boolean")};
+    values[3] = (getTypeInput) {createString("whoami"), cr_strdup("string")};
+    values[4] = (getTypeInput) {createNull(), cr_strdup("null")};
+    values[5] = (getTypeInput) {createNone(), cr_strdup("None")};
+    values[6] = (getTypeInput) {createAddr(0, 2, 2), cr_strdup("Array<int>")};
+    values[7] = (getTypeInput) {(DataConstant) {8, (DataValue){}, 0, 0}, cr_strdup("Unknown")};
+    return cr_make_param_array(getTypeInput, values, count, free_getTypeInput);
+
+}
+
+ParameterizedTest(getTypeInput* input, impl_builtin, getType) {
+    DataConstant fakeGlobals[2] = {createInt(4), createInt(2)};
+    char* result = getType(input->dc, fakeGlobals);
+    // cr_log_info("Result: %s\n", result);
+    cr_expect_str_eq(result, input->result);
+}
 
 typedef struct {
     int index;
