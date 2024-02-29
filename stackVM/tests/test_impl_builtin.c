@@ -77,6 +77,12 @@ ParameterizedTest(getTypeInput* input, impl_builtin, getType) {
     cr_expect_str_eq(result, input->result);
 }
 
+Test(impl_builtin, at_invalid, .exit_code = 2, .init = cr_redirect_stderr) {
+    char* string = "language";
+    at(string, 10);
+    cr_assert_stderr_eq_str("IndexError: String index out of range in function call 'at(\"language\", 10)'\n");
+}
+
 typedef struct {
     int index;
     char* result;
@@ -177,6 +183,10 @@ Test(impl_builtin, replace_multiple_not_found) {
     cr_expect_str_eq(replaced, "Kotlin");
 }
 
+Test(impl_builtin, slice_str_error, .exit_code = 2, .init = cr_redirect_stderr) {
+    slice("Ten", 4, 3);
+    cr_assert_stderr_eq_str("Invalid start value of slice 4\n");
+}
 
 Test(impl_builtin, slice_str_valid_full) {
     char* sliced = slice("Ten", 0, 3);

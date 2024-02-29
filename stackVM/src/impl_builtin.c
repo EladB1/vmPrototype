@@ -88,7 +88,7 @@ void sleep_(DataConstant seconds) {
 }
 
 char* at(char* str, int index) {
-    if (index >= (int)strlen(str)) {
+    if (index < 0 || index >= (int)strlen(str)) {
         fprintf(stderr, "IndexError: String index out of range in function call 'at(\"%s\", %d)'\n", str, index);
         exit(2);
     }
