@@ -1,0 +1,34 @@
+fileWrite:
+    LOAD 0
+    CALL fileExists 1
+    DUP
+    JMPT .exists
+    JMPF .not_exists
+    .exists:
+        POP
+        LOAD 0
+        REPEATSTR 3
+        CALL println 1
+        LOAD 1
+        LOAD 0
+        CALL appendToFile 2
+        JMP .end
+    .not_exists:
+        LOAD 0
+        CALL createFile 1
+        LOAD_CONST "Creating file: '"
+        LOAD 0
+        LOAD_CONST "'"
+        CONCAT
+        CONCAT
+        CALL println 1
+        HALT
+        LOAD 1
+        LOAD 0
+        CALL writeToFile 2
+    .end:
+        LOAD_CONST NONE
+        RET
+
+_entry:
+    HALT

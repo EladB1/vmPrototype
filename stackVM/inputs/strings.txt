@@ -1,0 +1,10 @@
+_entry:
+    LOAD_CONST 3
+    LOAD_CONST "hello"
+    REPEATSTR 3
+    LOAD_CONST "world"
+    CONCAT
+    CALL _reverse_s 1
+    CALL at 2
+    CALL println 1
+    HALT

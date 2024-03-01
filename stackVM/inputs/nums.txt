@@ -1,0 +1,96 @@
+test:
+    LOAD_CONST true
+    RET
+
+plus_one:
+    LOAD 0
+    LOAD_CONST 1
+    ADD
+    RET
+
+equals_one:
+    LOAD 0
+    LOAD_CONST 1
+    EQ
+    RET
+
+fib:
+    LOAD 0
+    LOAD_CONST 0
+    EQ
+    SJMPT .1
+    LOAD 0
+    LOAD_CONST 1
+    EQ
+    OR
+    JMPT .1
+    LOAD 0
+    LOAD_CONST 1
+    SUB
+    DUP
+    LOAD_CONST 1
+    SUB
+    CALL fib 1
+    STORE
+    CALL fib 1
+    LOAD 1
+    ADD
+    RET
+    .1:
+        LOAD 0
+        RET
+
+sum:
+    LOAD_CONST 0
+    ; loop iterator
+    DUP
+    ; sum
+    STORE
+    STORE
+    .loop_start:
+        LOAD 1
+        LOAD 0
+        LT
+        JMPF .end
+        LOAD 2
+        LOAD 1
+        ADD
+        STORE 2
+        LOAD 1
+        LOAD_CONST 1
+        ADD
+        STORE 1
+        JMP .loop_start
+    .end:
+        LOAD 2
+        RET
+
+_entry:
+    LOAD_CONST -5
+    GSTORE
+    GLOAD 0
+    LOAD_CONST 3.14
+    EQ
+    SELECT 4 2
+    CALL plus_one 1
+    CALL test 0
+    STORE
+    LOAD 0
+    LOAD_CONST false
+    OR
+    STORE 0
+    LOAD_CONST 0.01
+    CALL sleep 1
+    LOAD_CONST 6
+    CALL fib 1
+    LOAD_CONST 10
+    CALL sum 1
+    XOR
+    LOAD_CONST 1
+    B_AND
+    STORE
+    LOAD_CONST 2
+    LOAD_CONST 0.5
+    POW
+    STORE
+    HALT

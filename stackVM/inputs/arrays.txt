@@ -1,0 +1,53 @@
+_entry:
+    LOAD_CONST 2
+    LOAD_CONST -3
+    LOAD_CONST 20
+    LOAD_CONST 1
+    BUILDARR 3 3
+    DUP
+    DUP
+    STORE
+    CALL println 1
+    ;CALL _slice_a 3
+    ;CALL _remove_indx_a 2
+    CALL _reverse_a 1
+    STORE 3
+    LOAD 3
+    CALL println 1
+    HALT
+    COPYARR
+    CALL println 1
+    HALT
+    BUILDARR 3 0
+    BUILDARR 2 2
+    STORE
+    LOAD 3
+    CALL println 1
+    LOAD 3
+    LOAD_CONST 1
+    AGET
+    LOAD_CONST 0
+    AGET
+    LOAD 3
+    LOAD_CONST 1
+    AGET
+    LOAD_CONST 2
+    ASTORE
+    LOAD 3
+    LOAD_CONST 1
+    ASTORE
+    STORE 3
+    LOAD_CONST 2
+    LOAD 3
+    LOAD_CONST 1
+    AGET
+    CALL _contains_a 2
+    BUILDARR 1 1
+    LOAD_CONST false
+    LOAD_CONST true
+    BUILDARR 3 2
+    CONCAT
+    CALL println 1
+    LOAD 3
+    CALL getType 1
+    HALT
