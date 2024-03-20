@@ -60,7 +60,7 @@ bool isBuiltinFunction(char* name) {
     return false;
 }
 
-DataConstant callBuiltin(char* name, int argc, DataConstant* params, int* globCount, DataConstant** globals) {
+DataConstant callBuiltinFunction(char* name, int argc, DataConstant* params, int* globCount, DataConstant** globals) {
     if (strcmp(name, "print") == 0)
         print(params[0], *globals, false);
     if (strcmp(name, "println") == 0)

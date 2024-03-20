@@ -116,6 +116,20 @@ ParameterizedTest(atInput* input, impl_builtin, at_valid) {
     cr_expect_str_eq(result, input->result);
 }
 
+Test(impl_builtin, join_empty) {
+    DataConstant globals[0] = {};
+    DataConstant array = createAddr(0, 0, 0);
+    char* result = join(array, "", globals);
+    cr_expect_str_eq(result, "");
+}
+
+Test(impl_builtin, join_non_empty) {
+    DataConstant globals[2] = {createString("hello"), createString("world")};
+    DataConstant array = createAddr(0, 2, 2);
+    char* result = join(array, ", ", globals);
+    cr_expect_str_eq(result, "hello, world");
+}
+
 Test(impl_builtin, startsWith_true) {
     // cr_log_info("%s\n", startsWith_("Javascript", "Java") ? "true" : "false");
     cr_expect(startsWith_("Javascript", "Java"));
