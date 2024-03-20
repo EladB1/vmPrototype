@@ -193,8 +193,11 @@ void run(VM* vm, bool verbose) {
         else if (strcmp(opcode, "CONCAT") == 0) {
             rhs = pop(vm);
             lhs = pop(vm);
-            if (lhs.type == Str)
-                rval = createString(strncat(lhs.value.strVal, rhs.value.strVal, strlen(rhs.value.strVal)));
+            if (lhs.type == Str) {
+                size_t size = strlen(lhs.value.strVal) + strlen(rhs.value.strVal) + 1;
+                char* concat = strncat(strdup(lhs.value.strVal), rhs.value.strVal, size); // using strdup here prevents the LHS value from being overwritten in the heap
+                rval = createString(concat);
+            }
             else if (lhs.type == Addr) {
                 rval.type = Addr;
                 rval.size = lhs.size + rhs.size;

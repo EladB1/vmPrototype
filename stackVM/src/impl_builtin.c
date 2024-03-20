@@ -227,10 +227,8 @@ DataConstant readFile(char* filePath, int* globCount, DataConstant** globals) {
 }
 
 void writeToFile(char* filePath, char* content, char* mode) {
-    if (!fileExists(filePath)) {
-        fprintf(stderr, "FileError: Cannot write to file '%s' because it does not exist\n", filePath);
-        exit(1);
-    }
+    if (!fileExists(filePath))
+        createFile(filePath);
     FILE* fp = fopen(filePath, mode);
     if (fp == NULL || ferror(fp)) {
         perror("FileError");

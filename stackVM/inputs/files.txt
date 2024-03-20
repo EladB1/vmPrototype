@@ -14,15 +14,14 @@ fileWrite:
         CALL appendToFile 2
         JMP .end
     .not_exists:
-        LOAD 0
-        CALL createFile 1
+        ;LOAD 0
+        ;CALL createFile 1
         LOAD_CONST "Creating file: '"
         LOAD 0
         LOAD_CONST "'"
         CONCAT
         CONCAT
         CALL println 1
-        HALT
         LOAD 1
         LOAD 0
         CALL writeToFile 2
@@ -31,4 +30,7 @@ fileWrite:
         RET
 
 _entry:
+    LOAD_CONST "hello"
+    LOAD_CONST "out.txt"
+    CALL fileWrite 2
     HALT
