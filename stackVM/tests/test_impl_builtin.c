@@ -5,6 +5,8 @@
 #include "utils.h"
 #include "../src/impl_builtin.h"
 
+#define TESTFILE ".temporary_testing_file.txt"
+
 TestSuite(impl_builtin);
 
 typedef struct {
@@ -199,6 +201,86 @@ Test(impl_builtin, slice_str_valid) {
     // cr_log_info("%s", sliced);
     cr_expect_str_eq(sliced, "time");
 }
+
+// File System functions
+
+Test(impl_builtin, createAndDeleteFile, .init = cr_redirect_stderr, .exit_code = 0) {
+    cr_expect_not(fileExists(TESTFILE));
+    createFile(TESTFILE);
+    cr_expect(fileExists(TESTFILE));
+    createFile(TESTFILE);
+    cr_expect_stderr_eq_str("FileError: Cannot create file '.temporary_testing_file.txt' because it already exists\n");
+    deleteFile(TESTFILE);
+    cr_expect_not(fileExists(TESTFILE));
+}
+
+Test(impl_builtin, deleteFile_nonExistant, .init = cr_redirect_stderr, .exit_code = 3) {
+    cr_expect_not(fileExists(TESTFILE));
+    deleteFile(TESTFILE);
+    cr_expect_stderr_eq_str("FileError: Cannot delete file '.temporary_testing_file.txt' because it does not exist\n");
+}
+
+Test(impl_builtin, renameFile_nonExistant, .init = cr_redirect_stderr, .exit_code = 3) {
+    cr_expect_not(fileExists(TESTFILE));
+    renameFile(TESTFILE, ".new_name.txt");
+    cr_expect_stderr_eq_str("FileError: Cannot delete file '.temporary_testing_file.txt' because it does not exist\n");
+}
+
+Test(impl_builtin, readFile_nonExistant, .init = cr_redirect_stderr, .exit_code = 3) {
+    cr_expect_not(fileExists(TESTFILE));
+    int globCount = 0;
+    DataConstant* globals = (DataConstant[]) {};
+    readFile(TESTFILE, &globCount, &globals);
+    cr_expect_stderr_eq_str("FileError: Cannot read file '.temporary_testing_file.txt' because it does not exist\n");
+}
+
+Test(impl_builtin, writeAppendReadDeleteFile) {
+    cr_expect_not(fileExists(TESTFILE));
+    int globCount = -1;
+    DataConstant* globals = (DataConstant[]) {createNone(), createNone(), createNone(), createNone()}; // need to have a none value in there for test to pass
+    
+    writeToFile(TESTFILE, "hello", "w");
+    cr_expect(fileExists(TESTFILE));
+    DataConstant read1 = readFile(TESTFILE, &globCount, &globals);
+    cr_expect_eq(read1.length, 1);
+    cr_expect_eq(read1.value.intVal, 0);
+    cr_expect_eq(globCount, 0);
+    cr_expect_str_eq(globals[0].value.strVal, "hello\n");
+    
+    writeToFile(TESTFILE, "hello", "w"); // should overwrite file contents
+    DataConstant read2 = readFile(TESTFILE, &globCount, &globals);
+    cr_expect_eq(read2.length, 1);
+    cr_expect_eq(read2.value.intVal, 1);
+    cr_expect_eq(globCount, 1);
+    cr_expect_str_eq(globals[1].value.strVal, "hello\n");
+    
+    writeToFile(TESTFILE, "world", "a"); // should not overwrite file contents
+    DataConstant read3 = readFile(TESTFILE, &globCount, &globals);
+    cr_expect_eq(read3.length, 2);
+    cr_expect_eq(read3.value.intVal, 2);
+    cr_expect_eq(globCount, 3);
+    cr_expect_str_eq(globals[2].value.strVal, "hello\n");
+    cr_expect_str_eq(globals[3].value.strVal, "world\n");
+    
+    deleteFile(TESTFILE);
+    cr_expect_not(fileExists(TESTFILE));
+}
+
+Test(impl_builtin, createRenameDeleteFile) {
+    char* newName = ".temp_test_file.2.txt";
+    cr_expect_not(fileExists(TESTFILE));
+    cr_expect_not(fileExists(newName));
+    createFile(TESTFILE);
+    cr_expect(fileExists(TESTFILE));
+    cr_expect_not(fileExists(newName));
+    renameFile(TESTFILE, newName);
+    cr_expect_not(fileExists(TESTFILE));
+    cr_expect(fileExists(newName));
+    deleteFile(newName);
+    cr_expect_not(fileExists(newName));
+}
+
+// Array functions
 
 Test(impl_builtin, reverseArr) {
     DataConstant* globals = (DataConstant[]) {createInt(2), createInt(0), createInt(-1)};

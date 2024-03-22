@@ -32,5 +32,17 @@ fileWrite:
 _entry:
     LOAD_CONST "hello"
     LOAD_CONST "out.txt"
-    CALL fileWrite 2
+    ;CALL fileWrite 2
+    CALL writeToFile 2
+    LOAD_CONST "out.txt"
+    CALL readFile 1
+    STORE
+    LOAD_CONST "something else"
+    LOAD_CONST "out.txt"
+    CALL writeToFile 2
+    LOAD_CONST "out.txt"
+    CALL readFile 1
+    CALL println 1
+    LOAD_CONST "out.txt"
+    CALL deleteFile 1
     HALT

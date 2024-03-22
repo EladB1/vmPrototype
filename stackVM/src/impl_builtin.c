@@ -213,12 +213,12 @@ DataConstant readFile(char* filePath, int* globCount, DataConstant** globals) {
     }
     DataConstant lines;
     lines.type = Addr;
-    lines.value.intVal = ++(*globCount);
+    lines.value.intVal = *globCount + 1;
     lines.length = 0;
     lines.size = 0;
     char line[DEFAULT_LINES];
     while (fgets(line, DEFAULT_LINES, fp)) {
-        (*globals)[(*globCount)++] = createString(strdup(line));
+        (*globals)[++(*globCount)] = createString(strdup(line));
         lines.length++;
         lines.size++;
     }
