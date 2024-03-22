@@ -279,7 +279,6 @@ void reverseArr(DataConstant array, DataConstant** globals) {
     for (int i = 0; i < half; i++) {
         j = array.value.intVal + (array.length - i - 1);
         addr = array.value.intVal + i;
-        printf("%d, %d\n", addr, j);
         temp = globs[addr];
         globs[addr] = globs[j];
         globs[j] = temp;
@@ -309,13 +308,13 @@ bool arrayContains(DataConstant array, DataConstant element, DataConstant* globa
 }
 
 int indexOf(DataConstant array, DataConstant element, DataConstant* globals) {
-    if (array.length == 0)
-        return -1;
-    int start = array.value.intVal;
-    int end = start + array.length;
-    for (int i = start; i < end; i++) {
-        if (isEqual(globals[i], element))
-            return i;
+    if (array.length != 0) {
+        int start = array.value.intVal;
+        int end = start + array.length;
+        for (int i = start; i < end; i++) {
+            if (isEqual(globals[i], element))
+                return i;
+        }
     }
     return -1;
 }
@@ -361,14 +360,13 @@ void sort(DataConstant array, DataConstant* globals) {
 }
 
 void removeByIndex(DataConstant* array, int index, DataConstant** globals) {
-    if (index < 0 || index > (*array).size) {
+    if (index < 0 || index > array->size) {
         fprintf(stderr, "Array index out of bounds\n");
         exit(2);
     }
     int addr = array->value.intVal + index;
-    memmove(&globals[addr], &globals[addr + 1], sizeof(DataConstant) * (array->length - index - 1));
+    memmove(&globals[0][addr], &globals[0][addr + 1], sizeof(DataConstant) * (array->length - index - 1));
     array->length--;
-    printf("%d\n", array->length);
     (*globals)[array->value.intVal + array->length] = createNone();
 }
 
