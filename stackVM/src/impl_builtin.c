@@ -396,6 +396,10 @@ void insert(DataConstant* array, DataConstant elem, int index, DataConstant** gl
         fprintf(stderr, "Array size limit %d reached. Cannot insert into array.\n" , array->size);
         exit(2);
     }
+    if (index < 0 || index > array->length) {
+        fprintf(stderr, "Array index %d out of range %d\n", index, array->length);
+        exit(2);
+    }
     if (index == 0) {
         prepend(array, elem, globals);
         return;

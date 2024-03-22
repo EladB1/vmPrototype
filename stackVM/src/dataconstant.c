@@ -44,7 +44,7 @@ bool isEqual(DataConstant lhs, DataConstant rhs) {
     if (lhs.type == Str && rhs.type == Str) {
         if (strlen(lhs.value.strVal) != strlen(rhs.value.strVal))
             return false;
-        return strcmp(lhs.value.strVal, rhs.value.strVal);
+        return strcmp(lhs.value.strVal, rhs.value.strVal) == 0;
     }
     if (lhs.type == Null && rhs.type == Null)
         return true;
