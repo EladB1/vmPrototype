@@ -66,7 +66,7 @@ Test(builtin, slice_string_three_params) {
 }
 
 Test(builtin, slice_array_two_params) {
-    DataConstant* globals = (DataConstant[]) {createInt(4), createInt(2), createInt(1)};
+    DataConstant* globals = (DataConstant[5]) {createInt(4), createInt(2), createInt(1)};
     int globCount = 3;
     DataConstant params[2] = {createAddr(0, globCount, globCount), createInt(1)};
     DataConstant result = callBuiltinFunction("_slice_a", 2, params, &globCount, &globals);
@@ -75,7 +75,7 @@ Test(builtin, slice_array_two_params) {
 }
 
 Test(builtin, slice_array_three_params) {
-    DataConstant* globals = (DataConstant[]) {createInt(8), createInt(4), createInt(2), createInt(1)};
+    DataConstant* globals = (DataConstant[7]) {createInt(8), createInt(4), createInt(2), createInt(1)};
     int globCount = 4;
     DataConstant params[3] = {createAddr(0, globCount, globCount), createInt(1), createInt(3)};
     DataConstant result = callBuiltinFunction("_slice_a", 3, params, &globCount, &globals);
