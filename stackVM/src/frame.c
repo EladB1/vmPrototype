@@ -80,16 +80,16 @@ int getJumpIndex(Frame* frame, char* label) {
     return -1;
 }
 
-void print_array(char* array_label, DataConstant* array, int array_size) {
-    if (array_size == -1) {
+void print_array(char* array_label, DataConstant* array, int end_index) {
+    if (end_index == -1) {
         printf("%s: []\n", array_label);
         return;
     }
     printf("%s: [", array_label);
-    for (int i = 0; i < array_size; i++) {
+    for (int i = 0; i < end_index; i++) {
         printf("%s, ", toString(array[i]));
     }
-    printf("%s]\n", toString(array[array_size]));
+    printf("%s]\n", toString(array[end_index]));
 
 }
 
