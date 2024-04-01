@@ -48,6 +48,7 @@ StringVector* concat(StringVector* sv1, StringVector* sv2) {
 void printStringVector(StringVector* sv) {
     if (sv->length == 0) {
         printf("@%p: [], length: 0, capacity: %d\n", sv, sv->capacity);
+        return;
     }
     printf("@%p: [", sv);
     for (int i = 0; i < sv->length - 1; i++) {
@@ -136,9 +137,11 @@ void trimSV(StringVector* sv) {
     int len;
     char* string;
     for (int i = 0; i < sv->length; i++) {
-        string = sv->strings[i];
+        string = strdup(sv->strings[i]);
         len = strlen(string);
-        if (string[len - 1] == '\n')
-            sv->strings[i][len - 1] = '\0'; // don't use string variable here to overwrite the value in the StringVector
+        if (string[len - 1] == '\n') {
+            string[len - 1] = '\0';
+            sv->strings[i] = string;
+        }
     }
 }
