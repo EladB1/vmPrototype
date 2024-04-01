@@ -66,21 +66,27 @@ Test(builtin, slice_string_three_params) {
 }
 
 Test(builtin, slice_array_two_params) {
-    DataConstant* globals = (DataConstant[5]) {createInt(4), createInt(2), createInt(1)};
-    int globCount = 3;
-    DataConstant params[2] = {createAddr(0, globCount, globCount), createInt(1)};
+    DataConstant* globals = (DataConstant[6]) {createInt(4), createInt(2), createInt(1)};
+    int globCount = 2;
+    DataConstant params[2] = {createAddr(0, 3, 3), createInt(1)};
     DataConstant result = callBuiltinFunction("_slice_a", 2, params, &globCount, &globals);
     cr_expect_eq(result.length, 2);
-    cr_expect_eq(result.value.intVal, 4);
+    cr_expect_eq(result.size, 3);
+    cr_expect_eq(result.value.intVal, 3);
+    cr_expect_eq(globCount, 5);
+    cr_expect_eq(globals[5].type, None);
 }
 
 Test(builtin, slice_array_three_params) {
-    DataConstant* globals = (DataConstant[7]) {createInt(8), createInt(4), createInt(2), createInt(1)};
-    int globCount = 4;
-    DataConstant params[3] = {createAddr(0, globCount, globCount), createInt(1), createInt(3)};
+    DataConstant* globals = (DataConstant[8]) {createInt(8), createInt(4), createInt(2), createInt(1)};
+    int globCount = 3;
+    DataConstant params[3] = {createAddr(0, 4, 4), createInt(1), createInt(3)};
     DataConstant result = callBuiltinFunction("_slice_a", 3, params, &globCount, &globals);
     cr_expect_eq(result.length, 2);
-    cr_expect_eq(result.value.intVal, 5);
+    cr_expect_eq(result.size, 4);
+    cr_expect_eq(result.value.intVal, 4);
+    cr_expect_eq(globCount, 7);
+    cr_expect_eq(globals[7].type, None);
 }
 
 // _remove_val_a

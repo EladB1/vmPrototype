@@ -123,9 +123,9 @@ bool isZero(DataConstant data) {
 }
 
 bool isEqual(DataConstant lhs, DataConstant rhs) {
-    if (lhs.type == Int)
+    if (lhs.type == Int && (rhs.type == Int || rhs.type == Dbl))
         return rhs.type == Int ? lhs.value.intVal == rhs.value.intVal : lhs.value.intVal == rhs.value.dblVal;
-    if (lhs.type == Dbl)
+    if (lhs.type == Dbl && (rhs.type == Int || rhs.type == Dbl))
         return rhs.type == Dbl ? lhs.value.dblVal == rhs.value.dblVal : lhs.value.dblVal == rhs.value.intVal;
     if (lhs.type == Bool && rhs.type == Bool)
         return lhs.value.boolVal == rhs.value.boolVal;

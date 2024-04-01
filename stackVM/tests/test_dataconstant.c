@@ -173,9 +173,9 @@ ParameterizedTestParameters(DataConstant, isEqual) {
     values[2] = (EqualityComparison) {createInt(10), createDouble(10.000), true};
     values[3] = (EqualityComparison) {createDouble(5.0), createInt(5), true};
     values[4] = (EqualityComparison) {createInt(0), createNull(), false};
-    values[5] = (EqualityComparison) {createString("hello"), createString("hello"), true};
-    values[6] = (EqualityComparison) {createString("hello"), createString("hello, world"), false};
-    values[7] = (EqualityComparison) {createString("hello"), createString("h3llo"), false};
+    values[5] = (EqualityComparison) {createString(cr_strdup("hello")), createString(cr_strdup("hello")), true};
+    values[6] = (EqualityComparison) {createString(cr_strdup("hello")), createString(cr_strdup("hello, world")), false};
+    values[7] = (EqualityComparison) {createString(cr_strdup("hello")), createString(cr_strdup("h3llo")), false};
     values[8] = (EqualityComparison) {createNull(), createNull(), true};
     return cr_make_param_array(EqualityComparison, values, count);
 }
@@ -194,16 +194,16 @@ typedef struct {
 ParameterizedTestParameters(DataConstant, compareData) {
     size_t count = 10;
     Comparison* values = cr_malloc(sizeof(Comparison) * count);
-    values[0] = (Comparison) {createInt(0), createInt(0), "==", true};
-    values[1] = (Comparison) {createInt(1), createInt(-1), "==", false};
-    values[2] = (Comparison) {createInt(1), createInt(-1), "!=", true};
-    values[3] = (Comparison) {createInt(0), createInt(0), "!=", false};
-    values[4] = (Comparison) {createInt(10), createDouble(10.000), "<=", true};
-    values[5] = (Comparison) {createDouble(5.0), createInt(5), ">=", true};
-    values[6] = (Comparison) {createDouble(5.01), createInt(5), ">", true};
-    values[7] = (Comparison) {createDouble(5.01), createDouble(5.02), ">", false};
-    values[8] = (Comparison) {createInt(10), createInt(11), "<", true};
-    values[9] = (Comparison) {createInt(12), createInt(11), "<", false};
+    values[0] = (Comparison) {createInt(0), createInt(0), cr_strdup("=="), true};
+    values[1] = (Comparison) {createInt(1), createInt(-1), cr_strdup("=="), false};
+    values[2] = (Comparison) {createInt(1), createInt(-1), cr_strdup("!="), true};
+    values[3] = (Comparison) {createInt(0), createInt(0), cr_strdup("!="), false};
+    values[4] = (Comparison) {createInt(10), createDouble(10.000), cr_strdup("<="), true};
+    values[5] = (Comparison) {createDouble(5.0), createInt(5), cr_strdup(">="), true};
+    values[6] = (Comparison) {createDouble(5.01), createInt(5), cr_strdup(">"), true};
+    values[7] = (Comparison) {createDouble(5.01), createDouble(5.02), cr_strdup(">"), false};
+    values[8] = (Comparison) {createInt(10), createInt(11), cr_strdup("<"), true};
+    values[9] = (Comparison) {createInt(12), createInt(11), cr_strdup("<"), false};
     return cr_make_param_array(Comparison, values, count);
 }
 
@@ -241,7 +241,7 @@ Test(DataConstant, getMin_LHS) {
 
 Test(DataConstant, getMin_RHS) {
     DataConstant lhs = createDouble(3.98);
-    DataConstant rhs = createInt(3.97);
+    DataConstant rhs = createDouble(3.97);
     DataConstant result = getMin(lhs, rhs);
     cr_expect_eq(rhs.type, result.type);
     cr_expect_eq(rhs.value.dblVal, result.value.dblVal);
@@ -257,18 +257,18 @@ typedef struct {
 ParameterizedTestParameters(DataConstant, binaryArithmeticOperation) {
     size_t count = 12;
     Operation* values = cr_malloc(sizeof(Operation) * count);
-    values[0] = (Operation) {createInt(0), createInt(0), "+", createInt(0)};
-    values[1] = (Operation) {createInt(1), createDouble(-1.0), "+", createDouble(0)};
-    values[2] = (Operation) {createInt(1), createInt(-1.0), "-", createInt(2)};
-    values[3] = (Operation) {createInt(0), createInt(5), "-", createInt(-5)};
-    values[4] = (Operation) {createInt(10), createDouble(10.000), "*", createDouble(100.0)};
-    values[5] = (Operation) {createDouble(5.0), createInt(3), "*", createDouble(15.0)};
-    values[6] = (Operation) {createInt(6), createInt(5), "/", createInt(1)};
-    values[7] = (Operation) {createDouble(6.0), createDouble(5), "/", createDouble(1.2)};
-    values[8] = (Operation) {createInt(6), createInt(5), "mod", createInt(1)};
-    values[9] = (Operation) {createInt(6), createDouble(11.0), "mod", createDouble(6.0)};
-    values[10] = (Operation) {createInt(3), createInt(-1), "exp", createInt(0)};
-    values[11] = (Operation) {createDouble(3.0), createInt(-2), "exp", createDouble(1.0 / 9.0)};
+    values[0] = (Operation) {createInt(0), createInt(0), cr_strdup("+"), createInt(0)};
+    values[1] = (Operation) {createInt(1), createDouble(-1.0), cr_strdup("+"), createDouble(0)};
+    values[2] = (Operation) {createInt(1), createInt(-1.0), cr_strdup("-"), createInt(2)};
+    values[3] = (Operation) {createInt(0), createInt(5), cr_strdup("-"), createInt(-5)};
+    values[4] = (Operation) {createInt(10), createDouble(10.000), cr_strdup("*"), createDouble(100.0)};
+    values[5] = (Operation) {createDouble(5.0), createInt(3), cr_strdup("*"), createDouble(15.0)};
+    values[6] = (Operation) {createInt(6), createInt(5), cr_strdup("/"), createInt(1)};
+    values[7] = (Operation) {createDouble(6.0), createDouble(5), cr_strdup("/"), createDouble(1.2)};
+    values[8] = (Operation) {createInt(6), createInt(5), cr_strdup("mod"), createInt(1)};
+    values[9] = (Operation) {createInt(6), createDouble(11.0), cr_strdup("mod"), createDouble(6.0)};
+    values[10] = (Operation) {createInt(3), createInt(-1), cr_strdup("exp"), createInt(0)};
+    values[11] = (Operation) {createDouble(3.0), createInt(-2), cr_strdup("exp"), createDouble(1.0 / 9.0)};
     return cr_make_param_array(Operation, values, count);
 }
 
