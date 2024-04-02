@@ -91,7 +91,8 @@ StringVector* splitExceptQuotes(char* line, char* delim) {
                     matching = true;
                 }
                 if (matching) {
-                    addString(strings, token);
+                    if (strcmp(token, "") != 0)
+                        addString(strings, token);
                     token = "";
                     in_word = false;
                 }
@@ -109,6 +110,9 @@ StringVector* splitExceptQuotes(char* line, char* delim) {
             asprintf(&token, "%c", curr);
             matching = false;
         }
+        //printf("DEBUG(prev: %c, curr: %c, in_word: %d, in_quotes: %d, token: %s)\n", prev, curr, in_word, in_quotes, token);
+        //printStringVector(strings);
+        //printf("\n");
     }
     return strings;
 } 
