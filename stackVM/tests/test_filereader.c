@@ -27,10 +27,15 @@ Test(FileReader, startsWith_newLine) {
     cr_expect(startsWith("\nABC", '\n'));
 }
 
+
+Test(FileReader, read_file_notFound, .init = cr_redirect_stderr, .exit_code = 255) {
+    read_file("./tests/notFoundFile");
+    cr_expect_stderr_eq_str("Error\nCause: ./tests/notFoundFile\n");
+}
+
 Test(FileReader, read_file) {
     SourceCode src = read_file("./tests/sample_source_file.txt");
-    displayCode(src);
-    
+
     cr_expect_eq(src.length, 2);
     cr_expect_str_eq(src.code[0].label, "mult");
     cr_expect_str_eq(src.code[1].label, "_entry");
