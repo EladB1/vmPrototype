@@ -28,6 +28,10 @@ VM* init(SourceCode src) {
     vm->globals = malloc(sizeof(DataConstant) * (INT_MAX - 1));
     vm->callStack = malloc(sizeof(Frame*) * MAX_FRAMES);
     int index = findLabelIndex(src, ENTRYPOINT);
+    if (index == -1) {
+        fprintf(stderr, "Error: Could not find entry point function label: '%s'\n", ENTRYPOINT);
+        exit(-1);
+    }
     vm->callStack[0] = loadFrame(src.code[index].body, src.code[index].jumpPoints, src.code[index].jmpCnt, 0, 0, NULL);
     return vm;
 }
