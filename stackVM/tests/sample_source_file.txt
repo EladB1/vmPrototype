@@ -1,0 +1,19 @@
+; DO NOT change this file or tests will break
+mult:
+    LOAD 0
+    LOAD 1
+    ADD
+    RET
+
+_entry:
+    LOAD_CONST 2
+    LOAD_CONST 4
+    CALL mult 2
+    LOAD_CONST 5
+    GT
+    JMPT .stop
+    LOAD_CONST 3
+    CALL println 1
+    .stop:
+        HALT
+    HALT
