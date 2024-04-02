@@ -83,10 +83,10 @@ Test(VM, runLoadBasicConsts) {
     int jumpCounts[1] = {0};
     JumpPoint* jumps[1] = {(JumpPoint[]) {}};
     SourceCode src = createSource(labels, bodies, jumpCounts, jumps, 1);
-    displayCode(src);
+    //displayCode(src);
 
     VM* vm = init(src);
-    run(vm, true);
+    run(vm, false);
 
     cr_expect_eq(vm->fp, 0);
     Frame* frame = vm->callStack[0];
@@ -101,6 +101,53 @@ Test(VM, runLoadBasicConsts) {
     cr_expect(isEqual(frame->stack[3], createString("HI")));
     cr_expect(isEqual(frame->stack[4], createNull()));
     cr_expect_eq(frame->stack[5].type, None);
+
+    destroy(vm);
+    deleteSource(src);
+}
+
+typedef struct {
+    char* operator;
+    bool result;
+} DataCompare;
+
+ParameterizedTestParameters(VM, runDUPAndCompare) {
+    size_t count = 6;
+    DataCompare* values = cr_malloc(sizeof(DataCompare) * count);
+    values[0] = (DataCompare) {cr_strdup("EQ"), true};
+    values[1] = (DataCompare) {cr_strdup("NE"), false};
+    values[2] = (DataCompare) {cr_strdup("LT"), false};
+    values[3] = (DataCompare) {cr_strdup("LE"), true};
+    values[4] = (DataCompare) {cr_strdup("GT"), false};
+    values[5] = (DataCompare) {cr_strdup("GE"), true};
+    return cr_make_param_array(DataCompare, values, count);
+}
+
+ParameterizedTest(DataCompare* comparisons, VM, runDUPAndCompare) {
+    char* labels[1] = {"_entry"};
+    char* bodies[1] = {
+        ""
+    };
+    cr_asprintf(&bodies[0], "LOAD_CONST 1 DUP %s HALT ", comparisons->operator); 
+    // tests doesn't read last token without extra space at the end since split() is called differently between the app and tests
+    // TODO: Fix bug in comment above
+    int jumpCounts[1] = {0};
+    JumpPoint* jumps[1] = {(JumpPoint[]) {}};
+    SourceCode src = createSource(labels, bodies, jumpCounts, jumps, 1);
+    //displayCode(src);
+
+    VM* vm = init(src);
+    run(vm, false);
+
+    cr_expect_eq(vm->fp, 0);
+    Frame* frame = vm->callStack[0];
+    cr_expect_eq(frame->instructions->length, 5);
+    //cr_log_info("PC: %d\n", frame->pc);
+    cr_expect_eq(frame->pc, 5);
+    cr_expect_eq(frame->sp, 0);
+
+    cr_expect_eq(frame->stack[0].type, Bool);
+    cr_expect_eq(frame->stack[0].value.boolVal, comparisons->result);
 
     destroy(vm);
     deleteSource(src);
