@@ -426,6 +426,13 @@ void run(VM* vm, bool verbose) {
                 value = readDouble(next);
             else if (isBool(next))
                 value = readBoolean(next);
+            else if (startsWith(next, '"')) {
+                value = createString(removeQuotes(next));
+            }
+            else if (strcmp(next, "NULL") == 0)
+                value = createNull();
+            else if (strcmp(next, "NONE") == 0)
+                value = createNone();
             push(vm, value);
         }
         else if (strcmp(opcode, "CALL") == 0) {
