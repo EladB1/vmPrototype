@@ -38,12 +38,48 @@ Test(VM, runNoEntryPoint, .init = cr_redirect_stderr, .exit_code = 255) {
         "HALT"
     };
     int jumpCounts[1] = {0};
-    JumpPoint* jumps[2] = {(JumpPoint[]) {}};
+    JumpPoint* jumps[1] = {(JumpPoint[]) {}};
     SourceCode src = createSource(labels, bodies, jumpCounts, jumps, 1);
 
     VM* vm = init(src);
     
     cr_expect_stderr_eq_str("Error: Could not find entry point function label: '_entry'");
+
+    destroy(vm);
+    deleteSource(src);
+}
+
+Test(VM, runUknownBytecode, .init = cr_redirect_stderr, .exit_code = 254) {
+    char* labels[1] = {"_entry"};
+    char* bodies[1] = {
+        "asdf HALT"
+    };
+    int jumpCounts[1] = {0};
+    JumpPoint* jumps[1] = {(JumpPoint[]) {}};
+    SourceCode src = createSource(labels, bodies, jumpCounts, jumps, 1);
+
+    VM* vm = init(src);
+    run(vm, false);
+    
+    cr_expect_stderr_eq_str("Unknown bytecode: 'asdf'");
+
+    destroy(vm);
+    deleteSource(src);
+}
+
+Test(VM, runJumpPointNotFound, .init = cr_redirect_stderr, .exit_code = 255) {
+    char* labels[1] = {"_entry"};
+    char* bodies[1] = {
+        "JMP .next HALT"
+    };
+    int jumpCounts[1] = {0};
+    JumpPoint* jumps[2] = {(JumpPoint[]) {}};
+    SourceCode src = createSource(labels, bodies, jumpCounts, jumps, 1);
+
+    VM* vm = init(src);
+    run(vm, false);
+    
+    cr_expect_stderr_eq_str("Error: Could not find jump point '.next'");
 
     destroy(vm);
     deleteSource(src);
@@ -710,6 +746,78 @@ Test(VM, runArrayCopy) {
     cr_expect(isEqual(vm->globals[1], createInt(2)));
     cr_expect(isEqual(vm->globals[2], createInt(1)));
     cr_expect(isEqual(vm->globals[3], createInt(2)));
+
+    destroy(vm);
+    deleteSource(src);
+}
+
+Test(VM, runArrayInvalidBuild, .init = cr_redirect_stderr, .exit_code = 2) {
+    char* labels[1] = {"_entry"};
+    char* bodies[1] = {
+        "LOAD_CONST 1 LOAD_CONST 2 BUILDARR 1 2 HALT"
+    };
+    int jumpCounts[1] = {0};
+    JumpPoint* jumps[2] = {(JumpPoint[]) {}};
+    SourceCode src = createSource(labels, bodies, jumpCounts, jumps, 1);
+
+    VM* vm = init(src);
+    run(vm, false);
+    
+    cr_expect_stderr_eq_str("Error: Attempted to build array of length 2 which exceeds capacity 1");
+
+    destroy(vm);
+    deleteSource(src);
+}
+
+Test(VM, runArrayGetOutOfRange, .init = cr_redirect_stderr, .exit_code = 2) {
+    char* labels[1] = {"_entry"};
+    char* bodies[1] = {
+        "LOAD_CONST 1 LOAD_CONST 2 BUILDARR 2 2 LOAD_CONST 10 AGET HALT"
+    };
+    int jumpCounts[1] = {0};
+    JumpPoint* jumps[2] = {(JumpPoint[]) {}};
+    SourceCode src = createSource(labels, bodies, jumpCounts, jumps, 1);
+
+    VM* vm = init(src);
+    run(vm, false);
+    
+    cr_expect_stderr_eq_str("Error: Array index 10 out of range 2");
+
+    destroy(vm);
+    deleteSource(src);
+}
+
+Test(VM, runArrayStoreOutOfRange, .init = cr_redirect_stderr, .exit_code = 2) {
+    char* labels[1] = {"_entry"};
+    char* bodies[1] = {
+        "LOAD_CONST 1 LOAD_CONST 2 BUILDARR 2 2 LOAD_CONST 10 ASTORE HALT"
+    };
+    int jumpCounts[1] = {0};
+    JumpPoint* jumps[2] = {(JumpPoint[]) {}};
+    SourceCode src = createSource(labels, bodies, jumpCounts, jumps, 1);
+
+    VM* vm = init(src);
+    run(vm, false);
+    
+    cr_expect_stderr_eq_str("Error: Array index 10 out of range 2");
+
+    destroy(vm);
+    deleteSource(src);
+}
+
+Test(VM, runArrayWritePastLength, .init = cr_redirect_stderr, .exit_code = 2) {
+    char* labels[1] = {"_entry"};
+    char* bodies[1] = {
+        "LOAD_CONST 1 LOAD_CONST 2 BUILDARR 12 2 LOAD_CONST 10 ASTORE HALT"
+    };
+    int jumpCounts[1] = {0};
+    JumpPoint* jumps[2] = {(JumpPoint[]) {}};
+    SourceCode src = createSource(labels, bodies, jumpCounts, jumps, 1);
+
+    VM* vm = init(src);
+    run(vm, false);
+    
+    cr_expect_stderr_eq_str("Error: Cannot write to index 10 since previous index values are not initialized");
 
     destroy(vm);
     deleteSource(src);
