@@ -106,6 +106,33 @@ Test(VM, runLoadBasicConsts) {
     deleteSource(src);
 }
 
+Test(VM, runStringOps) {
+    char* labels[1] = {"_entry"};
+    char* bodies[1] = {
+        "LOAD_CONST \"HI\" REPEATSTR 3 LOAD_CONST \"IH\" REPEATSTR 3 CONCAT HALT "
+    }; // tests doesn't read last token without extra space at the end since split() is called differently between the app and tests
+    // TODO: Fix bug in comment above
+    int jumpCounts[1] = {0};
+    JumpPoint* jumps[1] = {(JumpPoint[]) {}};
+    SourceCode src = createSource(labels, bodies, jumpCounts, jumps, 1);
+    //displayCode(src);
+
+    VM* vm = init(src);
+    run(vm, false);
+
+    cr_expect_eq(vm->fp, 0);
+    Frame* frame = vm->callStack[0];
+    cr_expect_eq(frame->instructions->length, 10);
+    //cr_log_info("PC: %d\n", frame->pc);
+    cr_expect_eq(frame->pc, 10);
+    cr_expect_eq(frame->sp, 0);
+
+    cr_expect(isEqual(frame->stack[0], createString("HIHIHIIHIHIH")));
+    
+    destroy(vm);
+    deleteSource(src);
+}
+
 typedef struct {
     char* operator;
     bool result;
@@ -148,6 +175,172 @@ ParameterizedTest(DataCompare* comparisons, VM, runDUPAndCompare) {
 
     cr_expect_eq(frame->stack[0].type, Bool);
     cr_expect_eq(frame->stack[0].value.boolVal, comparisons->result);
+
+    destroy(vm);
+    deleteSource(src);
+}
+
+Test(VM, runNOT) {
+    char* labels[1] = {"_entry"};
+    char* bodies[1] = {
+        "LOAD_CONST true NOT LOAD_CONST false NOT HALT "
+    }; // tests doesn't read last token without extra space at the end since split() is called differently between the app and tests
+    // TODO: Fix bug in comment above
+    int jumpCounts[1] = {0};
+    JumpPoint* jumps[1] = {(JumpPoint[]) {}};
+    SourceCode src = createSource(labels, bodies, jumpCounts, jumps, 1);
+    //displayCode(src);
+
+    VM* vm = init(src);
+    run(vm, false);
+
+    cr_expect_eq(vm->fp, 0);
+    Frame* frame = vm->callStack[0];
+    cr_expect_eq(frame->instructions->length, 7);
+    //cr_log_info("PC: %d\n", frame->pc);
+    cr_expect_eq(frame->pc, 7);
+    cr_expect_eq(frame->sp, 1);
+
+    cr_expect(isEqual(frame->stack[0], createBoolean(false)));
+    cr_expect(isEqual(frame->stack[1], createBoolean(true)));
+
+    destroy(vm);
+    deleteSource(src);
+}
+
+typedef struct {
+    char* lhs;
+    char* rhs;
+    char* operator;
+    bool result;
+} BooleanOperation;
+
+ParameterizedTestParameters(VM, runBinaryBooleanOperations) {
+    size_t count = 8;
+    BooleanOperation* values = cr_malloc(sizeof(BooleanOperation) * count);
+    values[0] = (BooleanOperation) {cr_strdup("true"), cr_strdup("true"), cr_strdup("AND"), true};
+    values[1] = (BooleanOperation) {cr_strdup("false"), cr_strdup("true"), cr_strdup("AND"), false};
+    values[2] = (BooleanOperation) {cr_strdup("true"), cr_strdup("false"), cr_strdup("AND"), false};
+    values[3] = (BooleanOperation) {cr_strdup("false"), cr_strdup("false"), cr_strdup("AND"), false};
+    values[4] = (BooleanOperation) {cr_strdup("true"), cr_strdup("true"), cr_strdup("OR"), true};
+    values[5] = (BooleanOperation) {cr_strdup("false"), cr_strdup("true"), cr_strdup("OR"), true};
+    values[6] = (BooleanOperation) {cr_strdup("true"), cr_strdup("false"), cr_strdup("OR"), true};
+    values[7] = (BooleanOperation) {cr_strdup("false"), cr_strdup("false"), cr_strdup("OR"), false};
+    return cr_make_param_array(BooleanOperation, values, count);
+}
+
+ParameterizedTest(BooleanOperation* operation, VM, runBinaryBooleanOperations) {
+    char* labels[1] = {"_entry"};
+    char* bodies[1] = {
+        ""
+    };
+    cr_asprintf(&bodies[0], "LOAD_CONST %s LOAD_CONST %s %s HALT ", operation->lhs, operation->rhs, operation->operator); 
+    // tests doesn't read last token without extra space at the end since split() is called differently between the app and tests
+    // TODO: Fix bug in comment above
+    int jumpCounts[1] = {0};
+    JumpPoint* jumps[1] = {(JumpPoint[]) {}};
+    SourceCode src = createSource(labels, bodies, jumpCounts, jumps, 1);
+    //displayCode(src);
+
+    VM* vm = init(src);
+    run(vm, false);
+
+    cr_expect_eq(vm->fp, 0);
+    Frame* frame = vm->callStack[0];
+    cr_expect_eq(frame->instructions->length, 6);
+    //cr_log_info("PC: %d\n", frame->pc);
+    cr_expect_eq(frame->pc, 6);
+    cr_expect_eq(frame->sp, 0);
+
+    cr_expect_eq(frame->stack[0].type, Bool);
+    cr_expect_eq(frame->stack[0].value.boolVal, operation->result);
+
+    destroy(vm);
+    deleteSource(src);
+}
+
+typedef struct {
+    char* lhs;
+    char* rhs;
+    char* operator;
+    int result;
+} BitwiseOperation;
+
+ParameterizedTestParameters(VM, runBinaryBitwiseOperations) {
+    size_t count = 13;
+    BitwiseOperation* values = cr_malloc(sizeof(BitwiseOperation) * count);
+    values[0] = (BitwiseOperation) {cr_strdup("true"), cr_strdup("true"), cr_strdup("XOR"), 0};
+    values[1] = (BitwiseOperation) {cr_strdup("false"), cr_strdup("true"), cr_strdup("XOR"), 1};
+    values[2] = (BitwiseOperation) {cr_strdup("1"), cr_strdup("false"), cr_strdup("XOR"), 1};
+    values[3] = (BitwiseOperation) {cr_strdup("false"), cr_strdup("0"), cr_strdup("XOR"), 0};
+    values[4] = (BitwiseOperation) {cr_strdup("12"), cr_strdup("12"), cr_strdup("XOR"), 0};
+    values[5] = (BitwiseOperation) {cr_strdup("12"), cr_strdup("11"), cr_strdup("XOR"), 7};
+    values[6] = (BitwiseOperation) {cr_strdup("true"), cr_strdup("true"), cr_strdup("B_AND"), 1};
+    values[7] = (BitwiseOperation) {cr_strdup("false"), cr_strdup("true"), cr_strdup("B_AND"), 0};
+    values[8] = (BitwiseOperation) {cr_strdup("1"), cr_strdup("false"), cr_strdup("B_AND"), 0};
+    values[9] = (BitwiseOperation) {cr_strdup("false"), cr_strdup("0"), cr_strdup("B_AND"), 0};
+    values[10] = (BitwiseOperation) {cr_strdup("12"), cr_strdup("12"), cr_strdup("B_AND"), 12};
+    values[11] = (BitwiseOperation) {cr_strdup("12"), cr_strdup("11"), cr_strdup("B_AND"), 8};
+    values[12] = (BitwiseOperation) {cr_strdup("12"), cr_strdup("false"), cr_strdup("B_AND"), 0};
+    return cr_make_param_array(BitwiseOperation, values, count);
+}
+
+ParameterizedTest(BitwiseOperation* operation, VM, runBinaryBitwiseOperations) {
+    char* labels[1] = {"_entry"};
+    char* bodies[1] = {
+        ""
+    };
+    cr_asprintf(&bodies[0], "LOAD_CONST %s LOAD_CONST %s %s HALT ", operation->lhs, operation->rhs, operation->operator); 
+    // tests doesn't read last token without extra space at the end since split() is called differently between the app and tests
+    // TODO: Fix bug in comment above
+    int jumpCounts[1] = {0};
+    JumpPoint* jumps[1] = {(JumpPoint[]) {}};
+    SourceCode src = createSource(labels, bodies, jumpCounts, jumps, 1);
+    //displayCode(src);
+
+    VM* vm = init(src);
+    run(vm, false);
+
+    cr_expect_eq(vm->fp, 0);
+    Frame* frame = vm->callStack[0];
+    cr_expect_eq(frame->instructions->length, 6);
+    //cr_log_info("PC: %d\n", frame->pc);
+    cr_expect_eq(frame->pc, 6);
+    cr_expect_eq(frame->sp, 0);
+
+    cr_expect_eq(frame->stack[0].type, Int);
+    cr_expect_eq(frame->stack[0].value.intVal, operation->result);
+
+    destroy(vm);
+    deleteSource(src);
+}
+
+Test(VM, runLoadAndStore) {
+    char* labels[1] = {"_entry"};
+    char* bodies[1] = {
+        "LOAD_CONST true STORE LOAD 0 NOT STORE 0 LOAD_CONST 3 GSTORE GLOAD 0 LOAD_CONST 1 SUB GSTORE 0 LOAD 0 HALT "
+    }; // tests doesn't read last token without extra space at the end since split() is called differently between the app and tests
+    // TODO: Fix bug in comment above
+    int jumpCounts[1] = {0};
+    JumpPoint* jumps[1] = {(JumpPoint[]) {}};
+    SourceCode src = createSource(labels, bodies, jumpCounts, jumps, 1);
+    //displayCode(src);
+
+    VM* vm = init(src);
+    run(vm, false);
+
+    cr_expect_eq(vm->fp, 0);
+    Frame* frame = vm->callStack[0];
+    cr_expect_eq(frame->instructions->length, 21);
+    //cr_log_info("PC: %d\n", frame->pc);
+    cr_expect_eq(frame->pc, 21);
+    cr_expect_eq(frame->sp, 0);
+    cr_expect_eq(frame->lc, 0);
+    cr_expect_eq(vm->gc, 0);
+
+    cr_expect(isEqual(frame->stack[0], createBoolean(false)));
+    cr_expect(isEqual(frame->locals[0], createBoolean(false)));
+    cr_expect(isEqual(vm->globals[0], createInt(2)));
 
     destroy(vm);
     deleteSource(src);
