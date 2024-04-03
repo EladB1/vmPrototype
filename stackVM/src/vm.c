@@ -524,7 +524,7 @@ void run(VM* vm, bool verbose) {
             push(vm, lhs);
         }
         else {
-            fprintf(stderr, "Unknown bytecode: %s\n", opcode);
+            fprintf(stderr, "Unknown bytecode: '%s'\n", opcode);
             exit(254);
         }
         if (verbose)
