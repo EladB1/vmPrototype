@@ -52,29 +52,25 @@ Test(FileReader, read_file) {
 }
 
 Test(FileReader, displayCode, .init = cr_redirect_stdout) {
-    SourceCode src;
-    src.length = 2;
-    StringVector* addBody = split("LOAD 0 LOAD 1 ADD RET", " ");
-    StringVector* mainBody = split("LOAD_CONST 1 LOAD_CONST 5 LE JPMT .end LOAD_CONST 3 CALL println 1 .end: HALT", " ");
-    src.code[0].label = "add";
-    src.code[0].body = addBody;
-    src.code[0].jmpCnt = 0;
-    src.code[1].label = "_entry";
-    src.code[1].body = mainBody;
-    src.code[1].jumpPoints[0] = (JumpPoint) {".end", 14};
-    src.code[1].jmpCnt = 1;
+    char* labels[2] = {"add", "_entry"};
+    char* bodies[2] = {
+        "LOAD 0 LOAD 1 ADD RET",
+        "LOAD_CONST 1 LOAD_CONST 5 LE JPMT .end LOAD_CONST 3 CALL println 1 .end: HALT"
+    };
+    int jumpCounts[2] = {0, 1};
+    JumpPoint* jumps[2] = {(JumpPoint[]) {}, (JumpPoint[]) {{".end", 14}}};
+    SourceCode src = createSource(labels, bodies, jumpCounts, jumps, 2);
     
     char* expected_output;
     cr_asprintf(
         &expected_output,
         "length: 2\nadd => @%p: [LOAD, 0, LOAD, 1, ADD, RET], length: 6, capacity: 256, Jumps: []\n_entry => @%p: [LOAD_CONST, 1, LOAD_CONST, 5, LE, JPMT, .end, LOAD_CONST, 3, CALL, println, 1, .end:, HALT], length: 14, capacity: 256, Jumps: [{.end : 14} ]\n", 
-        addBody, 
-        mainBody
+        src.code[0].body, 
+        src.code[1].body
     );
     displayCode(src);
     fflush(stdout);
     cr_expect_stdout_eq_str(expected_output);
     
-    freeStringVector(addBody);
-    freeStringVector(mainBody);
+    deleteSource(src);
 }

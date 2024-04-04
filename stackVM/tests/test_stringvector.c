@@ -98,10 +98,11 @@ Test(StringVector, stringVector_split, .init = setupSV, .fini = teardownSV) {
 }
 
 Test(StringVector, stringVector_splitWithQuotes, .init = setupSV, .fini = teardownSV) {
-    sv = split("LOAD_CONST \"Hello\"", " ");
-    cr_expect_eq(sv->length, 2);
+    sv = split("LOAD_CONST \"Hello\" DUP", " ");
+    cr_expect_eq(sv->length, 3);
     cr_expect_str_eq(getFromSV(sv, 0), "LOAD_CONST");
     cr_expect_str_eq(getFromSV(sv, 1), "\"Hello\"");
+    cr_expect_str_eq(getFromSV(sv, 2), "DUP");
 }
 
 
