@@ -449,6 +449,10 @@ void run(VM* vm, bool verbose) {
             }
             else {
                 addr = findLabelIndex(vm->src, next);
+                if (addr == -1) {
+                    fprintf(stderr, "Could not find function '%s'\n", next);
+                    exit(254);
+                }
                 Frame* frame = loadFrame(vm->src.code[addr].body, vm->src.code[addr].jumpPoints, vm->src.code[addr].jmpCnt, currentFrame->pc, argc, params);
                 vm->callStack[++vm->fp] = frame;
             }

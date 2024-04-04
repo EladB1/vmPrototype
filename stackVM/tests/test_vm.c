@@ -590,6 +590,24 @@ Test(VM, runWithFunctionCall_addWithReturn) {
     deleteSource(src);
 }
 
+Test(VM, runUknownFunction, .init = cr_redirect_stderr, .exit_code = 254) {
+    char* labels[1] = {"_entry"};
+    char* bodies[1] = {
+        "CALL asdf 0 HALT"
+    };
+    int jumpCounts[1] = {0};
+    JumpPoint* jumps[1] = {(JumpPoint[]) {}};
+    SourceCode src = createSource(labels, bodies, jumpCounts, jumps, 1);
+
+    VM* vm = init(src);
+    run(vm, false);
+    
+    cr_expect_stderr_eq_str("Error: could not find function 'asdf'");
+
+    destroy(vm);
+    deleteSource(src);
+}
+
 Test(VM, runArrayGet) {
     char* labels[1] = {"_entry"};
     char* bodies[1] = {
