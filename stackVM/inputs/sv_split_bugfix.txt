@@ -1,0 +1,8 @@
+_entry:
+    LOAD_CONST "hello" DUP
+    ; bug occured when there is anything on the same as a string constant; the last element of the line would be ignored
+    ; cause: There was nothing at the end of the loop that adds the final token if it is not blank and not in the string vector, in the splitExceptQuotes function
+    LOAD_CONST ", world"
+    CONCAT
+    CALL println 1
+    HALT

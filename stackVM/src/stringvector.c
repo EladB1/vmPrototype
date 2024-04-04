@@ -114,6 +114,9 @@ StringVector* splitExceptQuotes(char* line, char* delim) {
         //printStringVector(strings);
         //printf("\n");
     }
+    if (strlen(token) != 0 && strcmp(token, "\n") != 0) {
+        addString(strings, token);
+    }
     return strings;
 } 
 

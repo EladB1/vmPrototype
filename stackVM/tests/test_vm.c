@@ -88,9 +88,8 @@ Test(VM, runJumpPointNotFound, .init = cr_redirect_stderr, .exit_code = 255) {
 Test(VM, runPop) {
     char* labels[1] = {"_entry"};
     char* bodies[1] = {
-        "LOAD_CONST true POP HALT "
-    }; // tests doesn't read last token without extra space at the end since split() is called differently between the app and tests
-    // TODO: Fix bug in comment above
+        "LOAD_CONST true POP HALT"
+    };
     int jumpCounts[1] = {0};
     JumpPoint* jumps[1] = {(JumpPoint[]) {}};
     SourceCode src = createSource(labels, bodies, jumpCounts, jumps, 1);
@@ -115,9 +114,8 @@ Test(VM, runPop) {
 Test(VM, runLoadBasicConsts) {
     char* labels[1] = {"_entry"};
     char* bodies[1] = {
-        "LOAD_CONST 1 LOAD_CONST 5.5 LOAD_CONST false  LOAD_CONST \"HI\" LOAD_CONST NULL LOAD_CONST NONE HALT "
-    }; // tests doesn't read last token without extra space at the end since split() is called differently between the app and tests
-    // TODO: Fix bug in comment above
+        "LOAD_CONST 1 LOAD_CONST 5.5 LOAD_CONST false  LOAD_CONST \"HI\" LOAD_CONST NULL LOAD_CONST NONE HALT"
+    };
     int jumpCounts[1] = {0};
     JumpPoint* jumps[1] = {(JumpPoint[]) {}};
     SourceCode src = createSource(labels, bodies, jumpCounts, jumps, 1);
@@ -147,9 +145,8 @@ Test(VM, runLoadBasicConsts) {
 Test(VM, runStringOps) {
     char* labels[1] = {"_entry"};
     char* bodies[1] = {
-        "LOAD_CONST \"HI\" REPEATSTR 3 LOAD_CONST \"IH\" REPEATSTR 3 CONCAT HALT "
-    }; // tests doesn't read last token without extra space at the end since split() is called differently between the app and tests
-    // TODO: Fix bug in comment above
+        "LOAD_CONST \"HI\" REPEATSTR 3 LOAD_CONST \"IH\" REPEATSTR 3 CONCAT HALT"
+    };
     int jumpCounts[1] = {0};
     JumpPoint* jumps[1] = {(JumpPoint[]) {}};
     SourceCode src = createSource(labels, bodies, jumpCounts, jumps, 1);
@@ -193,9 +190,7 @@ ParameterizedTest(DataCompare* comparisons, VM, runDUPAndCompare) {
     char* bodies[1] = {
         ""
     };
-    cr_asprintf(&bodies[0], "LOAD_CONST 1 DUP %s HALT ", comparisons->operator); 
-    // tests doesn't read last token without extra space at the end since split() is called differently between the app and tests
-    // TODO: Fix bug in comment above
+    cr_asprintf(&bodies[0], "LOAD_CONST 1 DUP %s HALT", comparisons->operator); 
     int jumpCounts[1] = {0};
     JumpPoint* jumps[1] = {(JumpPoint[]) {}};
     SourceCode src = createSource(labels, bodies, jumpCounts, jumps, 1);
@@ -221,9 +216,8 @@ ParameterizedTest(DataCompare* comparisons, VM, runDUPAndCompare) {
 Test(VM, runNOT) {
     char* labels[1] = {"_entry"};
     char* bodies[1] = {
-        "LOAD_CONST true NOT LOAD_CONST false NOT HALT "
-    }; // tests doesn't read last token without extra space at the end since split() is called differently between the app and tests
-    // TODO: Fix bug in comment above
+        "LOAD_CONST true NOT LOAD_CONST false NOT HALT"
+    };
     int jumpCounts[1] = {0};
     JumpPoint* jumps[1] = {(JumpPoint[]) {}};
     SourceCode src = createSource(labels, bodies, jumpCounts, jumps, 1);
@@ -272,9 +266,7 @@ ParameterizedTest(BooleanOperation* operation, VM, runBinaryBooleanOperations) {
     char* bodies[1] = {
         ""
     };
-    cr_asprintf(&bodies[0], "LOAD_CONST %s LOAD_CONST %s %s HALT ", operation->lhs, operation->rhs, operation->operator); 
-    // tests doesn't read last token without extra space at the end since split() is called differently between the app and tests
-    // TODO: Fix bug in comment above
+    cr_asprintf(&bodies[0], "LOAD_CONST %s LOAD_CONST %s %s HALT", operation->lhs, operation->rhs, operation->operator); 
     int jumpCounts[1] = {0};
     JumpPoint* jumps[1] = {(JumpPoint[]) {}};
     SourceCode src = createSource(labels, bodies, jumpCounts, jumps, 1);
@@ -328,9 +320,7 @@ ParameterizedTest(BitwiseOperation* operation, VM, runBinaryBitwiseOperations) {
     char* bodies[1] = {
         ""
     };
-    cr_asprintf(&bodies[0], "LOAD_CONST %s LOAD_CONST %s %s HALT ", operation->lhs, operation->rhs, operation->operator); 
-    // tests doesn't read last token without extra space at the end since split() is called differently between the app and tests
-    // TODO: Fix bug in comment above
+    cr_asprintf(&bodies[0], "LOAD_CONST %s LOAD_CONST %s %s HALT", operation->lhs, operation->rhs, operation->operator); 
     int jumpCounts[1] = {0};
     JumpPoint* jumps[1] = {(JumpPoint[]) {}};
     SourceCode src = createSource(labels, bodies, jumpCounts, jumps, 1);
@@ -356,9 +346,8 @@ ParameterizedTest(BitwiseOperation* operation, VM, runBinaryBitwiseOperations) {
 Test(VM, runLoadAndStore) {
     char* labels[1] = {"_entry"};
     char* bodies[1] = {
-        "LOAD_CONST true STORE LOAD 0 NOT STORE 0 LOAD_CONST 3 GSTORE GLOAD 0 LOAD_CONST 1 SUB GSTORE 0 LOAD 0 HALT "
-    }; // tests doesn't read last token without extra space at the end since split() is called differently between the app and tests
-    // TODO: Fix bug in comment above
+        "LOAD_CONST true STORE LOAD 0 NOT STORE 0 LOAD_CONST 3 GSTORE GLOAD 0 LOAD_CONST 1 SUB GSTORE 0 LOAD 0 HALT"
+    };
     int jumpCounts[1] = {0};
     JumpPoint* jumps[1] = {(JumpPoint[]) {}};
     SourceCode src = createSource(labels, bodies, jumpCounts, jumps, 1);
@@ -492,7 +481,7 @@ Test(VM, runSelect) {
 Test(VM, runWithBuiltinFunctionCall, .init = cr_redirect_stdout) {
     char* labels[1] = {"_entry"};
     char* bodies[1] = {
-        "LOAD_CONST \"Hello, world!\" CALL println 1 HALT "
+        "LOAD_CONST \"Hello, world!\" CALL println 1 HALT"
     };
     int jumpCounts[1] = {0};
     JumpPoint* jumps[1] = {(JumpPoint[]) {}};
