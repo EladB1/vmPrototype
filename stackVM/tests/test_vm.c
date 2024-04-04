@@ -15,10 +15,11 @@ Test(VM, initAndDestroy) {
     };
     int jumpCounts[2] = {0, 1};
     JumpPoint* jumps[2] = {(JumpPoint[]) {}, (JumpPoint[]) {{".end", 14}}};
-    SourceCode src = createSource(labels, bodies, jumpCounts, jumps, 2);
+    SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 2);
     
     VM* vm = init(src);
 
+    cr_expect_not_null(vm);
     cr_expect_eq(vm->fp, 0);
     cr_expect_eq(vm->gc, -1);
     Frame* frame = vm->callStack[0];
@@ -29,24 +30,23 @@ Test(VM, initAndDestroy) {
     cr_expect_eq(frame->lc, -1);
 
     destroy(vm);
-    deleteSource(src);
+    cr_free(src);
+    
 }
 
-Test(VM, runNoEntryPoint, .init = cr_redirect_stderr, .exit_code = 255) {
+Test(VM, runNoEntryPoint, .init = cr_redirect_stderr) {
     char* labels[1] = {"add"};
     char* bodies[1] = {
         "HALT"
     };
     int jumpCounts[1] = {0};
     JumpPoint* jumps[1] = {(JumpPoint[]) {}};
-    SourceCode src = createSource(labels, bodies, jumpCounts, jumps, 1);
+    SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 1);
 
     VM* vm = init(src);
     
-    cr_expect_stderr_eq_str("Error: Could not find entry point function label: '_entry'");
-
-    destroy(vm);
-    deleteSource(src);
+    cr_expect_null(vm);
+    cr_expect_stderr_eq_str("Error: Could not find entry point function label: '_entry'\n");
 }
 
 Test(VM, runUknownBytecode, .init = cr_redirect_stderr, .exit_code = 254) {
@@ -56,7 +56,7 @@ Test(VM, runUknownBytecode, .init = cr_redirect_stderr, .exit_code = 254) {
     };
     int jumpCounts[1] = {0};
     JumpPoint* jumps[1] = {(JumpPoint[]) {}};
-    SourceCode src = createSource(labels, bodies, jumpCounts, jumps, 1);
+    SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 1);
 
     VM* vm = init(src);
     run(vm, false);
@@ -64,7 +64,7 @@ Test(VM, runUknownBytecode, .init = cr_redirect_stderr, .exit_code = 254) {
     cr_expect_stderr_eq_str("Unknown bytecode: 'asdf'");
 
     destroy(vm);
-    deleteSource(src);
+    cr_free(src);
 }
 
 Test(VM, runJumpPointNotFound, .init = cr_redirect_stderr, .exit_code = 255) {
@@ -74,7 +74,7 @@ Test(VM, runJumpPointNotFound, .init = cr_redirect_stderr, .exit_code = 255) {
     };
     int jumpCounts[1] = {0};
     JumpPoint* jumps[2] = {(JumpPoint[]) {}};
-    SourceCode src = createSource(labels, bodies, jumpCounts, jumps, 1);
+    SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 1);
 
     VM* vm = init(src);
     run(vm, false);
@@ -82,7 +82,7 @@ Test(VM, runJumpPointNotFound, .init = cr_redirect_stderr, .exit_code = 255) {
     cr_expect_stderr_eq_str("Error: Could not find jump point '.next'");
 
     destroy(vm);
-    deleteSource(src);
+    cr_free(src);
 }
 
 Test(VM, runPop) {
@@ -92,7 +92,7 @@ Test(VM, runPop) {
     };
     int jumpCounts[1] = {0};
     JumpPoint* jumps[1] = {(JumpPoint[]) {}};
-    SourceCode src = createSource(labels, bodies, jumpCounts, jumps, 1);
+    SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 1);
     //displayCode(src);
 
     VM* vm = init(src);
@@ -106,7 +106,7 @@ Test(VM, runPop) {
     cr_expect_eq(frame->sp, -1);
 
     destroy(vm);
-    deleteSource(src);
+    cr_free(src);
 }
 
 
@@ -118,7 +118,7 @@ Test(VM, runLoadBasicConsts) {
     };
     int jumpCounts[1] = {0};
     JumpPoint* jumps[1] = {(JumpPoint[]) {}};
-    SourceCode src = createSource(labels, bodies, jumpCounts, jumps, 1);
+    SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 1);
     //displayCode(src);
 
     VM* vm = init(src);
@@ -139,7 +139,7 @@ Test(VM, runLoadBasicConsts) {
     cr_expect_eq(frame->stack[5].type, None);
 
     destroy(vm);
-    deleteSource(src);
+    cr_free(src);
 }
 
 Test(VM, runStringOps) {
@@ -149,7 +149,7 @@ Test(VM, runStringOps) {
     };
     int jumpCounts[1] = {0};
     JumpPoint* jumps[1] = {(JumpPoint[]) {}};
-    SourceCode src = createSource(labels, bodies, jumpCounts, jumps, 1);
+    SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 1);
     //displayCode(src);
 
     VM* vm = init(src);
@@ -165,7 +165,7 @@ Test(VM, runStringOps) {
     cr_expect(isEqual(frame->stack[0], createString("HIHIHIIHIHIH")));
     
     destroy(vm);
-    deleteSource(src);
+    cr_free(src);
 }
 
 typedef struct {
@@ -193,7 +193,7 @@ ParameterizedTest(DataCompare* comparisons, VM, runDUPAndCompare) {
     cr_asprintf(&bodies[0], "LOAD_CONST 1 DUP %s HALT", comparisons->operator); 
     int jumpCounts[1] = {0};
     JumpPoint* jumps[1] = {(JumpPoint[]) {}};
-    SourceCode src = createSource(labels, bodies, jumpCounts, jumps, 1);
+    SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 1);
     //displayCode(src);
 
     VM* vm = init(src);
@@ -210,7 +210,7 @@ ParameterizedTest(DataCompare* comparisons, VM, runDUPAndCompare) {
     cr_expect_eq(frame->stack[0].value.boolVal, comparisons->result);
 
     destroy(vm);
-    deleteSource(src);
+    cr_free(src);
 }
 
 Test(VM, runNOT) {
@@ -220,7 +220,7 @@ Test(VM, runNOT) {
     };
     int jumpCounts[1] = {0};
     JumpPoint* jumps[1] = {(JumpPoint[]) {}};
-    SourceCode src = createSource(labels, bodies, jumpCounts, jumps, 1);
+    SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 1);
     //displayCode(src);
 
     VM* vm = init(src);
@@ -237,7 +237,8 @@ Test(VM, runNOT) {
     cr_expect(isEqual(frame->stack[1], createBoolean(true)));
 
     destroy(vm);
-    deleteSource(src);
+    cr_free(src);
+
 }
 
 typedef struct {
@@ -269,7 +270,7 @@ ParameterizedTest(BooleanOperation* operation, VM, runBinaryBooleanOperations) {
     cr_asprintf(&bodies[0], "LOAD_CONST %s LOAD_CONST %s %s HALT", operation->lhs, operation->rhs, operation->operator); 
     int jumpCounts[1] = {0};
     JumpPoint* jumps[1] = {(JumpPoint[]) {}};
-    SourceCode src = createSource(labels, bodies, jumpCounts, jumps, 1);
+    SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 1);
     //displayCode(src);
 
     VM* vm = init(src);
@@ -286,7 +287,7 @@ ParameterizedTest(BooleanOperation* operation, VM, runBinaryBooleanOperations) {
     cr_expect_eq(frame->stack[0].value.boolVal, operation->result);
 
     destroy(vm);
-    deleteSource(src);
+    cr_free(src);
 }
 
 typedef struct {
@@ -323,7 +324,7 @@ ParameterizedTest(BitwiseOperation* operation, VM, runBinaryBitwiseOperations) {
     cr_asprintf(&bodies[0], "LOAD_CONST %s LOAD_CONST %s %s HALT", operation->lhs, operation->rhs, operation->operator); 
     int jumpCounts[1] = {0};
     JumpPoint* jumps[1] = {(JumpPoint[]) {}};
-    SourceCode src = createSource(labels, bodies, jumpCounts, jumps, 1);
+    SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 1);
     //displayCode(src);
 
     VM* vm = init(src);
@@ -340,7 +341,7 @@ ParameterizedTest(BitwiseOperation* operation, VM, runBinaryBitwiseOperations) {
     cr_expect_eq(frame->stack[0].value.intVal, operation->result);
 
     destroy(vm);
-    deleteSource(src);
+    cr_free(src);
 }
 
 Test(VM, runLoadAndStore) {
@@ -350,7 +351,7 @@ Test(VM, runLoadAndStore) {
     };
     int jumpCounts[1] = {0};
     JumpPoint* jumps[1] = {(JumpPoint[]) {}};
-    SourceCode src = createSource(labels, bodies, jumpCounts, jumps, 1);
+    SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 1);
     //displayCode(src);
 
     VM* vm = init(src);
@@ -370,7 +371,7 @@ Test(VM, runLoadAndStore) {
     cr_expect(isEqual(vm->globals[0], createInt(2)));
 
     destroy(vm);
-    deleteSource(src);
+    cr_free(src);
 }
 
 Test(VM, runWithNoJump) {
@@ -380,7 +381,7 @@ Test(VM, runWithNoJump) {
     };
     int jumpCounts[1] = {1};
     JumpPoint* jumps[1] = {(JumpPoint[]) {{".end", 18}}};
-    SourceCode src = createSource(labels, bodies, jumpCounts, jumps, 1);
+    SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 1);
 
     //displayCode(src);
 
@@ -395,7 +396,7 @@ Test(VM, runWithNoJump) {
     cr_expect_eq(frame->sp, 2);
     
     destroy(vm);
-    deleteSource(src);
+    cr_free(src);
 }
 
 Test(VM, runWithSimpleJump) {
@@ -405,7 +406,7 @@ Test(VM, runWithSimpleJump) {
     };
     int jumpCounts[1] = {1};
     JumpPoint* jumps[1] = {(JumpPoint[]) {{".end", 15}}};
-    SourceCode src = createSource(labels, bodies, jumpCounts, jumps, 1);
+    SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 1);
 
     //displayCode(src);
 
@@ -420,7 +421,7 @@ Test(VM, runWithSimpleJump) {
     cr_expect_eq(frame->sp, -1);
 
     destroy(vm);
-    deleteSource(src);
+    cr_free(src);
 }
 
 Test(VM, runWithShortCircuitJump) {
@@ -430,7 +431,7 @@ Test(VM, runWithShortCircuitJump) {
     };
     int jumpCounts[1] = {1};
     JumpPoint* jumps[1] = {(JumpPoint[]) {{".end", 15}}};
-    SourceCode src = createSource(labels, bodies, jumpCounts, jumps, 1);
+    SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 1);
 
     //displayCode(src);
 
@@ -447,7 +448,7 @@ Test(VM, runWithShortCircuitJump) {
     cr_expect(isEqual(frame->stack[0], createBoolean(false)));
 
     destroy(vm);
-    deleteSource(src);
+    cr_free(src);
 }
 
 Test(VM, runSelect) {
@@ -457,7 +458,7 @@ Test(VM, runSelect) {
     };
     int jumpCounts[1] = {0};
     JumpPoint* jumps[1] = {(JumpPoint[]) {}};
-    SourceCode src = createSource(labels, bodies, jumpCounts, jumps, 1);
+    SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 1);
 
     //displayCode(src);
 
@@ -475,7 +476,7 @@ Test(VM, runSelect) {
     cr_expect(isEqual(frame->stack[1], createInt(4)));
 
     destroy(vm);
-    deleteSource(src);
+    cr_free(src);
 }
 
 Test(VM, runWithBuiltinFunctionCall, .init = cr_redirect_stdout) {
@@ -485,7 +486,7 @@ Test(VM, runWithBuiltinFunctionCall, .init = cr_redirect_stdout) {
     };
     int jumpCounts[1] = {0};
     JumpPoint* jumps[1] = {(JumpPoint[]) {}};
-    SourceCode src = createSource(labels, bodies, jumpCounts, jumps, 1);
+    SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 1);
 
     //displayCode(src);
 
@@ -503,7 +504,7 @@ Test(VM, runWithBuiltinFunctionCall, .init = cr_redirect_stdout) {
     cr_expect_stdout_eq_str("Hello, world!\n");
 
     destroy(vm);
-    deleteSource(src);
+    cr_free(src);
 }
 
 Test(VM, runWithFunctionCall_no_params_stop) {
@@ -514,7 +515,7 @@ Test(VM, runWithFunctionCall_no_params_stop) {
     };
     int jumpCounts[2] = {0, 0};
     JumpPoint* jumps[2] = {(JumpPoint[]) {}, (JumpPoint[]) {}};
-    SourceCode src = createSource(labels, bodies, jumpCounts, jumps, 2);
+    SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 2);
 
     //displayCode(src);
 
@@ -529,7 +530,7 @@ Test(VM, runWithFunctionCall_no_params_stop) {
     cr_expect_eq(frame->sp, -1);
 
     destroy(vm);
-    deleteSource(src);
+    cr_free(src);
 }
 
 Test(VM, runWithFunctionCall_withParams_stop) {
@@ -540,7 +541,7 @@ Test(VM, runWithFunctionCall_withParams_stop) {
     };
     int jumpCounts[2] = {0, 0};
     JumpPoint* jumps[2] = {(JumpPoint[]) {}, (JumpPoint[]) {}};
-    SourceCode src = createSource(labels, bodies, jumpCounts, jumps, 2);
+    SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 2);
 
     //displayCode(src);
 
@@ -558,7 +559,7 @@ Test(VM, runWithFunctionCall_withParams_stop) {
     cr_expect(isEqual(frame->locals[1], createInt(1)));
 
     destroy(vm);
-    deleteSource(src);
+    cr_free(src);
 }
 
 Test(VM, runWithFunctionCall_addWithReturn) {
@@ -569,7 +570,7 @@ Test(VM, runWithFunctionCall_addWithReturn) {
     };
     int jumpCounts[2] = {0, 0};
     JumpPoint* jumps[2] = {(JumpPoint[]) {}, (JumpPoint[]) {}};
-    SourceCode src = createSource(labels, bodies, jumpCounts, jumps, 2);
+    SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 2);
 
     //displayCode(src);
 
@@ -587,7 +588,7 @@ Test(VM, runWithFunctionCall_addWithReturn) {
     cr_expect_eq(frame->stack[0].value.dblVal, 3.718);
 
     destroy(vm);
-    deleteSource(src);
+    cr_free(src);
 }
 
 Test(VM, runUknownFunction, .init = cr_redirect_stderr, .exit_code = 254) {
@@ -597,7 +598,7 @@ Test(VM, runUknownFunction, .init = cr_redirect_stderr, .exit_code = 254) {
     };
     int jumpCounts[1] = {0};
     JumpPoint* jumps[1] = {(JumpPoint[]) {}};
-    SourceCode src = createSource(labels, bodies, jumpCounts, jumps, 1);
+    SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 1);
 
     VM* vm = init(src);
     run(vm, false);
@@ -605,7 +606,7 @@ Test(VM, runUknownFunction, .init = cr_redirect_stderr, .exit_code = 254) {
     cr_expect_stderr_eq_str("Error: could not find function 'asdf'");
 
     destroy(vm);
-    deleteSource(src);
+    cr_free(src);
 }
 
 Test(VM, runArrayGet) {
@@ -615,7 +616,7 @@ Test(VM, runArrayGet) {
     };
     int jumpCounts[1] = {0};
     JumpPoint* jumps[1] = {(JumpPoint[]) {}};
-    SourceCode src = createSource(labels, bodies, jumpCounts, jumps, 1);
+    SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 1);
 
     //displayCode(src);
 
@@ -638,7 +639,7 @@ Test(VM, runArrayGet) {
     }
 
     destroy(vm);
-    deleteSource(src);
+    cr_free(src);
 }
 
 Test(VM, runArrayWrite) {
@@ -648,7 +649,7 @@ Test(VM, runArrayWrite) {
     };
     int jumpCounts[1] = {0};
     JumpPoint* jumps[1] = {(JumpPoint[]) {}};
-    SourceCode src = createSource(labels, bodies, jumpCounts, jumps, 1);
+    SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 1);
 
     //displayCode(src);
 
@@ -676,7 +677,7 @@ Test(VM, runArrayWrite) {
     }
 
     destroy(vm);
-    deleteSource(src);
+    cr_free(src);
 }
 
 Test(VM, runArrayConcat) {
@@ -686,7 +687,7 @@ Test(VM, runArrayConcat) {
     };
     int jumpCounts[1] = {0};
     JumpPoint* jumps[1] = {(JumpPoint[]) {}};
-    SourceCode src = createSource(labels, bodies, jumpCounts, jumps, 1);
+    SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 1);
 
     //displayCode(src);
 
@@ -716,7 +717,7 @@ Test(VM, runArrayConcat) {
     cr_expect_eq(vm->globals[9].type, None);
 
     destroy(vm);
-    deleteSource(src);
+    cr_free(src);
 }
 
 Test(VM, runArrayCopy) {
@@ -726,7 +727,7 @@ Test(VM, runArrayCopy) {
     };
     int jumpCounts[1] = {0};
     JumpPoint* jumps[1] = {(JumpPoint[]) {}};
-    SourceCode src = createSource(labels, bodies, jumpCounts, jumps, 1);
+    SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 1);
 
     //displayCode(src);
 
@@ -755,7 +756,7 @@ Test(VM, runArrayCopy) {
     cr_expect(isEqual(vm->globals[3], createInt(2)));
 
     destroy(vm);
-    deleteSource(src);
+    cr_free(src);
 }
 
 Test(VM, runArrayInvalidBuild, .init = cr_redirect_stderr, .exit_code = 2) {
@@ -765,7 +766,7 @@ Test(VM, runArrayInvalidBuild, .init = cr_redirect_stderr, .exit_code = 2) {
     };
     int jumpCounts[1] = {0};
     JumpPoint* jumps[2] = {(JumpPoint[]) {}};
-    SourceCode src = createSource(labels, bodies, jumpCounts, jumps, 1);
+    SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 1);
 
     VM* vm = init(src);
     run(vm, false);
@@ -773,7 +774,7 @@ Test(VM, runArrayInvalidBuild, .init = cr_redirect_stderr, .exit_code = 2) {
     cr_expect_stderr_eq_str("Error: Attempted to build array of length 2 which exceeds capacity 1");
 
     destroy(vm);
-    deleteSource(src);
+    cr_free(src);
 }
 
 Test(VM, runArrayGetOutOfRange, .init = cr_redirect_stderr, .exit_code = 2) {
@@ -783,7 +784,7 @@ Test(VM, runArrayGetOutOfRange, .init = cr_redirect_stderr, .exit_code = 2) {
     };
     int jumpCounts[1] = {0};
     JumpPoint* jumps[2] = {(JumpPoint[]) {}};
-    SourceCode src = createSource(labels, bodies, jumpCounts, jumps, 1);
+    SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 1);
 
     VM* vm = init(src);
     run(vm, false);
@@ -791,7 +792,7 @@ Test(VM, runArrayGetOutOfRange, .init = cr_redirect_stderr, .exit_code = 2) {
     cr_expect_stderr_eq_str("Error: Array index 10 out of range 2");
 
     destroy(vm);
-    deleteSource(src);
+    cr_free(src);
 }
 
 Test(VM, runArrayStoreOutOfRange, .init = cr_redirect_stderr, .exit_code = 2) {
@@ -801,7 +802,7 @@ Test(VM, runArrayStoreOutOfRange, .init = cr_redirect_stderr, .exit_code = 2) {
     };
     int jumpCounts[1] = {0};
     JumpPoint* jumps[2] = {(JumpPoint[]) {}};
-    SourceCode src = createSource(labels, bodies, jumpCounts, jumps, 1);
+    SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 1);
 
     VM* vm = init(src);
     run(vm, false);
@@ -809,7 +810,7 @@ Test(VM, runArrayStoreOutOfRange, .init = cr_redirect_stderr, .exit_code = 2) {
     cr_expect_stderr_eq_str("Error: Array index 10 out of range 2");
 
     destroy(vm);
-    deleteSource(src);
+    cr_free(src);
 }
 
 Test(VM, runArrayWritePastLength, .init = cr_redirect_stderr, .exit_code = 2) {
@@ -819,7 +820,7 @@ Test(VM, runArrayWritePastLength, .init = cr_redirect_stderr, .exit_code = 2) {
     };
     int jumpCounts[1] = {0};
     JumpPoint* jumps[2] = {(JumpPoint[]) {}};
-    SourceCode src = createSource(labels, bodies, jumpCounts, jumps, 1);
+    SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 1);
 
     VM* vm = init(src);
     run(vm, false);
@@ -827,5 +828,5 @@ Test(VM, runArrayWritePastLength, .init = cr_redirect_stderr, .exit_code = 2) {
     cr_expect_stderr_eq_str("Error: Cannot write to index 10 since previous index values are not initialized");
 
     destroy(vm);
-    deleteSource(src);
+    cr_free(src);
 }

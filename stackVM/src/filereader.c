@@ -15,9 +15,9 @@ bool startsWith(char* in, char chr) {
     return false;
 }
 
-SourceCode read_file(char* filename) {
-    SourceCode code;
-    code.length = 0;
+SourceCode* read_file(char* filename) {
+    SourceCode* code = malloc(sizeof(SourceCode));
+    code->length = 0;
     Function func;
     JumpPoint jmp;
     FILE* fp;
@@ -27,7 +27,7 @@ SourceCode read_file(char* filename) {
     if (fp == NULL || ferror(fp)) {
         perror("Error");
         fprintf(stderr, "Cause: '%s'\n", filename);
-        exit(-1);
+        return NULL;
     }
     StringVector* line;
     StringVector* out = createStringVector();
@@ -53,7 +53,7 @@ SourceCode read_file(char* filename) {
             if (!prevWasBlank) {
                 func.body = out;
                 out = createStringVector();
-                code.code[code.length++] = func;
+                code->code[code->length++] = func;
                 count = 0;
                 func.jmpCnt = 0;
                 prevWasBlank = true;
@@ -69,22 +69,29 @@ SourceCode read_file(char* filename) {
         }
     }
     func.body = out;
-    code.code[code.length++] = func;
+    code->code[code->length++] = func;
     fclose(fp);
     return code;
 }
 
-void displayCode(SourceCode src) {
+void displayCode(SourceCode* src) {
     JumpPoint jmp;
-    printf("length: %d\n", src.length);
-    for (int i = 0; i < src.length; i++) {
-        printf("%s => ", src.code[i].label);
-        printStringVector(src.code[i].body);
+    printf("length: %d\n", src->length);
+    for (int i = 0; i < src->length; i++) {
+        printf("%s => ", src->code[i].label);
+        printStringVector(src->code[i].body);
         printf(", Jumps: [");
-        for (int j = 0; j < src.code[i].jmpCnt; j++) {
-            jmp = src.code[i].jumpPoints[j];
+        for (int j = 0; j < src->code[i].jmpCnt; j++) {
+            jmp = src->code[i].jumpPoints[j];
             printf("{%s : %d} ", jmp.label, jmp.index);
         }
         printf("]\n");
     }
+}
+
+void deleteSourceCode(SourceCode* src) {
+    for (int i = 0; i < src->length; i++) {
+        freeStringVector(src->code[i].body);
+    }
+    free(src);
 }

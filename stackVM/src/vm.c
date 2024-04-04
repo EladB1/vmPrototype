@@ -12,15 +12,15 @@
 #define ENTRYPOINT "_entry"
 #define MAX_FRAMES 2048
 
-int findLabelIndex(SourceCode src, char* label) {
-    for (int i = 0; i < src.length; i++) {
-        if (strcmp(src.code[i].label, label) == 0)
+int findLabelIndex(SourceCode* src, char* label) {
+    for (int i = 0; i < src->length; i++) {
+        if (strcmp(src->code[i].label, label) == 0)
             return i;
     }
     return -1;
 }
 
-VM* init(SourceCode src) {
+VM* init(SourceCode* src) {
     VM* vm = malloc(sizeof(VM));
     vm->src = src;
     vm->fp = 0;
@@ -30,9 +30,9 @@ VM* init(SourceCode src) {
     int index = findLabelIndex(src, ENTRYPOINT);
     if (index == -1) {
         fprintf(stderr, "Error: Could not find entry point function label: '%s'\n", ENTRYPOINT);
-        exit(-1);
+        return NULL;
     }
-    vm->callStack[0] = loadFrame(src.code[index].body, src.code[index].jumpPoints, src.code[index].jmpCnt, 0, 0, NULL);
+    vm->callStack[0] = loadFrame(src->code[index].body, src->code[index].jumpPoints, src->code[index].jmpCnt, 0, 0, NULL);
     return vm;
 }
 
@@ -450,10 +450,10 @@ void run(VM* vm, bool verbose) {
             else {
                 addr = findLabelIndex(vm->src, next);
                 if (addr == -1) {
-                    fprintf(stderr, "Could not find function '%s'\n", next);
+                    fprintf(stderr, "Error: could not find function '%s'\n", next);
                     exit(254);
                 }
-                Frame* frame = loadFrame(vm->src.code[addr].body, vm->src.code[addr].jumpPoints, vm->src.code[addr].jmpCnt, currentFrame->pc, argc, params);
+                Frame* frame = loadFrame(vm->src->code[addr].body, vm->src->code[addr].jumpPoints, vm->src->code[addr].jmpCnt, currentFrame->pc, argc, params);
                 vm->callStack[++vm->fp] = frame;
             }
             

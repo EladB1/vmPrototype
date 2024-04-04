@@ -28,11 +28,16 @@ int main(int argc, char** argv) {
         fprintf(stderr, "Error: No input file provided\n%s\n", getUsage(argv[0]));
         return -1;
     }
-    SourceCode src = read_file(filename);
+    SourceCode* src = read_file(filename);
+    if (src == NULL)
+        return -1;
     if (verbose)
         displayCode(src);
     VM* vm = init(src);
+    if (vm == NULL)
+        return -1;
     run(vm, verbose);
     destroy(vm);
+    deleteSourceCode(src);
     return 0;
 }

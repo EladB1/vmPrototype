@@ -4,7 +4,6 @@
 #include "../src/filereader.h"
 
 char* cr_strdup(const char* str);
-SourceCode createSource(char** labels, char** bodies, int* jumpCounts, JumpPoint** jumps, int length);
-void deleteSource(SourceCode src);
+SourceCode* createSource(char** labels, char** bodies, int* jumpCounts, JumpPoint** jumps, int length);
 
 #endif

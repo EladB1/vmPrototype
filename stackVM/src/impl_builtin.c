@@ -197,6 +197,11 @@ void createFile(char* filePath) {
         return; // non-fatal error
     }
     FILE* fp = fopen(filePath, "w");
+    if (fp == NULL || ferror(fp)) {
+        perror("FileError");
+        fprintf(stderr, "Cause: '%s'\n", filePath);
+        exit(3);
+    }
     fclose(fp);
 }
 

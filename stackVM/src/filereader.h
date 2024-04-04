@@ -21,7 +21,8 @@ typedef struct {
 } SourceCode;
 
 bool startsWith(char* in, char chr);
-SourceCode read_file(char* filename);
-void displayCode(SourceCode src);
+SourceCode* read_file(char* filename);
+void displayCode(SourceCode* src);
+void deleteSourceCode(SourceCode* src);
 
 #endif
