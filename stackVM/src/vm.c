@@ -25,6 +25,7 @@ VM* init(SourceCode* src) {
     vm->src = src;
     vm->fp = 0;
     vm->gc = -1;
+    vm->state = success;
     vm->globals = malloc(sizeof(DataConstant) * (INT_MAX - 1));
     vm->callStack = malloc(sizeof(Frame*) * MAX_FRAMES);
     int index = findLabelIndex(src, ENTRYPOINT);
@@ -123,8 +124,8 @@ void stepOver(VM* vm) {
 void jump(VM* vm, char* label) {
     int addr = getJumpIndex(vm->callStack[vm->fp], label);
     if (addr == -1) {
-        fprintf(stderr, "Could not find jump point '%s'\n", label);
-        exit(255);
+        fprintf(stderr, "Error: Could not find jump point '%s'\n", label);
+        vm->state = unknown_bytecode;
     }
     setPC(vm->callStack[vm->fp], addr);
 }
@@ -146,7 +147,7 @@ void storeValue(VM* vm) {
     }
 }
 
-void run(VM* vm, bool verbose) {
+ExitCode run(VM* vm, bool verbose) {
     if (verbose)
         printf("Running program...\n");
     char* opcode;
@@ -155,6 +156,8 @@ void run(VM* vm, bool verbose) {
     char* next;
     int addr, argc, offset;
     while (1) {
+        if (vm->state != success)
+            return vm->state;
         opcode = getNext(vm);
         currentFrame = vm->callStack[vm->fp];
         if (opcode[0] == '.') {
@@ -164,7 +167,7 @@ void run(VM* vm, bool verbose) {
         if (strcmp(opcode, "HALT") == 0) {
             if (verbose)
                 printf("-----\nProgram execution complete\n");
-            return; // stop program
+            return success; // stop program with a successful exit code
         }
         else if (strcmp(opcode, "LOAD_CONST") == 0) {
             next = getNext(vm);
@@ -184,14 +187,18 @@ void run(VM* vm, bool verbose) {
             push(vm, value);
         }
         else if (strcmp(opcode, "DUP") == 0) {
-            if (stackIsEmpty(currentFrame))
-                return;
+            if (stackIsEmpty(currentFrame)) {
+                fprintf(stderr, "Error: No value to duplicate\n");
+                return operation_err;
+            }
             value = top(vm);
             push(vm, value);
         }
         else if (strcmp(opcode, "POP") == 0) {
-            if (stackIsEmpty(currentFrame))
-                return;
+            if (stackIsEmpty(currentFrame)) {
+                fprintf(stderr, "Error: Attempted to POP empty stack\n");
+                return operation_err;
+            }
             pop(vm);
         }
         else if (strcmp(opcode, "CONCAT") == 0) {
@@ -264,18 +271,24 @@ void run(VM* vm, bool verbose) {
             rhs = pop(vm);
             lhs = pop(vm);
             rval = binaryArithmeticOperation(lhs, rhs, "/");
+            if (rval.type == None)
+                return operation_err;
             push(vm, rval);
         }
         else if (strcmp(opcode, "REM") == 0) {
             rhs = pop(vm);
             lhs = pop(vm);
             rval = binaryArithmeticOperation(lhs, rhs, "mod");
+            if (rval.type == None)
+                return operation_err;
             push(vm, rval);
         }
         else if (strcmp(opcode, "POW") == 0) {
             rhs = pop(vm);
             lhs = pop(vm);
             rval = binaryArithmeticOperation(lhs, rhs, "exp");
+            if (rval.type == None)
+                return operation_err;
             push(vm, rval);
         }
         else if (strcmp(opcode, "EQ") == 0) {
@@ -360,8 +373,10 @@ void run(VM* vm, bool verbose) {
             push(vm, rval);
         }
         else if (strcmp(opcode, "STORE") == 0) {
-            if (stackIsEmpty(currentFrame))
-                return;
+            if (stackIsEmpty(currentFrame)) {
+                fprintf(stderr, "Error: no value to store\n");
+                return operation_err;
+            }
             storeValue(vm);
         }
         else if (strcmp(opcode, "LOAD") == 0) {
@@ -369,8 +384,10 @@ void run(VM* vm, bool verbose) {
             push(vm, value);
         }
         else if (strcmp(opcode, "GSTORE") == 0) {
-            if (stackIsEmpty(currentFrame))
-                return;
+            if (stackIsEmpty(currentFrame)) {
+                fprintf(stderr, "Error: no value to store\n");
+                return operation_err;
+            }
             value = pop(vm);
             next = peekNext(vm);
             if (isInt(next)) { // overwrite the value of an existing variable
@@ -443,7 +460,9 @@ void run(VM* vm, bool verbose) {
                 params[i] = pop(vm);
             }
             if (isBuiltinFunction(next)) {
-                rval = callBuiltinFunction(next, argc, params, &vm->gc, &vm->globals);
+                rval = callBuiltinFunction(next, argc, params, &vm->gc, &vm->globals, &(vm->state));
+                if (vm->state != success)
+                    return vm->state;
                 if (rval.type != None)
                     push(vm, rval);
             }
@@ -451,7 +470,7 @@ void run(VM* vm, bool verbose) {
                 addr = findLabelIndex(vm->src, next);
                 if (addr == -1) {
                     fprintf(stderr, "Error: could not find function '%s'\n", next);
-                    exit(254);
+                    return unknown_bytecode;
                 }
                 Frame* frame = loadFrame(vm->src->code[addr].body, vm->src->code[addr].jumpPoints, vm->src->code[addr].jmpCnt, currentFrame->pc, argc, params);
                 vm->callStack[++vm->fp] = frame;
@@ -472,7 +491,7 @@ void run(VM* vm, bool verbose) {
             argc = atoi(getNext(vm));
             if (argc > capacity) {
                 fprintf(stderr, "Error: Attempted to build array of length %d which exceeds capacity %d\n", argc, capacity);
-                exit(2);
+                return memory_err;
             }
             rval = createAddr(++vm->gc, capacity, argc);
             for (int i = 0; i < argc; i++) {
@@ -502,7 +521,7 @@ void run(VM* vm, bool verbose) {
             addr = lhs.value.intVal;
             if (offset > lhs.size || offset < 0) {
                 fprintf(stderr, "Error: Array index %d out of range %d\n", offset, lhs.size);
-                exit(2);
+                return memory_err;
             }
             rval = vm->globals[addr + offset];
             push(vm, rval);
@@ -513,14 +532,14 @@ void run(VM* vm, bool verbose) {
             addr = lhs.value.intVal;
             if (offset >= lhs.size || offset < 0) {
                 fprintf(stderr, "Error: Array index %d out of range %d\n", offset, lhs.size);
-                exit(2);
+                return memory_err;
             }
             rhs = pop(vm);
             rval = vm->globals[addr + offset];
             if (rval.type == None) {
                 if (offset > lhs.length + 1) {
                     fprintf(stderr, "Error: Cannot write to index %d since previous index values are not initialized\n", offset);
-                    exit(2);
+                    return memory_err;
                 }
                 lhs.length++;
             }
@@ -529,9 +548,10 @@ void run(VM* vm, bool verbose) {
         }
         else {
             fprintf(stderr, "Unknown bytecode: '%s'\n", opcode);
-            exit(254);
+            return unknown_bytecode;
         }
         if (verbose)
             display(vm);
     }
+    return success;
 }

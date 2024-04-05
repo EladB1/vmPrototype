@@ -280,19 +280,22 @@ ParameterizedTest(Operation* operation, DataConstant, binaryArithmeticOperation)
     cr_expect(isEqual(result, operation->result));
 }
 
-Test(DataConstant, binaryArithmeticOperation_divByZero, .init = cr_redirect_stderr, .exit_code = 1) {
-    binaryArithmeticOperation(createInt(1), createInt(0), "/");
+Test(DataConstant, binaryArithmeticOperation_divByZero, .init = cr_redirect_stderr) {
+    DataConstant result = binaryArithmeticOperation(createInt(1), createInt(0), "/");
     cr_expect_stderr_eq_str("Error: Division by zero\n");
+    cr_expect_eq(result.type, None);
 }
 
-Test(DataConstant, binaryArithmeticOperation_modByZero, .init = cr_redirect_stderr, .exit_code = 1) {
-    binaryArithmeticOperation(createInt(1), createInt(0), "mod");
+Test(DataConstant, binaryArithmeticOperation_modByZero, .init = cr_redirect_stderr) {
+    DataConstant result = binaryArithmeticOperation(createInt(1), createInt(0), "mod");
     cr_expect_stderr_eq_str("Error: Division by zero\n");
+    cr_expect_eq(result.type, None);
 }
 
-Test(DataConstant, binaryArithmeticOperation_expZeroByNegative, .init = cr_redirect_stderr, .exit_code = 1) {
-    binaryArithmeticOperation(createInt(0), createInt(-1), "exp");
+Test(DataConstant, binaryArithmeticOperation_expZeroByNegative, .init = cr_redirect_stderr) {
+    DataConstant result = binaryArithmeticOperation(createInt(0), createInt(-1), "exp");
     cr_expect_stderr_eq_str("Error: Zero cannot be raised to a negative power\n");
+    cr_expect_eq(result.type, None);
 }
 
 Test(DataConstant, copyAddr) {

@@ -87,10 +87,11 @@ void sleep_(DataConstant seconds) {
         sleep(seconds.value.intVal);
 }
 
-char* at(char* str, int index) {
+char* at(char* str, int index, ExitCode* vmState) {
     if (index < 0 || index >= (int)strlen(str)) {
         fprintf(stderr, "IndexError: String index out of range in function call 'at(\"%s\", %d)'\n", str, index);
-        exit(2);
+        *vmState = memory_err;
+        return "";
     }
     char* result = "";
     asprintf(&result, "%c", str[index]);
@@ -171,10 +172,11 @@ char* replace(char* string, char* old, char* new, bool multiple) {
     return replaced;
 }
 
-char* slice(char* string, int start, int end) {
+char* slice(char* string, int start, int end, ExitCode* vmState) {
     if (start < 0 || start > end || start >= (int) strlen(string)) {
         fprintf(stderr, "Invalid start value of slice %d\n", start);
-        exit(2);
+        *vmState = memory_err;
+        return "";
     }
     if (start == 0 && end == (int) strlen(string))
         return string;
@@ -191,7 +193,7 @@ bool fileExists(char* filePath) {
     return access(filePath, F_OK) == 0;
 }
 
-void createFile(char* filePath) {
+void createFile(char* filePath, ExitCode* vmState) {
     if (fileExists(filePath)) {
         fprintf(stderr, "FileError: Cannot create file '%s' because it already exists\n", filePath);
         return; // non-fatal error
@@ -200,21 +202,24 @@ void createFile(char* filePath) {
     if (fp == NULL || ferror(fp)) {
         perror("FileError");
         fprintf(stderr, "Cause: '%s'\n", filePath);
-        exit(3);
+        *vmState = file_err;
+        return;
     }
     fclose(fp);
 }
 
-DataConstant readFile(char* filePath, int* globCount, DataConstant** globals) {
+DataConstant readFile(char* filePath, int* globCount, DataConstant** globals, ExitCode* vmState) {
     if (!fileExists(filePath)) {
         fprintf(stderr, "FileError: Cannot read file '%s' because it does not exist\n", filePath);
-        exit(3);
+        *vmState = file_err;
+        return createNone();
     }
     FILE* fp = fopen(filePath, "r");
     if (fp == NULL || ferror(fp)) {
         perror("FileError");
         fprintf(stderr, "Cause: '%s'\n", filePath);
-        exit(3);
+        *vmState = file_err;
+        return createNone();
     }
     DataConstant lines;
     lines.type = Addr;
@@ -231,47 +236,53 @@ DataConstant readFile(char* filePath, int* globCount, DataConstant** globals) {
     return lines;
 }
 
-void writeToFile(char* filePath, char* content, char* mode) {
+void writeToFile(char* filePath, char* content, char* mode, ExitCode* vmState) {
     if (!fileExists(filePath))
-        createFile(filePath);
+        createFile(filePath, vmState);
     FILE* fp = fopen(filePath, mode);
     if (fp == NULL || ferror(fp)) {
         perror("FileError");
         fprintf(stderr, "Cause: '%s'\n", filePath);
-        exit(3);
+        *vmState = file_err;
+        return;
     }
     int write = fprintf(fp, "%s\n", content);
     if (write < 0) {
         perror("FileError");
         fprintf(stderr, "Cause: '%s'\n", filePath);
-        exit(write);
+        *vmState = file_err;
+        return;
     }
     fclose(fp);
 }
 
-void renameFile(char* filePath, char* newFilePath) {
+void renameFile(char* filePath, char* newFilePath, ExitCode* vmState) {
     if (!fileExists(filePath)) {
         fprintf(stderr, "FileError: Cannot rename file '%s' because it does not exist\n", filePath);
-        exit(3);
+        *vmState = file_err;
+        return;
     }
     int mv = rename(filePath, newFilePath);
     if (mv != 0) {
         perror("FileError");
         fprintf(stderr, "Cause: '%s'\n", filePath);
-        exit(mv);
+        *vmState = file_err;
+        return;
     }
 }
 
-void deleteFile(char* filePath) {
+void deleteFile(char* filePath, ExitCode* vmState) {
     if (!fileExists(filePath)) {
         fprintf(stderr, "FileError: Cannot delete file '%s' because it does not exist\n", filePath);
-        exit(3);
+        *vmState = file_err;
+        return;
     }
     int removal = remove(filePath);
     if (removal != 0) {
         perror("FileError");
         fprintf(stderr, "Cause: '%s'\n", filePath);
-        exit(removal);
+        *vmState = file_err;
+        return;
     }
 }
 
@@ -290,10 +301,11 @@ void reverseArr(DataConstant array, DataConstant** globals) {
     }
 }
 
-DataConstant sliceArr(DataConstant array, int start, int end, int* globCount, DataConstant** globals) {
+DataConstant sliceArr(DataConstant array, int start, int end, int* globCount, DataConstant** globals, ExitCode* vmState) {
     if (start < 0 || start > end || start >= array.length || end > array.length) {
         fprintf(stderr, "Array index out of bounds in call to slice. start: %d, end: %d\n", start, end);
-        exit(2);
+        *vmState = memory_err;
+        return createNone();
     }
     int addr = array.value.intVal + start;
     int len = array.value.intVal + end - addr;
@@ -364,10 +376,11 @@ void sort(DataConstant array, DataConstant* globals) {
     qsort(start, array.length, sizeof(DataConstant), comparator);
 }
 
-void removeByIndex(DataConstant* array, int index, DataConstant** globals) {
+void removeByIndex(DataConstant* array, int index, DataConstant** globals, ExitCode* vmState) {
     if (index < 0 || index > array->size) {
         fprintf(stderr, "Array index out of bounds\n");
-        exit(2);
+        *vmState = memory_err;
+        return;
     }
     int addr = array->value.intVal + index;
     memmove(&globals[0][addr], &globals[0][addr + 1], sizeof(DataConstant) * (array->length - index - 1));
@@ -375,20 +388,22 @@ void removeByIndex(DataConstant* array, int index, DataConstant** globals) {
     (*globals)[array->value.intVal + array->length] = createNone();
 }
 
-void append(DataConstant* array, DataConstant elem, DataConstant** globals) {
+void append(DataConstant* array, DataConstant elem, DataConstant** globals, ExitCode* vmState) {
     if (array->length == array->size) {
         fprintf(stderr, "Array size limit %d reached. Cannot insert into array.\n" , array->size);
-        exit(2);
+        *vmState = memory_err;
+        return;
     }
     int addr = array->value.intVal + array->length;
     (*globals)[addr] = elem;
     array->length++; 
 }
 
-void prepend(DataConstant* array, DataConstant elem, DataConstant** globals) {
+void prepend(DataConstant* array, DataConstant elem, DataConstant** globals, ExitCode* vmState) {
     if (array->length == array->size) {
         fprintf(stderr, "Array size limit %d reached. Cannot insert into array.\n" , array->size);
-        exit(2);
+        *vmState = memory_err;
+        return;
     }
     int addr = array->value.intVal;
     memmove(&globals[addr + 1], &globals[addr], sizeof(DataConstant) * (array->length + 1));
@@ -396,21 +411,23 @@ void prepend(DataConstant* array, DataConstant elem, DataConstant** globals) {
     array->length++; 
 }
 
-void insert(DataConstant* array, DataConstant elem, int index, DataConstant** globals) {
+void insert(DataConstant* array, DataConstant elem, int index, DataConstant** globals, ExitCode* vmState) {
     if (array->length == array->size) {
         fprintf(stderr, "Array size limit %d reached. Cannot insert into array.\n" , array->size);
-        exit(2);
+        *vmState = memory_err;
+        return;
     }
     if (index < 0 || index > array->length) {
         fprintf(stderr, "Array index %d out of range %d\n", index, array->length);
-        exit(2);
+        *vmState = memory_err;
+        return;
     }
     if (index == 0) {
-        prepend(array, elem, globals);
+        prepend(array, elem, globals, vmState);
         return;
     }
     if (index == array->length) {
-        append(array, elem, globals);
+        append(array, elem, globals, vmState);
         return;
     }
     int addr = array->value.intVal + index;

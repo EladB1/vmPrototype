@@ -247,7 +247,7 @@ DataConstant binaryArithmeticOperation(DataConstant lhs, DataConstant rhs, char*
     if (strcmp(operation, "/") == 0) {
         if (isZero(rhs)) {
             fprintf(stderr, "Error: Division by zero\n");
-            exit(1);
+            return createNone();
         }
         if (lhs.type == Dbl || rhs.type == Dbl) {
             result.type = Dbl;
@@ -266,7 +266,7 @@ DataConstant binaryArithmeticOperation(DataConstant lhs, DataConstant rhs, char*
     if (strcmp(operation, "mod") == 0) {
         if (isZero(rhs)) {
             fprintf(stderr, "Error: Division by zero\n");
-            exit(1);
+            return createNone();
         }
         if (lhs.type == Dbl || rhs.type == Dbl) {
             result.type = Dbl;
@@ -287,7 +287,7 @@ DataConstant binaryArithmeticOperation(DataConstant lhs, DataConstant rhs, char*
             DataConstant lessThanZero = compareData(rhs, createInt(0), "<");
             if (lessThanZero.value.boolVal) {
                 fprintf(stderr, "Error: Zero cannot be raised to a negative power\n");
-                exit(1);
+                return createNone();
             }
         }
         if (lhs.type == Dbl || rhs.type == Dbl) {

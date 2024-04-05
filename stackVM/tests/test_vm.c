@@ -22,6 +22,7 @@ Test(VM, initAndDestroy) {
     cr_expect_not_null(vm);
     cr_expect_eq(vm->fp, 0);
     cr_expect_eq(vm->gc, -1);
+    cr_expect_eq(vm->state, success);
     Frame* frame = vm->callStack[0];
     cr_expect_eq(frame->returnAddr, 0);
     cr_expect_eq(frame->pc, 0);
@@ -49,7 +50,7 @@ Test(VM, runNoEntryPoint, .init = cr_redirect_stderr) {
     cr_expect_stderr_eq_str("Error: Could not find entry point function label: '_entry'\n");
 }
 
-Test(VM, runUknownBytecode, .init = cr_redirect_stderr, .exit_code = 254) {
+Test(VM, runUknownBytecode, .init = cr_redirect_stderr) {
     char* labels[1] = {"_entry"};
     char* bodies[1] = {
         "asdf HALT"
@@ -59,15 +60,16 @@ Test(VM, runUknownBytecode, .init = cr_redirect_stderr, .exit_code = 254) {
     SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 1);
 
     VM* vm = init(src);
-    run(vm, false);
+    ExitCode status = run(vm, false);
     
-    cr_expect_stderr_eq_str("Unknown bytecode: 'asdf'");
+    cr_expect_stderr_eq_str("Unknown bytecode: 'asdf'\n");
+    cr_expect_eq(status, unknown_bytecode);
 
     destroy(vm);
     cr_free(src);
 }
 
-Test(VM, runJumpPointNotFound, .init = cr_redirect_stderr, .exit_code = 255) {
+Test(VM, runJumpPointNotFound, .init = cr_redirect_stderr) {
     char* labels[1] = {"_entry"};
     char* bodies[1] = {
         "JMP .next HALT"
@@ -77,9 +79,10 @@ Test(VM, runJumpPointNotFound, .init = cr_redirect_stderr, .exit_code = 255) {
     SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 1);
 
     VM* vm = init(src);
-    run(vm, false);
+    ExitCode status = run(vm, false);
     
-    cr_expect_stderr_eq_str("Error: Could not find jump point '.next'");
+    cr_expect_stderr_eq_str("Error: Could not find jump point '.next'\n");
+    cr_expect_eq(status, unknown_bytecode);
 
     destroy(vm);
     cr_free(src);
@@ -96,8 +99,9 @@ Test(VM, runPop) {
     //displayCode(src);
 
     VM* vm = init(src);
-    run(vm, false);
+    ExitCode status = run(vm, false);
 
+    cr_expect_eq(status, success);
     cr_expect_eq(vm->fp, 0);
     Frame* frame = vm->callStack[0];
     cr_expect_eq(frame->instructions->length, 4);
@@ -122,8 +126,9 @@ Test(VM, runLoadBasicConsts) {
     //displayCode(src);
 
     VM* vm = init(src);
-    run(vm, false);
+    ExitCode status = run(vm, false);
 
+    cr_expect_eq(status, success);
     cr_expect_eq(vm->fp, 0);
     Frame* frame = vm->callStack[0];
     cr_expect_eq(frame->instructions->length, 13);
@@ -153,8 +158,9 @@ Test(VM, runStringOps) {
     //displayCode(src);
 
     VM* vm = init(src);
-    run(vm, false);
+    ExitCode status = run(vm, false);
 
+    cr_expect_eq(status, success);
     cr_expect_eq(vm->fp, 0);
     Frame* frame = vm->callStack[0];
     cr_expect_eq(frame->instructions->length, 10);
@@ -197,8 +203,9 @@ ParameterizedTest(DataCompare* comparisons, VM, runDUPAndCompare) {
     //displayCode(src);
 
     VM* vm = init(src);
-    run(vm, false);
+    ExitCode status = run(vm, false);
 
+    cr_expect_eq(status, success);
     cr_expect_eq(vm->fp, 0);
     Frame* frame = vm->callStack[0];
     cr_expect_eq(frame->instructions->length, 5);
@@ -224,8 +231,9 @@ Test(VM, runNOT) {
     //displayCode(src);
 
     VM* vm = init(src);
-    run(vm, false);
+    ExitCode status = run(vm, false);
 
+    cr_expect_eq(status, success);
     cr_expect_eq(vm->fp, 0);
     Frame* frame = vm->callStack[0];
     cr_expect_eq(frame->instructions->length, 7);
@@ -274,8 +282,9 @@ ParameterizedTest(BooleanOperation* operation, VM, runBinaryBooleanOperations) {
     //displayCode(src);
 
     VM* vm = init(src);
-    run(vm, false);
+    ExitCode status = run(vm, false);
 
+    cr_expect_eq(status, success);
     cr_expect_eq(vm->fp, 0);
     Frame* frame = vm->callStack[0];
     cr_expect_eq(frame->instructions->length, 6);
@@ -328,8 +337,9 @@ ParameterizedTest(BitwiseOperation* operation, VM, runBinaryBitwiseOperations) {
     //displayCode(src);
 
     VM* vm = init(src);
-    run(vm, false);
+    ExitCode status = run(vm, false);
 
+    cr_expect_eq(status, success);
     cr_expect_eq(vm->fp, 0);
     Frame* frame = vm->callStack[0];
     cr_expect_eq(frame->instructions->length, 6);
@@ -355,8 +365,9 @@ Test(VM, runLoadAndStore) {
     //displayCode(src);
 
     VM* vm = init(src);
-    run(vm, false);
+    ExitCode status = run(vm, false);
 
+    cr_expect_eq(status, success);
     cr_expect_eq(vm->fp, 0);
     Frame* frame = vm->callStack[0];
     cr_expect_eq(frame->instructions->length, 21);
@@ -386,8 +397,9 @@ Test(VM, runWithNoJump) {
     //displayCode(src);
 
     VM* vm = init(src);
-    run(vm, false);
+    ExitCode status = run(vm, false);
     
+    cr_expect_eq(status, success);
     cr_expect_eq(vm->fp, 0);
     Frame* frame = vm->callStack[0];
     cr_expect_eq(frame->instructions->length, 16);
@@ -411,8 +423,9 @@ Test(VM, runWithSimpleJump) {
     //displayCode(src);
 
     VM* vm = init(src);
-    run(vm, false);
+    ExitCode status = run(vm, false);
 
+    cr_expect_eq(status, success);
     cr_expect_eq(vm->fp, 0);
     Frame* frame = vm->callStack[0];
     cr_expect_eq(frame->instructions->length, 16);
@@ -436,8 +449,9 @@ Test(VM, runWithShortCircuitJump) {
     //displayCode(src);
 
     VM* vm = init(src);
-    run(vm, false);
+    ExitCode status = run(vm, false);
 
+    cr_expect_eq(status, success);
     cr_expect_eq(vm->fp, 0);
     Frame* frame = vm->callStack[0];
     cr_expect_eq(frame->instructions->length, 16);
@@ -463,8 +477,9 @@ Test(VM, runSelect) {
     //displayCode(src);
 
     VM* vm = init(src);
-    run(vm, false);
+    ExitCode status = run(vm, false);
 
+    cr_expect_eq(status, success);
     cr_expect_eq(vm->fp, 0);
     Frame* frame = vm->callStack[0];
     cr_expect_eq(frame->instructions->length, 11);
@@ -491,9 +506,10 @@ Test(VM, runWithBuiltinFunctionCall, .init = cr_redirect_stdout) {
     //displayCode(src);
 
     VM* vm = init(src);
-    run(vm, false);
+    ExitCode status = run(vm, false);
     fflush(stdout);
 
+    cr_expect_eq(status, success);
     cr_expect_eq(vm->fp, 0);
     Frame* frame = vm->callStack[0];
     cr_expect_eq(frame->instructions->length, 6);
@@ -520,8 +536,9 @@ Test(VM, runWithFunctionCall_no_params_stop) {
     //displayCode(src);
 
     VM* vm = init(src);
-    run(vm, false);
+    ExitCode status = run(vm, false);
 
+    cr_expect_eq(status, success);
     cr_expect_eq(vm->fp, 1);
     Frame* frame = vm->callStack[1];
     cr_expect_eq(frame->instructions->length, 1);
@@ -546,8 +563,9 @@ Test(VM, runWithFunctionCall_withParams_stop) {
     //displayCode(src);
 
     VM* vm = init(src);
-    run(vm, false);
+    ExitCode status = run(vm, false);
 
+    cr_expect_eq(status, success);
     cr_expect_eq(vm->fp, 1);
     Frame* frame = vm->callStack[1];
     cr_expect_eq(frame->instructions->length, 3);
@@ -575,8 +593,9 @@ Test(VM, runWithFunctionCall_addWithReturn) {
     //displayCode(src);
 
     VM* vm = init(src);
-    run(vm, false);
+    ExitCode status = run(vm, false);
 
+    cr_expect_eq(status, success);
     cr_expect_eq(vm->fp, 0);
     Frame* frame = vm->callStack[0];
     cr_expect_eq(frame->instructions->length, 8);
@@ -591,7 +610,7 @@ Test(VM, runWithFunctionCall_addWithReturn) {
     cr_free(src);
 }
 
-Test(VM, runUknownFunction, .init = cr_redirect_stderr, .exit_code = 254) {
+Test(VM, runUknownFunction, .init = cr_redirect_stderr) {
     char* labels[1] = {"_entry"};
     char* bodies[1] = {
         "CALL asdf 0 HALT"
@@ -601,9 +620,10 @@ Test(VM, runUknownFunction, .init = cr_redirect_stderr, .exit_code = 254) {
     SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 1);
 
     VM* vm = init(src);
-    run(vm, false);
+    ExitCode status = run(vm, false);
     
-    cr_expect_stderr_eq_str("Error: could not find function 'asdf'");
+    cr_expect_stderr_eq_str("Error: could not find function 'asdf'\n");
+    cr_expect_eq(status, unknown_bytecode);
 
     destroy(vm);
     cr_free(src);
@@ -621,8 +641,9 @@ Test(VM, runArrayGet) {
     //displayCode(src);
 
     VM* vm = init(src);
-    run(vm, false);
+    ExitCode status = run(vm, false);
 
+    cr_expect_eq(status, success);
     cr_expect_eq(vm->fp, 0);
     Frame* frame = vm->callStack[0];
     cr_expect_eq(frame->instructions->length, 11);
@@ -654,8 +675,9 @@ Test(VM, runArrayWrite) {
     //displayCode(src);
 
     VM* vm = init(src);
-    run(vm, false);
+    ExitCode status = run(vm, false);
 
+    cr_expect_eq(status, success);
     cr_expect_eq(vm->fp, 0);
     Frame* frame = vm->callStack[0];
     cr_expect_eq(frame->instructions->length, 27);
@@ -692,8 +714,9 @@ Test(VM, runArrayConcat) {
     //displayCode(src);
 
     VM* vm = init(src);
-    run(vm, false);
+    ExitCode status = run(vm, false);
 
+    cr_expect_eq(status, success);
     cr_expect_eq(vm->fp, 0);
     Frame* frame = vm->callStack[0];
     cr_expect_eq(frame->instructions->length, 16);
@@ -732,8 +755,9 @@ Test(VM, runArrayCopy) {
     //displayCode(src);
 
     VM* vm = init(src);
-    run(vm, false);
+    ExitCode status = run(vm, false);
 
+    cr_expect_eq(status, success);
     cr_expect_eq(vm->fp, 0);
     Frame* frame = vm->callStack[0];
     cr_expect_eq(frame->instructions->length, 10);
@@ -759,7 +783,7 @@ Test(VM, runArrayCopy) {
     cr_free(src);
 }
 
-Test(VM, runArrayInvalidBuild, .init = cr_redirect_stderr, .exit_code = 2) {
+Test(VM, runArrayInvalidBuild, .init = cr_redirect_stderr) {
     char* labels[1] = {"_entry"};
     char* bodies[1] = {
         "LOAD_CONST 1 LOAD_CONST 2 BUILDARR 1 2 HALT"
@@ -769,15 +793,16 @@ Test(VM, runArrayInvalidBuild, .init = cr_redirect_stderr, .exit_code = 2) {
     SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 1);
 
     VM* vm = init(src);
-    run(vm, false);
+    ExitCode status = run(vm, false);
     
-    cr_expect_stderr_eq_str("Error: Attempted to build array of length 2 which exceeds capacity 1");
+    cr_expect_stderr_eq_str("Error: Attempted to build array of length 2 which exceeds capacity 1\n");
+    cr_expect_eq(status, memory_err);
 
     destroy(vm);
     cr_free(src);
 }
 
-Test(VM, runArrayGetOutOfRange, .init = cr_redirect_stderr, .exit_code = 2) {
+Test(VM, runArrayGetOutOfRange, .init = cr_redirect_stderr) {
     char* labels[1] = {"_entry"};
     char* bodies[1] = {
         "LOAD_CONST 1 LOAD_CONST 2 BUILDARR 2 2 LOAD_CONST 10 AGET HALT"
@@ -787,15 +812,16 @@ Test(VM, runArrayGetOutOfRange, .init = cr_redirect_stderr, .exit_code = 2) {
     SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 1);
 
     VM* vm = init(src);
-    run(vm, false);
+    ExitCode status = run(vm, false);
     
-    cr_expect_stderr_eq_str("Error: Array index 10 out of range 2");
+    cr_expect_stderr_eq_str("Error: Array index 10 out of range 2\n");
+    cr_expect_eq(status, memory_err);
 
     destroy(vm);
     cr_free(src);
 }
 
-Test(VM, runArrayStoreOutOfRange, .init = cr_redirect_stderr, .exit_code = 2) {
+Test(VM, runArrayStoreOutOfRange, .init = cr_redirect_stderr) {
     char* labels[1] = {"_entry"};
     char* bodies[1] = {
         "LOAD_CONST 1 LOAD_CONST 2 BUILDARR 2 2 LOAD_CONST 10 ASTORE HALT"
@@ -805,15 +831,16 @@ Test(VM, runArrayStoreOutOfRange, .init = cr_redirect_stderr, .exit_code = 2) {
     SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 1);
 
     VM* vm = init(src);
-    run(vm, false);
+    ExitCode status = run(vm, false);
     
-    cr_expect_stderr_eq_str("Error: Array index 10 out of range 2");
+    cr_expect_stderr_eq_str("Error: Array index 10 out of range 2\n");
+    cr_expect_eq(status, memory_err);
 
     destroy(vm);
     cr_free(src);
 }
 
-Test(VM, runArrayWritePastLength, .init = cr_redirect_stderr, .exit_code = 2) {
+Test(VM, runArrayWritePastLength, .init = cr_redirect_stderr) {
     char* labels[1] = {"_entry"};
     char* bodies[1] = {
         "LOAD_CONST 1 LOAD_CONST 2 BUILDARR 12 2 LOAD_CONST 10 ASTORE HALT"
@@ -823,9 +850,10 @@ Test(VM, runArrayWritePastLength, .init = cr_redirect_stderr, .exit_code = 2) {
     SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 1);
 
     VM* vm = init(src);
-    run(vm, false);
+    ExitCode status = run(vm, false);
     
-    cr_expect_stderr_eq_str("Error: Cannot write to index 10 since previous index values are not initialized");
+    cr_expect_stderr_eq_str("Error: Cannot write to index 10 since previous index values are not initialized\n");
+    cr_expect_eq(status, memory_err);
 
     destroy(vm);
     cr_free(src);

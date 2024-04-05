@@ -79,10 +79,13 @@ ParameterizedTest(getTypeInput* input, impl_builtin, getType) {
     cr_expect_str_eq(result, input->result);
 }
 
-Test(impl_builtin, at_invalid, .exit_code = 2, .init = cr_redirect_stderr) {
+Test(impl_builtin, at_invalid, .init = cr_redirect_stderr) {
+    ExitCode vmState = success;
     char* string = "language";
-    at(string, 10);
+    char* result = at(string, 10, &vmState);
     cr_assert_stderr_eq_str("IndexError: String index out of range in function call 'at(\"language\", 10)'\n");
+    cr_expect_str_empty(result);
+    cr_expect_eq(vmState, memory_err);
 }
 
 typedef struct {
@@ -112,10 +115,12 @@ ParameterizedTestParameters(impl_builtin, at_valid) {
 }
 
 ParameterizedTest(atInput* input, impl_builtin, at_valid) {
+    ExitCode vmState = success;
     char* string = "language";
-    char* result = at(string, input->index);
+    char* result = at(string, input->index, &vmState);
     // cr_log_info("Result: %s\n", result);
     cr_expect_str_eq(result, input->result);
+    cr_expect_eq(vmState, success);
 }
 
 Test(impl_builtin, startsWith_true) {
@@ -185,98 +190,126 @@ Test(impl_builtin, replace_multiple_not_found) {
     cr_expect_str_eq(replaced, "Kotlin");
 }
 
-Test(impl_builtin, slice_str_error, .exit_code = 2, .init = cr_redirect_stderr) {
-    slice("Ten", 4, 3);
+Test(impl_builtin, slice_str_error, .init = cr_redirect_stderr) {
+    ExitCode vmState = success;
+    char* result = slice("Ten", 4, 3, &vmState);
     cr_assert_stderr_eq_str("Invalid start value of slice 4\n");
+    cr_expect_str_empty(result);
+    cr_expect_eq(vmState, memory_err);
 }
 
 Test(impl_builtin, slice_str_valid_full) {
-    char* sliced = slice("Ten", 0, 3);
+    ExitCode vmState = success;
+    char* sliced = slice("Ten", 0, 3, &vmState);
     // cr_log_info("%s", sliced);
     cr_expect_str_eq(sliced, "Ten");
 }
 
 Test(impl_builtin, slice_str_valid) {
-    char* sliced = slice("What time is it?", 5, 9);
+    ExitCode vmState = success;
+    char* sliced = slice("What time is it?", 5, 9, &vmState);
     // cr_log_info("%s", sliced);
     cr_expect_str_eq(sliced, "time");
 }
 
 // File System functions
 
-Test(impl_builtin, createAndDeleteFile, .init = cr_redirect_stderr, .exit_code = 0) {
+Test(impl_builtin, createAndDeleteFile, .init = cr_redirect_stderr) {
+    ExitCode vmState = success;
     cr_expect_not(fileExists(TESTFILE));
-    createFile(TESTFILE);
+    createFile(TESTFILE, &vmState);
+    cr_expect_eq(vmState, success);
     cr_expect(fileExists(TESTFILE));
-    createFile(TESTFILE);
+    createFile(TESTFILE, &vmState);
     cr_expect_stderr_eq_str("FileError: Cannot create file '.temporary_testing_file.txt' because it already exists\n");
-    deleteFile(TESTFILE);
+    cr_expect_eq(vmState, success);
+    deleteFile(TESTFILE, &vmState);
     cr_expect_not(fileExists(TESTFILE));
+    cr_expect_eq(vmState, success);
 }
 
-Test(impl_builtin, deleteFile_nonExistant, .init = cr_redirect_stderr, .exit_code = 3) {
+Test(impl_builtin, deleteFile_nonExistant, .init = cr_redirect_stderr) {
+    ExitCode vmState = success;
     cr_expect_not(fileExists(TESTFILE));
-    deleteFile(TESTFILE);
+    deleteFile(TESTFILE, &vmState);
     cr_expect_stderr_eq_str("FileError: Cannot delete file '.temporary_testing_file.txt' because it does not exist\n");
+    cr_expect_eq(vmState, file_err);
 }
 
-Test(impl_builtin, renameFile_nonExistant, .init = cr_redirect_stderr, .exit_code = 3) {
+Test(impl_builtin, renameFile_nonExistant, .init = cr_redirect_stderr) {
+    ExitCode vmState = success;
     cr_expect_not(fileExists(TESTFILE));
-    renameFile(TESTFILE, ".new_name.txt");
-    cr_expect_stderr_eq_str("FileError: Cannot delete file '.temporary_testing_file.txt' because it does not exist\n");
+    renameFile(TESTFILE, ".new_name.txt", &vmState);
+    cr_expect_stderr_eq_str("FileError: Cannot rename file '.temporary_testing_file.txt' because it does not exist\n");
+    cr_expect_eq(vmState, file_err);
 }
 
-Test(impl_builtin, readFile_nonExistant, .init = cr_redirect_stderr, .exit_code = 3) {
+Test(impl_builtin, readFile_nonExistant, .init = cr_redirect_stderr) {
+    ExitCode vmState = success;
     cr_expect_not(fileExists(TESTFILE));
     int globCount = 0;
     DataConstant* globals = (DataConstant[]) {};
-    readFile(TESTFILE, &globCount, &globals);
+    DataConstant read = readFile(TESTFILE, &globCount, &globals, &vmState);
+    cr_expect_eq(read.type, None);
     cr_expect_stderr_eq_str("FileError: Cannot read file '.temporary_testing_file.txt' because it does not exist\n");
+    cr_expect_eq(vmState, file_err);
 }
 
 Test(impl_builtin, writeAppendReadDeleteFile) {
+    ExitCode vmState = success;
     cr_expect_not(fileExists(TESTFILE));
     int globCount = -1;
     DataConstant* globals = (DataConstant[]) {createNone(), createNone(), createNone(), createNone()}; // need to have a none value in there for test to pass
     
-    writeToFile(TESTFILE, "hello", "w");
+    writeToFile(TESTFILE, "hello", "w", &vmState);
+    cr_expect_eq(vmState, success);
     cr_expect(fileExists(TESTFILE));
-    DataConstant read1 = readFile(TESTFILE, &globCount, &globals);
+    DataConstant read1 = readFile(TESTFILE, &globCount, &globals, &vmState);
+    cr_expect_eq(vmState, success);
     cr_expect_eq(read1.length, 1);
     cr_expect_eq(read1.value.intVal, 0);
     cr_expect_eq(globCount, 0);
     cr_expect_str_eq(globals[0].value.strVal, "hello\n");
     
-    writeToFile(TESTFILE, "hello", "w"); // should overwrite file contents
-    DataConstant read2 = readFile(TESTFILE, &globCount, &globals);
+    writeToFile(TESTFILE, "hello", "w", &vmState); // should overwrite file contents
+    cr_expect_eq(vmState, success);
+    DataConstant read2 = readFile(TESTFILE, &globCount, &globals, &vmState);
+    cr_expect_eq(vmState, success);
     cr_expect_eq(read2.length, 1);
     cr_expect_eq(read2.value.intVal, 1);
     cr_expect_eq(globCount, 1);
     cr_expect_str_eq(globals[1].value.strVal, "hello\n");
     
-    writeToFile(TESTFILE, "world", "a"); // should not overwrite file contents
-    DataConstant read3 = readFile(TESTFILE, &globCount, &globals);
+    writeToFile(TESTFILE, "world", "a", &vmState); // should not overwrite file contents
+    cr_expect_eq(vmState, success);
+    DataConstant read3 = readFile(TESTFILE, &globCount, &globals, &vmState);
+    cr_expect_eq(vmState, success);
     cr_expect_eq(read3.length, 2);
     cr_expect_eq(read3.value.intVal, 2);
     cr_expect_eq(globCount, 3);
     cr_expect_str_eq(globals[2].value.strVal, "hello\n");
     cr_expect_str_eq(globals[3].value.strVal, "world\n");
     
-    deleteFile(TESTFILE);
+    deleteFile(TESTFILE, &vmState);
+    cr_expect_eq(vmState, success);
     cr_expect_not(fileExists(TESTFILE));
 }
 
 Test(impl_builtin, createRenameDeleteFile) {
+    ExitCode vmState = success;
     char* newName = ".temp_test_file.2.txt";
     cr_expect_not(fileExists(TESTFILE));
     cr_expect_not(fileExists(newName));
-    createFile(TESTFILE);
+    createFile(TESTFILE, &vmState);
+    cr_expect_eq(vmState, success);
     cr_expect(fileExists(TESTFILE));
     cr_expect_not(fileExists(newName));
-    renameFile(TESTFILE, newName);
+    renameFile(TESTFILE, newName, &vmState);
+    cr_expect_eq(vmState, success);
     cr_expect_not(fileExists(TESTFILE));
     cr_expect(fileExists(newName));
-    deleteFile(newName);
+    deleteFile(newName, &vmState);
+    cr_expect_eq(vmState, success);
     cr_expect_not(fileExists(newName));
 }
 
@@ -292,10 +325,12 @@ Test(impl_builtin, reverseArr) {
 }
 
 Test(impl_builtin, sliceArr_valid) {
+    ExitCode vmState = success;
     int globCount = 3;
     DataConstant* globals = (DataConstant[]) {createInt(2), createInt(0), createInt(-1)};
     DataConstant array = createAddr(0, globCount, globCount);
-    DataConstant result = sliceArr(array, 1, 3, &globCount, &globals);
+    DataConstant result = sliceArr(array, 1, 3, &globCount, &globals, &vmState);
+    cr_expect_neq(result.type, None);
     cr_expect_eq(result.length, 2);
     cr_expect_eq(result.size, array.size);
     cr_expect_eq(result.value.intVal, 4);
@@ -303,12 +338,15 @@ Test(impl_builtin, sliceArr_valid) {
     cr_expect_eq(globals[5].value.intVal, -1);
 }
 
-Test(impl_builtin, sliceArr_invalid, .init = cr_redirect_stderr, .exit_code = 2) {
+Test(impl_builtin, sliceArr_invalid, .init = cr_redirect_stderr) {
+    ExitCode vmState = success;
     int globCount = 3;
     DataConstant* globals = (DataConstant[]) {createInt(2), createInt(0), createInt(-1)};
     DataConstant array = createAddr(0, globCount, globCount);
-    sliceArr(array, 4, 3, &globCount, &globals);
+    DataConstant sliced = sliceArr(array, 4, 3, &globCount, &globals, &vmState);
+    cr_expect_eq(sliced.type, None);
     cr_expect_stderr_eq_str("Array index out of bounds in call to slice. start: 4, end: 3\n");
+    cr_expect_eq(vmState, memory_err);
 }
 
 Test(impl_builtin, arrayContains_true) {
@@ -382,9 +420,10 @@ Test(impl_builtin, sort_doubles) {
 }
 
 Test(impl_builtin, removeByIndex_valid) {
+    ExitCode vmState = success;
     DataConstant* globals = (DataConstant[]) {createInt(2), createInt(0), createInt(-1)};
     DataConstant array = createAddr(0, 3, 3);
-    removeByIndex(&array, 0, &globals);
+    removeByIndex(&array, 0, &globals, &vmState);
     cr_expect_eq(array.length, 2);
     cr_expect_eq(array.size, 3);
     cr_expect_eq(globals[0].value.intVal, 0);
@@ -392,68 +431,81 @@ Test(impl_builtin, removeByIndex_valid) {
     cr_expect_eq(globals[2].type, None);
 }
 
-Test(impl_builtin, removeByIndex_invalid, .init = cr_redirect_stderr, .exit_code = 2) {
+Test(impl_builtin, removeByIndex_invalid, .init = cr_redirect_stderr) {
+    ExitCode vmState = success;
     DataConstant* globals = (DataConstant[]) {createInt(2), createInt(0), createInt(-1)};
     DataConstant array = createAddr(0, 3, 3);
-    removeByIndex(&array, 4, &globals);
+    removeByIndex(&array, 4, &globals, &vmState);
     cr_expect_stderr_eq_str("Array index out of bounds\n");
+    cr_expect_eq(vmState, memory_err);
 }
 
 Test(impl_builtin, append_valid) {
+    ExitCode vmState = success;
     DataConstant* globals = (DataConstant[]) {createBoolean(false), createNone()};
     DataConstant array = createAddr(0, 2, 1);
-    append(&array, createBoolean(true), &globals);
+    append(&array, createBoolean(true), &globals, &vmState);
     cr_expect_eq(array.size, 2);
     cr_expect_eq(array.length, 2);
     cr_expect_eq(globals[1].type, Bool);
     cr_expect_eq(globals[1].value.boolVal, true);
 }
 
-Test(impl_builtin, append_full, .init = cr_redirect_stderr, .exit_code = 2) {
+Test(impl_builtin, append_full, .init = cr_redirect_stderr) {
+    ExitCode vmState = success;
     DataConstant* globals = (DataConstant[]) {createBoolean(false)};
     DataConstant array = createAddr(0, 1, 1);
-    append(&array, createBoolean(true), &globals);
+    append(&array, createBoolean(true), &globals, &vmState);
     cr_expect_stderr_eq_str("Array size limit 1 reached. Cannot insert into array.\n");
+    cr_expect_eq(vmState, memory_err);
 }
 
 Test(impl_builtin, prepend_valid) {
+    ExitCode vmState = success;
     DataConstant* globals = (DataConstant[]) {createBoolean(false), createNone()};
     DataConstant array = createAddr(0, 2, 1);
-    prepend(&array, createBoolean(true), &globals);
+    prepend(&array, createBoolean(true), &globals, &vmState);
     cr_expect_eq(array.size, 2);
     cr_expect_eq(array.length, 2);
     cr_expect_eq(globals[0].type, Bool);
     cr_expect_eq(globals[0].value.boolVal, true);
 }
 
-Test(impl_builtin, prepend_full, .init = cr_redirect_stderr, .exit_code = 2) {
+Test(impl_builtin, prepend_full, .init = cr_redirect_stderr) {
+    ExitCode vmState = success;
     DataConstant* globals = (DataConstant[]) {createBoolean(false)};
     DataConstant array = createAddr(0, 1, 1);
-    prepend(&array, createBoolean(true), &globals);
+    prepend(&array, createBoolean(true), &globals, &vmState);
     cr_expect_stderr_eq_str("Array size limit 1 reached. Cannot insert into array.\n");
+    cr_expect_eq(vmState, memory_err);
 }
 
 Test(impl_builtin, insert_valid) {
+    ExitCode vmState = success;
     DataConstant* globals = (DataConstant[]) {createBoolean(false), createBoolean(false), createNone()};
     DataConstant array = createAddr(0, 3, 2);
-    insert(&array, createBoolean(true), 1, &globals);
+    insert(&array, createBoolean(true), 1, &globals, &vmState);
     cr_expect_eq(array.size, 3);
     cr_expect_eq(array.length, 3);
     cr_expect_eq(globals[1].type, Bool);
     cr_expect_eq(globals[1].value.boolVal, true);
 }
 
-Test(impl_builtin, insert_out_of_range, .init = cr_redirect_stderr, .exit_code = 2) {
+Test(impl_builtin, insert_out_of_range, .init = cr_redirect_stderr) {
+    ExitCode vmState = success;
     DataConstant* globals = (DataConstant[]) {createBoolean(false), createBoolean(false), createNone()};
     DataConstant array = createAddr(0, 3, 2);
-    insert(&array, createBoolean(true), 3, &globals);
-    cr_expect_stderr_eq_str("Array index 3 out of range 3.\n");
+    insert(&array, createBoolean(true), 3, &globals, &vmState);
+    cr_expect_stderr_eq_str("Array index 3 out of range 2\n");
+    cr_expect_eq(vmState, memory_err);
 
 }
 
-Test(impl_builtin, insert_full, .init = cr_redirect_stderr, .exit_code = 2) {
+Test(impl_builtin, insert_full, .init = cr_redirect_stderr) {
+    ExitCode vmState = success;
     DataConstant* globals = (DataConstant[]) {createBoolean(false)};
     DataConstant array = createAddr(0, 1, 1);
-    insert(&array, createBoolean(true), 0, &globals);
+    insert(&array, createBoolean(true), 0, &globals, &vmState);
     cr_expect_stderr_eq_str("Array size limit 1 reached. Cannot insert into array.\n");
+    cr_expect_eq(vmState, memory_err);
 }
