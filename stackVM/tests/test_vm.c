@@ -5,6 +5,26 @@
 #include "utils.h"
 #include "../src/vm.h"
 
+void testRuntimeError(char* body, char* errorMessage, ExitCode vmState, bool verbose) {
+    char* labels[1] = {"_entry"};
+    char* bodies[1] = { body };
+    int jumpCounts[1] = {0};
+    JumpPoint* jumps[1] = {(JumpPoint[]) {}};
+    SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 1);
+
+    if (verbose)
+        displayCode(src);
+
+    VM* vm = init(src);
+    ExitCode status = run(vm, verbose);
+    
+    cr_expect_stderr_eq_str(errorMessage);
+    cr_expect_eq(status, vmState);
+
+    destroy(vm);
+    cr_free(src);
+}
+
 TestSuite(VM);
 
 Test(VM, initAndDestroy) {
@@ -35,7 +55,7 @@ Test(VM, initAndDestroy) {
     
 }
 
-Test(VM, runNoEntryPoint, .init = cr_redirect_stderr) {
+Test(VM, noEntryPoint, .init = cr_redirect_stderr) {
     char* labels[1] = {"add"};
     char* bodies[1] = {
         "HALT"
@@ -51,41 +71,11 @@ Test(VM, runNoEntryPoint, .init = cr_redirect_stderr) {
 }
 
 Test(VM, runUknownBytecode, .init = cr_redirect_stderr) {
-    char* labels[1] = {"_entry"};
-    char* bodies[1] = {
-        "asdf HALT"
-    };
-    int jumpCounts[1] = {0};
-    JumpPoint* jumps[1] = {(JumpPoint[]) {}};
-    SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 1);
-
-    VM* vm = init(src);
-    ExitCode status = run(vm, false);
-    
-    cr_expect_stderr_eq_str("Unknown bytecode: 'asdf'\n");
-    cr_expect_eq(status, unknown_bytecode);
-
-    destroy(vm);
-    cr_free(src);
+    testRuntimeError("asdf HALT", "Unknown bytecode: 'asdf'\n", unknown_bytecode, false);
 }
 
 Test(VM, runJumpPointNotFound, .init = cr_redirect_stderr) {
-    char* labels[1] = {"_entry"};
-    char* bodies[1] = {
-        "JMP .next HALT"
-    };
-    int jumpCounts[1] = {0};
-    JumpPoint* jumps[2] = {(JumpPoint[]) {}};
-    SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 1);
-
-    VM* vm = init(src);
-    ExitCode status = run(vm, false);
-    
-    cr_expect_stderr_eq_str("Error: Could not find jump point '.next'\n");
-    cr_expect_eq(status, unknown_bytecode);
-
-    destroy(vm);
-    cr_free(src);
+    testRuntimeError( "JMP .next HALT", "Error: Could not find jump point '.next'\n", unknown_bytecode, false);
 }
 
 Test(VM, runPop) {
@@ -96,16 +86,17 @@ Test(VM, runPop) {
     int jumpCounts[1] = {0};
     JumpPoint* jumps[1] = {(JumpPoint[]) {}};
     SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 1);
-    //displayCode(src);
 
     VM* vm = init(src);
-    ExitCode status = run(vm, false);
+    bool verbose = false;
+    if (verbose)
+        displayCode(src);
+    ExitCode status = run(vm, verbose);
 
     cr_expect_eq(status, success);
     cr_expect_eq(vm->fp, 0);
     Frame* frame = vm->callStack[0];
     cr_expect_eq(frame->instructions->length, 4);
-    //cr_log_info("PC: %d\n", frame->pc);
     cr_expect_eq(frame->pc, 4);
     cr_expect_eq(frame->sp, -1);
 
@@ -123,16 +114,17 @@ Test(VM, runLoadBasicConsts) {
     int jumpCounts[1] = {0};
     JumpPoint* jumps[1] = {(JumpPoint[]) {}};
     SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 1);
-    //displayCode(src);
 
     VM* vm = init(src);
-    ExitCode status = run(vm, false);
+    bool verbose = false;
+    if (verbose)
+        displayCode(src);
+    ExitCode status = run(vm, verbose);
 
     cr_expect_eq(status, success);
     cr_expect_eq(vm->fp, 0);
     Frame* frame = vm->callStack[0];
     cr_expect_eq(frame->instructions->length, 13);
-    //cr_log_info("PC: %d\n", frame->pc);
     cr_expect_eq(frame->pc, 13);
     cr_expect_eq(frame->sp, 5);
 
@@ -155,16 +147,17 @@ Test(VM, runStringOps) {
     int jumpCounts[1] = {0};
     JumpPoint* jumps[1] = {(JumpPoint[]) {}};
     SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 1);
-    //displayCode(src);
 
     VM* vm = init(src);
-    ExitCode status = run(vm, false);
+    bool verbose = false;
+    if (verbose)
+        displayCode(src);
+    ExitCode status = run(vm, verbose);
 
     cr_expect_eq(status, success);
     cr_expect_eq(vm->fp, 0);
     Frame* frame = vm->callStack[0];
     cr_expect_eq(frame->instructions->length, 10);
-    //cr_log_info("PC: %d\n", frame->pc);
     cr_expect_eq(frame->pc, 10);
     cr_expect_eq(frame->sp, 0);
 
@@ -193,23 +186,22 @@ ParameterizedTestParameters(VM, runDUPAndCompare) {
 
 ParameterizedTest(DataCompare* comparisons, VM, runDUPAndCompare) {
     char* labels[1] = {"_entry"};
-    char* bodies[1] = {
-        ""
-    };
+    char* bodies[1] = {""};
     cr_asprintf(&bodies[0], "LOAD_CONST 1 DUP %s HALT", comparisons->operator); 
     int jumpCounts[1] = {0};
     JumpPoint* jumps[1] = {(JumpPoint[]) {}};
     SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 1);
-    //displayCode(src);
 
     VM* vm = init(src);
-    ExitCode status = run(vm, false);
+    bool verbose = false;
+    if (verbose)
+        displayCode(src);
+    ExitCode status = run(vm, verbose);
 
     cr_expect_eq(status, success);
     cr_expect_eq(vm->fp, 0);
     Frame* frame = vm->callStack[0];
     cr_expect_eq(frame->instructions->length, 5);
-    //cr_log_info("PC: %d\n", frame->pc);
     cr_expect_eq(frame->pc, 5);
     cr_expect_eq(frame->sp, 0);
 
@@ -228,16 +220,17 @@ Test(VM, runNOT) {
     int jumpCounts[1] = {0};
     JumpPoint* jumps[1] = {(JumpPoint[]) {}};
     SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 1);
-    //displayCode(src);
 
     VM* vm = init(src);
-    ExitCode status = run(vm, false);
+    bool verbose = false;
+    if (verbose)
+        displayCode(src);
+    ExitCode status = run(vm, verbose);
 
     cr_expect_eq(status, success);
     cr_expect_eq(vm->fp, 0);
     Frame* frame = vm->callStack[0];
     cr_expect_eq(frame->instructions->length, 7);
-    //cr_log_info("PC: %d\n", frame->pc);
     cr_expect_eq(frame->pc, 7);
     cr_expect_eq(frame->sp, 1);
 
@@ -279,16 +272,17 @@ ParameterizedTest(BooleanOperation* operation, VM, runBinaryBooleanOperations) {
     int jumpCounts[1] = {0};
     JumpPoint* jumps[1] = {(JumpPoint[]) {}};
     SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 1);
-    //displayCode(src);
 
     VM* vm = init(src);
-    ExitCode status = run(vm, false);
+    bool verbose = false;
+    if (verbose)
+        displayCode(src);
+    ExitCode status = run(vm, verbose);
 
     cr_expect_eq(status, success);
     cr_expect_eq(vm->fp, 0);
     Frame* frame = vm->callStack[0];
     cr_expect_eq(frame->instructions->length, 6);
-    //cr_log_info("PC: %d\n", frame->pc);
     cr_expect_eq(frame->pc, 6);
     cr_expect_eq(frame->sp, 0);
 
@@ -327,23 +321,22 @@ ParameterizedTestParameters(VM, runBinaryBitwiseOperations) {
 
 ParameterizedTest(BitwiseOperation* operation, VM, runBinaryBitwiseOperations) {
     char* labels[1] = {"_entry"};
-    char* bodies[1] = {
-        ""
-    };
+    char* bodies[1] = {""};
     cr_asprintf(&bodies[0], "LOAD_CONST %s LOAD_CONST %s %s HALT", operation->lhs, operation->rhs, operation->operator); 
     int jumpCounts[1] = {0};
     JumpPoint* jumps[1] = {(JumpPoint[]) {}};
     SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 1);
-    //displayCode(src);
 
     VM* vm = init(src);
-    ExitCode status = run(vm, false);
+    bool verbose = false;
+    if (verbose)
+        displayCode(src);
+    ExitCode status = run(vm, verbose);
 
     cr_expect_eq(status, success);
     cr_expect_eq(vm->fp, 0);
     Frame* frame = vm->callStack[0];
     cr_expect_eq(frame->instructions->length, 6);
-    //cr_log_info("PC: %d\n", frame->pc);
     cr_expect_eq(frame->pc, 6);
     cr_expect_eq(frame->sp, 0);
 
@@ -362,16 +355,17 @@ Test(VM, runLoadAndStore) {
     int jumpCounts[1] = {0};
     JumpPoint* jumps[1] = {(JumpPoint[]) {}};
     SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 1);
-    //displayCode(src);
 
     VM* vm = init(src);
-    ExitCode status = run(vm, false);
+    bool verbose = false;
+    if (verbose)
+        displayCode(src);
+    ExitCode status = run(vm, verbose);
 
     cr_expect_eq(status, success);
     cr_expect_eq(vm->fp, 0);
     Frame* frame = vm->callStack[0];
     cr_expect_eq(frame->instructions->length, 21);
-    //cr_log_info("PC: %d\n", frame->pc);
     cr_expect_eq(frame->pc, 21);
     cr_expect_eq(frame->sp, 0);
     cr_expect_eq(frame->lp, 0);
@@ -394,16 +388,16 @@ Test(VM, runWithNoJump) {
     JumpPoint* jumps[1] = {(JumpPoint[]) {{".end", 18}}};
     SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 1);
 
-    //displayCode(src);
-
     VM* vm = init(src);
-    ExitCode status = run(vm, false);
+    bool verbose = false;
+    if (verbose)
+        displayCode(src);
+    ExitCode status = run(vm, verbose);
     
     cr_expect_eq(status, success);
     cr_expect_eq(vm->fp, 0);
     Frame* frame = vm->callStack[0];
     cr_expect_eq(frame->instructions->length, 16);
-    //cr_log_info("PC: %d\n", frame->pc);
     cr_expect_eq(frame->pc, 14);
     cr_expect_eq(frame->sp, 2);
     
@@ -420,16 +414,16 @@ Test(VM, runWithSimpleJump) {
     JumpPoint* jumps[1] = {(JumpPoint[]) {{".end", 15}}};
     SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 1);
 
-    //displayCode(src);
-
     VM* vm = init(src);
-    ExitCode status = run(vm, false);
+    bool verbose = false;
+    if (verbose)
+        displayCode(src);
+    ExitCode status = run(vm, verbose);
 
     cr_expect_eq(status, success);
     cr_expect_eq(vm->fp, 0);
     Frame* frame = vm->callStack[0];
     cr_expect_eq(frame->instructions->length, 16);
-    //cr_log_info("PC: %d\n", frame->pc);
     cr_expect_eq(frame->pc, 16);
     cr_expect_eq(frame->sp, -1);
 
@@ -446,16 +440,16 @@ Test(VM, runWithShortCircuitJump) {
     JumpPoint* jumps[1] = {(JumpPoint[]) {{".end", 15}}};
     SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 1);
 
-    //displayCode(src);
-
     VM* vm = init(src);
-    ExitCode status = run(vm, false);
+    bool verbose = false;
+    if (verbose)
+        displayCode(src);
+    ExitCode status = run(vm, verbose);
 
     cr_expect_eq(status, success);
     cr_expect_eq(vm->fp, 0);
     Frame* frame = vm->callStack[0];
     cr_expect_eq(frame->instructions->length, 16);
-    //cr_log_info("PC: %d\n", frame->pc);
     cr_expect_eq(frame->pc, 16);
     cr_expect_eq(frame->sp, 0);
 
@@ -474,16 +468,16 @@ Test(VM, runSelect) {
     JumpPoint* jumps[1] = {(JumpPoint[]) {}};
     SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 1);
 
-    //displayCode(src);
-
     VM* vm = init(src);
-    ExitCode status = run(vm, false);
+    bool verbose = false;
+    if (verbose)
+        displayCode(src);
+    ExitCode status = run(vm, verbose);
 
     cr_expect_eq(status, success);
     cr_expect_eq(vm->fp, 0);
     Frame* frame = vm->callStack[0];
     cr_expect_eq(frame->instructions->length, 11);
-    //cr_log_info("PC: %d\n", frame->pc);
     cr_expect_eq(frame->pc, 11);
     cr_expect_eq(frame->sp, 1);
 
@@ -503,17 +497,17 @@ Test(VM, runWithBuiltinFunctionCall, .init = cr_redirect_stdout) {
     JumpPoint* jumps[1] = {(JumpPoint[]) {}};
     SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 1);
 
-    //displayCode(src);
-
     VM* vm = init(src);
-    ExitCode status = run(vm, false);
+    bool verbose = false;
+    if (verbose)
+        displayCode(src);
+    ExitCode status = run(vm, verbose);
     fflush(stdout);
 
     cr_expect_eq(status, success);
     cr_expect_eq(vm->fp, 0);
     Frame* frame = vm->callStack[0];
     cr_expect_eq(frame->instructions->length, 6);
-    //cr_log_info("PC: %d\n", frame->pc);
     cr_expect_eq(frame->pc, 6);
     cr_expect_eq(frame->sp, -1);
 
@@ -533,16 +527,16 @@ Test(VM, runWithFunctionCall_no_params_stop) {
     JumpPoint* jumps[2] = {(JumpPoint[]) {}, (JumpPoint[]) {}};
     SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 2);
 
-    //displayCode(src);
-
     VM* vm = init(src);
-    ExitCode status = run(vm, false);
+    bool verbose = false;
+    if (verbose)
+        displayCode(src);
+    ExitCode status = run(vm, verbose);
 
     cr_expect_eq(status, success);
     cr_expect_eq(vm->fp, 1);
     Frame* frame = vm->callStack[1];
     cr_expect_eq(frame->instructions->length, 1);
-    //cr_log_info("PC: %d\n", frame->pc);
     cr_expect_eq(frame->pc, 1);
     cr_expect_eq(frame->sp, -1);
 
@@ -560,16 +554,16 @@ Test(VM, runWithFunctionCall_withParams_stop) {
     JumpPoint* jumps[2] = {(JumpPoint[]) {}, (JumpPoint[]) {}};
     SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 2);
 
-    //displayCode(src);
-
     VM* vm = init(src);
-    ExitCode status = run(vm, false);
+    bool verbose = false;
+    if (verbose)
+        displayCode(src);
+    ExitCode status = run(vm, verbose);
 
     cr_expect_eq(status, success);
     cr_expect_eq(vm->fp, 1);
     Frame* frame = vm->callStack[1];
     cr_expect_eq(frame->instructions->length, 3);
-    //cr_log_info("PC: %d\n", frame->pc);
     cr_expect_eq(frame->pc, 3);
     cr_expect_eq(frame->sp, 0);
     cr_expect_eq(frame->lp, 1);
@@ -590,16 +584,16 @@ Test(VM, runWithFunctionCall_addWithReturn) {
     JumpPoint* jumps[2] = {(JumpPoint[]) {}, (JumpPoint[]) {}};
     SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 2);
 
-    //displayCode(src);
-
     VM* vm = init(src);
-    ExitCode status = run(vm, false);
+    bool verbose = false;
+    if (verbose)
+        displayCode(src);
+    ExitCode status = run(vm, verbose);
 
     cr_expect_eq(status, success);
     cr_expect_eq(vm->fp, 0);
     Frame* frame = vm->callStack[0];
     cr_expect_eq(frame->instructions->length, 8);
-    //cr_log_info("PC: %d\n", frame->pc);
     cr_expect_eq(frame->pc, 8);
     cr_expect_eq(frame->sp, 0);
     cr_expect_eq(frame->lp, -1);
@@ -611,22 +605,7 @@ Test(VM, runWithFunctionCall_addWithReturn) {
 }
 
 Test(VM, runUknownFunction, .init = cr_redirect_stderr) {
-    char* labels[1] = {"_entry"};
-    char* bodies[1] = {
-        "CALL asdf 0 HALT"
-    };
-    int jumpCounts[1] = {0};
-    JumpPoint* jumps[1] = {(JumpPoint[]) {}};
-    SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 1);
-
-    VM* vm = init(src);
-    ExitCode status = run(vm, false);
-    
-    cr_expect_stderr_eq_str("Error: could not find function 'asdf'\n");
-    cr_expect_eq(status, unknown_bytecode);
-
-    destroy(vm);
-    cr_free(src);
+    testRuntimeError("CALL asdf 0 HALT", "Error: could not find function 'asdf'\n", unknown_bytecode, false);
 }
 
 Test(VM, runArrayGet) {
@@ -638,16 +617,16 @@ Test(VM, runArrayGet) {
     JumpPoint* jumps[1] = {(JumpPoint[]) {}};
     SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 1);
 
-    //displayCode(src);
-
     VM* vm = init(src);
-    ExitCode status = run(vm, false);
+    bool verbose = false;
+    if (verbose)
+        displayCode(src);
+    ExitCode status = run(vm, verbose);
 
     cr_expect_eq(status, success);
     cr_expect_eq(vm->fp, 0);
     Frame* frame = vm->callStack[0];
     cr_expect_eq(frame->instructions->length, 11);
-    //cr_log_info("PC: %d\n", frame->pc);
     cr_expect_eq(frame->pc, 11);
     cr_expect_eq(frame->sp, 0);
     cr_expect_eq(vm->gp, 4);
@@ -672,16 +651,17 @@ Test(VM, runArrayWrite) {
     JumpPoint* jumps[1] = {(JumpPoint[]) {}};
     SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 1);
 
-    //displayCode(src);
-
     VM* vm = init(src);
-    ExitCode status = run(vm, false);
+    bool verbose = false;
+    if (verbose)
+        displayCode(src);
+    ExitCode status = run(vm, verbose);
 
     cr_expect_eq(status, success);
     cr_expect_eq(vm->fp, 0);
     Frame* frame = vm->callStack[0];
     cr_expect_eq(frame->instructions->length, 27);
-    //cr_log_info("PC: %d\n", frame->pc);
+ 
     cr_expect_eq(frame->pc, 27);
     cr_expect_eq(frame->sp, -1);
     cr_expect_eq(frame->lp, 0);
@@ -711,16 +691,17 @@ Test(VM, runArrayConcat) {
     JumpPoint* jumps[1] = {(JumpPoint[]) {}};
     SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 1);
 
-    //displayCode(src);
-
     VM* vm = init(src);
-    ExitCode status = run(vm, false);
+    bool verbose = false;
+    if (verbose)
+        displayCode(src);
+    ExitCode status = run(vm, verbose);
 
     cr_expect_eq(status, success);
     cr_expect_eq(vm->fp, 0);
     Frame* frame = vm->callStack[0];
     cr_expect_eq(frame->instructions->length, 16);
-    //cr_log_info("PC: %d\n", frame->pc);
+ 
     cr_expect_eq(frame->pc, 16);
     cr_expect_eq(frame->sp, 0);
     cr_expect_eq(vm->gp, 9);
@@ -752,16 +733,17 @@ Test(VM, runArrayCopy) {
     JumpPoint* jumps[1] = {(JumpPoint[]) {}};
     SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 1);
 
-    //displayCode(src);
-
     VM* vm = init(src);
-    ExitCode status = run(vm, false);
+    bool verbose = false;
+    if (verbose)
+        displayCode(src);
+    ExitCode status = run(vm, verbose);
 
     cr_expect_eq(status, success);
     cr_expect_eq(vm->fp, 0);
     Frame* frame = vm->callStack[0];
     cr_expect_eq(frame->instructions->length, 10);
-    //cr_log_info("PC: %d\n", frame->pc);
+ 
     cr_expect_eq(frame->pc, 10);
     cr_expect_eq(frame->sp, 1);
     cr_expect_eq(vm->gp, 3);
@@ -784,77 +766,37 @@ Test(VM, runArrayCopy) {
 }
 
 Test(VM, runArrayInvalidBuild, .init = cr_redirect_stderr) {
-    char* labels[1] = {"_entry"};
-    char* bodies[1] = {
-        "LOAD_CONST 1 LOAD_CONST 2 BUILDARR 1 2 HALT"
-    };
-    int jumpCounts[1] = {0};
-    JumpPoint* jumps[2] = {(JumpPoint[]) {}};
-    SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 1);
-
-    VM* vm = init(src);
-    ExitCode status = run(vm, false);
-    
-    cr_expect_stderr_eq_str("Error: Attempted to build array of length 2 which exceeds capacity 1\n");
-    cr_expect_eq(status, memory_err);
-
-    destroy(vm);
-    cr_free(src);
+    testRuntimeError(
+        "LOAD_CONST 1 LOAD_CONST 2 BUILDARR 1 2 HALT",
+        "Error: Attempted to build array of length 2 which exceeds capacity 1\n",
+        memory_err,
+        false
+    );
 }
 
 Test(VM, runArrayGetOutOfRange, .init = cr_redirect_stderr) {
-    char* labels[1] = {"_entry"};
-    char* bodies[1] = {
-        "LOAD_CONST 1 LOAD_CONST 2 BUILDARR 2 2 LOAD_CONST 10 AGET HALT"
-    };
-    int jumpCounts[1] = {0};
-    JumpPoint* jumps[2] = {(JumpPoint[]) {}};
-    SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 1);
-
-    VM* vm = init(src);
-    ExitCode status = run(vm, false);
-    
-    cr_expect_stderr_eq_str("Error: Array index 10 out of range 2\n");
-    cr_expect_eq(status, memory_err);
-
-    destroy(vm);
-    cr_free(src);
+    testRuntimeError(
+        "LOAD_CONST 1 LOAD_CONST 2 BUILDARR 2 2 LOAD_CONST 10 AGET HALT",
+        "Error: Array index 10 out of range 2\n",
+        memory_err,
+        false
+    );
 }
 
 Test(VM, runArrayStoreOutOfRange, .init = cr_redirect_stderr) {
-    char* labels[1] = {"_entry"};
-    char* bodies[1] = {
-        "LOAD_CONST 1 LOAD_CONST 2 BUILDARR 2 2 LOAD_CONST 10 ASTORE HALT"
-    };
-    int jumpCounts[1] = {0};
-    JumpPoint* jumps[2] = {(JumpPoint[]) {}};
-    SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 1);
-
-    VM* vm = init(src);
-    ExitCode status = run(vm, false);
-    
-    cr_expect_stderr_eq_str("Error: Array index 10 out of range 2\n");
-    cr_expect_eq(status, memory_err);
-
-    destroy(vm);
-    cr_free(src);
+    testRuntimeError(
+        "LOAD_CONST 1 LOAD_CONST 2 BUILDARR 2 2 LOAD_CONST 10 ASTORE HALT",
+        "Error: Array index 10 out of range 2\n", 
+        memory_err,
+        false
+    );
 }
 
 Test(VM, runArrayWritePastLength, .init = cr_redirect_stderr) {
-    char* labels[1] = {"_entry"};
-    char* bodies[1] = {
-        "LOAD_CONST 1 LOAD_CONST 2 BUILDARR 12 2 LOAD_CONST 10 ASTORE HALT"
-    };
-    int jumpCounts[1] = {0};
-    JumpPoint* jumps[2] = {(JumpPoint[]) {}};
-    SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 1);
-
-    VM* vm = init(src);
-    ExitCode status = run(vm, false);
-    
-    cr_expect_stderr_eq_str("Error: Cannot write to index 10 since previous index values are not initialized\n");
-    cr_expect_eq(status, memory_err);
-
-    destroy(vm);
-    cr_free(src);
+    testRuntimeError(
+        "LOAD_CONST 1 LOAD_CONST 2 BUILDARR 12 2 LOAD_CONST 10 ASTORE HALT",
+        "Error: Cannot write to index 10 since previous index values are not initialized\n",
+        memory_err,
+        false
+    );
 }
