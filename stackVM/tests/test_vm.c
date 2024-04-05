@@ -21,14 +21,14 @@ Test(VM, initAndDestroy) {
 
     cr_expect_not_null(vm);
     cr_expect_eq(vm->fp, 0);
-    cr_expect_eq(vm->gc, -1);
+    cr_expect_eq(vm->gp, -1);
     cr_expect_eq(vm->state, success);
     Frame* frame = vm->callStack[0];
     cr_expect_eq(frame->returnAddr, 0);
     cr_expect_eq(frame->pc, 0);
     cr_expect_eq(frame->sp, -1);
     cr_expect_eq(frame->jc, 1);
-    cr_expect_eq(frame->lc, -1);
+    cr_expect_eq(frame->lp, -1);
 
     destroy(vm);
     cr_free(src);
@@ -374,8 +374,8 @@ Test(VM, runLoadAndStore) {
     //cr_log_info("PC: %d\n", frame->pc);
     cr_expect_eq(frame->pc, 21);
     cr_expect_eq(frame->sp, 0);
-    cr_expect_eq(frame->lc, 0);
-    cr_expect_eq(vm->gc, 0);
+    cr_expect_eq(frame->lp, 0);
+    cr_expect_eq(vm->gp, 0);
 
     cr_expect(isEqual(frame->stack[0], createBoolean(false)));
     cr_expect(isEqual(frame->locals[0], createBoolean(false)));
@@ -572,7 +572,7 @@ Test(VM, runWithFunctionCall_withParams_stop) {
     //cr_log_info("PC: %d\n", frame->pc);
     cr_expect_eq(frame->pc, 3);
     cr_expect_eq(frame->sp, 0);
-    cr_expect_eq(frame->lc, 1);
+    cr_expect_eq(frame->lp, 1);
     cr_expect(isEqual(frame->locals[0], frame->stack[0]));
     cr_expect(isEqual(frame->locals[1], createInt(1)));
 
@@ -602,7 +602,7 @@ Test(VM, runWithFunctionCall_addWithReturn) {
     //cr_log_info("PC: %d\n", frame->pc);
     cr_expect_eq(frame->pc, 8);
     cr_expect_eq(frame->sp, 0);
-    cr_expect_eq(frame->lc, -1);
+    cr_expect_eq(frame->lp, -1);
     cr_expect_eq(frame->stack[0].type, Dbl);
     cr_expect_eq(frame->stack[0].value.dblVal, 3.718);
 
@@ -650,7 +650,7 @@ Test(VM, runArrayGet) {
     //cr_log_info("PC: %d\n", frame->pc);
     cr_expect_eq(frame->pc, 11);
     cr_expect_eq(frame->sp, 0);
-    cr_expect_eq(vm->gc, 4);
+    cr_expect_eq(vm->gp, 4);
 
     cr_expect(isEqual(frame->stack[0], createInt(2)));
     cr_expect(isEqual(vm->globals[0], createInt(1)));
@@ -684,8 +684,8 @@ Test(VM, runArrayWrite) {
     //cr_log_info("PC: %d\n", frame->pc);
     cr_expect_eq(frame->pc, 27);
     cr_expect_eq(frame->sp, -1);
-    cr_expect_eq(frame->lc, 0);
-    cr_expect_eq(vm->gc, 4);
+    cr_expect_eq(frame->lp, 0);
+    cr_expect_eq(vm->gp, 4);
 
     cr_expect_eq(frame->locals[0].type, Addr);
     cr_expect_eq(frame->locals[0].value.intVal, 0);
@@ -723,7 +723,7 @@ Test(VM, runArrayConcat) {
     //cr_log_info("PC: %d\n", frame->pc);
     cr_expect_eq(frame->pc, 16);
     cr_expect_eq(frame->sp, 0);
-    cr_expect_eq(vm->gc, 9);
+    cr_expect_eq(vm->gp, 9);
 
     cr_expect_eq(frame->stack[0].type, Addr);
     cr_expect_eq(frame->stack[0].length, 4);
@@ -764,7 +764,7 @@ Test(VM, runArrayCopy) {
     //cr_log_info("PC: %d\n", frame->pc);
     cr_expect_eq(frame->pc, 10);
     cr_expect_eq(frame->sp, 1);
-    cr_expect_eq(vm->gc, 3);
+    cr_expect_eq(vm->gp, 3);
 
     cr_expect_eq(frame->stack[0].type, Addr);
     cr_expect_eq(frame->stack[0].value.intVal, 0);

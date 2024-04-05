@@ -16,7 +16,7 @@ The VM is made up of the following parts:
         - **Jumps:** Index of labels used to make jumps/branches/gotos more convenient
         - **Jump Counter (jc):**  Index of the latest jump label that's defined
         - **Locals:** Store paramters and local variables here
-        - **Local Counter (lc):** Index of the last local stored; `-1` if empty
+        - **Locals Pointer (lp):** Index of the last local stored; `-1` if empty
         - **Stack:** Execution stack for the frame
         - **Stack Pointer (sp):** Index of the top of the stack; `-1` if empty
 - **Frame pointer (fp):** Index of top of the call stack
@@ -24,7 +24,7 @@ The VM is made up of the following parts:
   - It also is treated as heap memory to store array literals
     - Arrays are pointers to first element in array literal
     - There isn't a memory management strategy for the heap yet but will work on that
-- **Global Counter (gc):** Index of the last element stored in globals; `-1` if empty
+- **Globals Pointer (gp):** Index of the last element stored in globals; `-1` if empty
 
 ### Funtion calls and returns
 

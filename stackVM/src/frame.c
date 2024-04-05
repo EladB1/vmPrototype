@@ -14,12 +14,12 @@ Frame* loadFrame(StringVector* code, JumpPoint* jumps, int jc, int pc, int argc,
     frame->jumps = jumps;
     frame->jc = jc;
     frame->pc = 0;
-    frame->lc = -1;
+    frame->lp = -1;
     frame->sp = -1;
     frame->stack = malloc(sizeof(DataConstant) * STACK_SIZE);
     frame->locals = malloc(sizeof(DataConstant) * STACK_SIZE);
     for (int i = 0; i < argc; i++) {
-        frame->locals[++frame->lc] = params[i];
+        frame->locals[++frame->lp] = params[i];
     }
     return frame;
 }
@@ -55,7 +55,7 @@ DataConstant loadLocal(Frame* frame, int addr) {
 }
 
 void storeLocal(Frame* frame, DataConstant value) {
-    frame->locals[++frame->lc] = value;
+    frame->locals[++frame->lp] = value;
 }
 
 void storeLocalAtAddr(Frame* frame, DataConstant value, int addr) { // overwrite existing variable

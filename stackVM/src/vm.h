@@ -10,7 +10,7 @@ typedef struct {
     SourceCode* src;
     Frame** callStack;
     int fp;
-    int gc;
+    int gp;
     ExitCode state;
 } VM;
 

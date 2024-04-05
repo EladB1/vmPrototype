@@ -33,7 +33,7 @@ Test(Frame, loadFrame_noParams, .init = setup, .fini = teardown) {
     cr_expect_arr_eq(frame->jumps, jumpPoints, 2);
     cr_expect_eq(frame->jc, 2);
     cr_expect_eq(frame->pc, 0);
-    cr_expect_eq(frame->lc, -1);
+    cr_expect_eq(frame->lp, -1);
     cr_expect_eq(frame->sp, -1);
 }
 
@@ -45,7 +45,7 @@ Test(Frame, loadFrame_withParams, .init = setup, .fini = teardown) {
     cr_expect_arr_eq(frame->jumps, jumpPoints, 2);
     cr_expect_eq(frame->jc, 2);
     cr_expect_eq(frame->pc, 0);
-    cr_expect_eq(frame->lc, 1);
+    cr_expect_eq(frame->lp, 1);
     cr_expect(isEqual(frame->locals[0], params[0]));
     cr_expect(isEqual(frame->locals[1], params[1]));
     cr_expect_eq(frame->sp, -1);
@@ -58,7 +58,7 @@ Test(Frame, frameBasicOperations, .init = setup, .fini = teardown) {
     incrementPC(frame);
     cr_expect_eq(frame->pc, 6);
 
-    cr_expect_eq(frame->lc, -1);
+    cr_expect_eq(frame->lp, -1);
     cr_expect_eq(frame->sp, -1);
     cr_expect(stackIsEmpty(frame));
     DataConstant data = createBoolean(true);
@@ -73,7 +73,7 @@ Test(Frame, frameBasicOperations, .init = setup, .fini = teardown) {
     cr_expect(isEqual(poppedValue, data));
 
     storeLocal(frame, data);
-    cr_expect_eq(frame->lc, 0);
+    cr_expect_eq(frame->lp, 0);
     DataConstant localVal = loadLocal(frame, 0);
     cr_expect(isEqual(frame->locals[0], localVal));
     DataConstant newLocalVal = createBoolean(false);

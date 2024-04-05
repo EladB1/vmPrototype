@@ -24,7 +24,7 @@ VM* init(SourceCode* src) {
     VM* vm = malloc(sizeof(VM));
     vm->src = src;
     vm->fp = 0;
-    vm->gc = -1;
+    vm->gp = -1;
     vm->state = success;
     vm->globals = malloc(sizeof(DataConstant) * (INT_MAX - 1));
     vm->callStack = malloc(sizeof(Frame*) * MAX_FRAMES);
@@ -64,8 +64,8 @@ char* peekNext(VM* vm) {
 }
 
 void display(VM* vm) {
-    printf("---\nfp: %d, gc: %d\n", vm->fp, vm->gc);
-    print_array("Globals", vm->globals, vm->gc);
+    printf("---\nfp: %d, gp: %d\n", vm->fp, vm->gp);
+    print_array("Globals", vm->globals, vm->gp);
     printf("Call Stack:\n");
     Frame* frame;
     for (int i = 0; i <= vm->fp; i++) {
@@ -73,7 +73,7 @@ void display(VM* vm) {
         printf("Frame %d\n\tsp: %d, pc: %d, returnAddr: %d\n\t", i, frame->sp, frame->pc, frame->returnAddr);
         print_array("Stack", frame->stack, frame->sp);
         printf("\t");
-        print_array("Locals", frame->locals, frame->lc);
+        print_array("Locals", frame->locals, frame->lp);
     }
 }
 
@@ -213,22 +213,22 @@ ExitCode run(VM* vm, bool verbose) {
                 rval.type = Addr;
                 rval.size = lhs.size + rhs.size;
                 rval.length = lhs.length + rhs.length;
-                rval.value.intVal = ++vm->gc;
+                rval.value.intVal = ++vm->gp;
                 for (int i = 0; i < lhs.length; i++) {
-                    vm->globals[vm->gc] = vm->globals[lhs.value.intVal + i];
-                    vm->gc++;
+                    vm->globals[vm->gp] = vm->globals[lhs.value.intVal + i];
+                    vm->gp++;
                 }
                 for (int i = 0; i < rhs.length; i++) {
-                    vm->globals[vm->gc] = vm->globals[rhs.value.intVal + i];
+                    vm->globals[vm->gp] = vm->globals[rhs.value.intVal + i];
                     if (i < rhs.length - 1)
-                        vm->gc++;
+                        vm->gp++;
                 }
                 if (rval.size > rval.length) {
-                    vm->gc++;
+                    vm->gp++;
                     for (int i = rval.length; i < rval.size; i++) {
-                        vm->globals[vm->gc] = createNone();
+                        vm->globals[vm->gp] = createNone();
                         if (i < rval.size - 1)
-                            vm->gc++;
+                            vm->gp++;
                     }
                 }
             }
@@ -395,7 +395,7 @@ ExitCode run(VM* vm, bool verbose) {
                 stepOver(vm);
             }
             else
-                vm->globals[++vm->gc] = value;
+                vm->globals[++vm->gp] = value;
         }
         else if (strcmp(opcode, "GLOAD") == 0) {
             addr = atoi(getNext(vm));
@@ -460,7 +460,7 @@ ExitCode run(VM* vm, bool verbose) {
                 params[i] = pop(vm);
             }
             if (isBuiltinFunction(next)) {
-                rval = callBuiltinFunction(next, argc, params, &vm->gc, &vm->globals, &(vm->state));
+                rval = callBuiltinFunction(next, argc, params, &vm->gp, &vm->globals, &(vm->state));
                 if (vm->state != success)
                     return vm->state;
                 if (rval.type != None)
@@ -493,26 +493,26 @@ ExitCode run(VM* vm, bool verbose) {
                 fprintf(stderr, "Error: Attempted to build array of length %d which exceeds capacity %d\n", argc, capacity);
                 return memory_err;
             }
-            rval = createAddr(++vm->gc, capacity, argc);
+            rval = createAddr(++vm->gp, capacity, argc);
             for (int i = 0; i < argc; i++) {
-                vm->globals[vm->gc] = pop(vm);
+                vm->globals[vm->gp] = pop(vm);
                 if (i < argc - 1)
-                    vm->gc++;
+                    vm->gp++;
             }
             if (capacity > argc) {
                 if (argc != 0)
-                    vm->gc++;
+                    vm->gp++;
                 for (int i = argc; i < capacity; i++) {
-                    vm->globals[vm->gc] = createNone();
+                    vm->globals[vm->gp] = createNone();
                     if (i < capacity - 1)
-                        vm->gc++;
+                        vm->gp++;
                 }
             }
             push(vm, rval);
         }
         else if (strcmp(opcode, "COPYARR") == 0) {
             rhs = pop(vm);
-            rval = copyAddr(rhs, &vm->gc, &vm->globals);
+            rval = copyAddr(rhs, &vm->gp, &vm->globals);
             push(vm, rval);
         }
         else if (strcmp(opcode, "AGET") == 0) {

@@ -13,7 +13,7 @@ typedef struct {
     int jc;
     int pc;
     int sp;
-    int lc;
+    int lp;
     int returnAddr;
 } Frame;
 
