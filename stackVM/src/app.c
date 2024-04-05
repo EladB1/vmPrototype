@@ -16,6 +16,7 @@ char* getUsage(char* prog_name) {
 int main(int argc, char** argv) {
     char filename[256];
     bool verbose;
+
     if (argc >= 2) {
         if (strcmp(argv[1], "-h") == 0 || strcmp(argv[1], "--help") == 0) {
             printf("%s\n", getUsage(argv[0]));
@@ -28,6 +29,7 @@ int main(int argc, char** argv) {
         fprintf(stderr, "Error: No input file provided\n%s\n", getUsage(argv[0]));
         return -1;
     }
+
     SourceCode* src = read_file(filename);
     if (src == NULL)
         return -1;
@@ -36,8 +38,10 @@ int main(int argc, char** argv) {
     VM* vm = init(src);
     if (vm == NULL)
         return -1;
-    run(vm, verbose);
+    ExitCode runStatus = run(vm, verbose);
+
     destroy(vm);
     deleteSourceCode(src);
-    return 0;
+
+    return runStatus;
 }
