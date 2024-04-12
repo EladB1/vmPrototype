@@ -1,0 +1,60 @@
+_entry:
+    LOAD_CONST 0
+    STORE
+    LOAD_CONST false
+    DUP
+    STORE
+    STORE
+    .loop:
+        LOAD 0
+        LOAD_CONST 100
+        LE
+        JMPF .end
+        LOAD 0
+        LOAD_CONST 3
+        REM
+        LOAD_CONST 0
+        EQ
+        DUP
+        STORE 1
+        JMPT .fizz
+        .fizz:
+            LOAD_CONST "fizz"
+            CALL print 1
+            EJMP
+        LOAD 0
+        LOAD_CONST 5
+        REM
+        EQ
+        LOAD_CONST 0
+        DUP
+        STORE 2
+        JMPT .buzz
+        .buzz:
+            LOAD_CONST "buzz"
+            CALL print 1
+            EJMP
+        LOAD 1
+        LOAD 2
+        AND
+        JMPF .num
+        .num:
+            LOAD 0
+            CALL println 1
+            JMP .iterate
+            EJMP
+        LOAD_CONST ""
+        CALL println 1
+        .iterate:
+            LOAD 0
+            LOAD_CONST 1
+            ADD
+            STORE 0
+            JMP .loop
+            EJMP
+    .end:
+        LOAD_CONST "Completed!"
+        CALL println 1
+        EJMP
+HALT
+        

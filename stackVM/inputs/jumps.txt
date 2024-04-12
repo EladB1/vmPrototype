@@ -1,0 +1,21 @@
+_entry:
+    LOAD_CONST 10
+    LOAD_CONST 1
+    LT
+    SJMPT .less
+    SJMPF .not_less
+    .less:
+        POP
+        LOAD_CONST 1
+        CALL println 1
+        EJMP
+    .not_less:
+        POP
+        LOAD_CONST 2
+        CALL println 1
+        EJMP
+    .end:
+        LOAD_CONST 3
+        CALL println 1
+        EJMP
+    HALT
