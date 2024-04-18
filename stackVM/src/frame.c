@@ -70,12 +70,22 @@ void setPC(Frame* frame, int addr) {
     frame->pc = addr;
 }
 
-int getJumpIndex(Frame* frame, char* label) {
+int getJumpStart(Frame* frame, char* label) {
     JumpPoint jmp;
     for (int i = 0; i < frame->jc; i++) {
         jmp = frame->jumps[i];
         if (strcmp(jmp.label, label) == 0)
-            return jmp.index;
+            return jmp.start;
+    }
+    return -1;
+}
+
+int getJumpEnd(Frame* frame, char* label) {
+    JumpPoint jmp;
+    for (int i = 0; i < frame->jc; i++) {
+        jmp = frame->jumps[i];
+        if (strcmp(jmp.label, label) == 0)
+            return jmp.end;
     }
     return -1;
 }

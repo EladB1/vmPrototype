@@ -45,7 +45,7 @@ Test(FileReader, read_file) {
     cr_expect_eq(src->code[0].jmpCnt, 0);
     cr_expect_eq(src->code[1].jmpCnt, 1);
     cr_expect_str_eq(src->code[1].jumpPoints[0].label, ".stop");
-    cr_expect_eq(src->code[1].jumpPoints[0].index, 17);
+    cr_expect_eq(src->code[1].jumpPoints[0].start, 17);
     
     StringVector* multBody = src->code[0].body;
     StringVector* mainBody = src->code[1].body;

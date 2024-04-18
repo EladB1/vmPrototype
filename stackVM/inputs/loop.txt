@@ -1,15 +1,38 @@
+simple_loop:
+    LOAD_CONST 0
+    STORE
+    JMP .start
+    .start:
+        LOAD 0
+        LOAD_CONST 10
+        LT
+        EJMPF
+        LOAD 0
+        LOAD_CONST 1
+        ADD
+        DUP
+        STORE 0
+        CALL println 1
+        JMP .start
+        EJMP
+    LOAD_CONST "done"
+    CALL println 1
+    RET
+
 _entry:
+    ;CALL simple_loop 0
     LOAD_CONST 0
     STORE
     LOAD_CONST false
     DUP
     STORE
     STORE
+    JMP .loop
     .loop:
         LOAD 0
         LOAD_CONST 100
         LE
-        JMPF .end
+        EJMPF
         LOAD 0
         LOAD_CONST 3
         REM
@@ -18,43 +41,44 @@ _entry:
         DUP
         STORE 1
         JMPT .fizz
-        .fizz:
-            LOAD_CONST "fizz"
-            CALL print 1
-            EJMP
         LOAD 0
         LOAD_CONST 5
         REM
-        EQ
         LOAD_CONST 0
+        EQ
         DUP
         STORE 2
         JMPT .buzz
-        .buzz:
-            LOAD_CONST "buzz"
-            CALL print 1
-            EJMP
         LOAD 1
         LOAD 2
-        AND
+        OR
         JMPF .num
-        .num:
-            LOAD 0
-            CALL println 1
-            JMP .iterate
-            EJMP
         LOAD_CONST ""
         CALL println 1
-        .iterate:
-            LOAD 0
-            LOAD_CONST 1
-            ADD
-            STORE 0
-            JMP .loop
-            EJMP
-    .end:
-        LOAD_CONST "Completed!"
-        CALL println 1
+        JMP .iterate
         EJMP
+    .fizz:
+        LOAD_CONST "fizz"
+        CALL print 1
+        EJMP
+    .buzz:
+        LOAD_CONST "buzz"
+        CALL print 1
+        EJMP
+    .num:
+        LOAD 0
+        CALL println 1
+        JMP .iterate
+        EJMP
+    .iterate:
+        LOAD 0
+        LOAD_CONST 1
+        ADD
+        STORE 0
+        JMP .loop
+        EJMP
+LOAD_CONST "Completed!"
+CALL println 1
+;EJMP
 HALT
         

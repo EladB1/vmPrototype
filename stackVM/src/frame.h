@@ -29,7 +29,8 @@ void storeLocal(Frame* frame, DataConstant value);
 void storeLocalAtAddr(Frame*, DataConstant value, int addr);
 void incrementPC(Frame* frame);
 void setPC(Frame* frame, int addr);
-int getJumpIndex(Frame* frame, char* label);
+int getJumpStart(Frame* frame, char* label);
+int getJumpEnd(Frame* frame, char* label);
 void print_array(char* array_label, DataConstant* array, int array_size);
 bool stackIsEmpty(Frame* frame);
 

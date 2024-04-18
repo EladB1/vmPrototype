@@ -5,7 +5,8 @@
 
 typedef struct {
     char* label;
-    int index;
+    int start;
+    int end;
 } JumpPoint;
 
 typedef struct {

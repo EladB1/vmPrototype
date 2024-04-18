@@ -121,8 +121,19 @@ void stepOver(VM* vm) {
     incrementPC(vm->callStack[vm->fp]);
 }
 
-void jump(VM* vm, char* label) {
-    int addr = getJumpIndex(vm->callStack[vm->fp], label);
+void jump(VM* vm, char* label, char** enterJump, int* jumpedFrom) {
+    int addr = getJumpStart(vm->callStack[vm->fp], label);
+    if (addr == -1) {
+        fprintf(stderr, "Error: Could not find jump point '%s'\n", label);
+        vm->state = unknown_bytecode;
+    }
+    *enterJump = label;
+    *jumpedFrom = vm->callStack[vm->fp]->pc + 1;
+    setPC(vm->callStack[vm->fp], addr);
+}
+
+void skipJump(VM* vm, char* label) {
+    int addr = getJumpEnd(vm->callStack[vm->fp], label);
     if (addr == -1) {
         fprintf(stderr, "Error: Could not find jump point '%s'\n", label);
         vm->state = unknown_bytecode;
@@ -155,13 +166,42 @@ ExitCode run(VM* vm, bool verbose) {
     Frame* currentFrame;
     char* next;
     int addr, argc, offset;
+    char* enterJump = "";
+    int jumpedFrom = 0;
+    JumpPoint jumpPoint;
+    bool skipped = false;
     while (1) {
         if (vm->state != success)
             return vm->state;
         opcode = getNext(vm);
         currentFrame = vm->callStack[vm->fp];
-        if (opcode[0] == '.') {
-            stepOver(vm);
+        for (int i = 0; i < currentFrame->jc; i++) {
+            jumpPoint = currentFrame->jumps[i];
+            if (currentFrame->pc - 1 == jumpPoint.start) {
+                if (strlen(enterJump) == 0) {
+                    skipJump(vm, jumpPoint.label);
+                    skipped = true;
+                }
+                else {
+                    if (strcmp(jumpPoint.label, enterJump) == 0) {
+                        enterJump = "";
+                        //jumpedFrom = currentFrame->pc;
+                        break;
+                    }
+                    skipJump(vm, jumpPoint.label);
+                    skipped = true;
+                }
+            }
+        }
+        if (skipped) {
+            skipped = false;
+            continue;
+        }
+        if (strcmp(opcode, "EJMP") == 0) {
+            if (jumpedFrom != 0) {
+                setPC(vm->callStack[vm->fp], jumpedFrom - 1);
+                jumpedFrom = 0;
+            }
             continue;
         }
         if (strcmp(opcode, "HALT") == 0) {
@@ -404,29 +444,49 @@ ExitCode run(VM* vm, bool verbose) {
         }
         else if (strcmp(opcode, "JMP") == 0) {
             next = getNext(vm);
-            jump(vm, next);
+            jump(vm, next, &enterJump, &jumpedFrom);
         }
         else if (strcmp(opcode, "JMPT") == 0) {
             next = getNext(vm);
-            if (pop(vm).value.boolVal)
-                jump(vm, next);
+            if (pop(vm).value.boolVal) {
+                jumpedFrom = currentFrame->pc + 1;
+                jump(vm, next, &enterJump, &jumpedFrom);
+            }
         }
         else if (strcmp(opcode, "JMPF") == 0) {
             next = getNext(vm);
             if (!pop(vm).value.boolVal)
-                jump(vm, next);
+                jump(vm, next, &enterJump, &jumpedFrom);
         }
         else if (strcmp(opcode, "SJMPT") == 0) {
             // short circuit for and/or statements
             next = getNext(vm);
             if (top(vm).value.boolVal)
-                jump(vm, next);
+                jump(vm, next, &enterJump, &jumpedFrom);
         }
         else if (strcmp(opcode, "SJMPF") == 0) {
             // short circuit for and/or statements
             next = getNext(vm);
             if (!top(vm).value.boolVal)
-                jump(vm, next);
+                jump(vm, next, &enterJump, &jumpedFrom);
+        }
+        else if (strcmp(opcode, "EJMPT") == 0) {
+            // skip the rest of the jump block
+            if (top(vm).value.boolVal) {
+                next = getNext(vm);
+                while (strcmp(next, "EJMP") != 0) {
+                    next = getNext(vm);
+                }
+            }
+        }
+        else if (strcmp(opcode, "EJMPF") == 0) {
+            // skip the rest of the jump block
+            if (!top(vm).value.boolVal) {
+                next = getNext(vm);
+                while (strcmp(next, "EJMP") != 0) {
+                    next = getNext(vm);
+                }
+            }
         }
         else if (strcmp(opcode, "SELECT") == 0) {
             if (pop(vm).value.boolVal) {
