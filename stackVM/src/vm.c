@@ -185,7 +185,6 @@ ExitCode run(VM* vm, bool verbose) {
                 else {
                     if (strcmp(jumpPoint.label, enterJump) == 0) {
                         enterJump = "";
-                        //jumpedFrom = currentFrame->pc;
                         break;
                     }
                     skipJump(vm, jumpPoint.label);

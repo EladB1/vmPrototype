@@ -58,15 +58,15 @@ Test(FileReader, displayCode, .init = cr_redirect_stdout) {
     char* labels[2] = {"add", "_entry"};
     char* bodies[2] = {
         "LOAD 0 LOAD 1 ADD RET",
-        "LOAD_CONST 1 LOAD_CONST 5 LE JPMT .end LOAD_CONST 3 CALL println 1 .end: HALT"
+        "LOAD_CONST 1 LOAD_CONST 5 LE JPMT .end LOAD_CONST 3 CALL println 1 .end: HALT EJMP"
     };
     int jumpCounts[2] = {0, 1};
-    JumpPoint* jumps[2] = {(JumpPoint[]) {}, (JumpPoint[]) {{".end", 14}}};
+    JumpPoint* jumps[2] = {(JumpPoint[]) {}, (JumpPoint[]) {{".end", 14, 15}}};
     SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 2);
     char* expected_output;
     cr_asprintf(
         &expected_output,
-        "length: 2\nadd => @%p: [LOAD, 0, LOAD, 1, ADD, RET], length: 6, capacity: 256, Jumps: []\n_entry => @%p: [LOAD_CONST, 1, LOAD_CONST, 5, LE, JPMT, .end, LOAD_CONST, 3, CALL, println, 1, .end:, HALT], length: 14, capacity: 256, Jumps: [{.end : 14} ]\n", 
+        "length: 2\nadd => @%p: [LOAD, 0, LOAD, 1, ADD, RET], length: 6, capacity: 256, Jumps: []\n_entry => @%p: [LOAD_CONST, 1, LOAD_CONST, 5, LE, JPMT, .end, LOAD_CONST, 3, CALL, println, 1, .end:, HALT, EJMP], length: 15, capacity: 256, Jumps: [{.end : 14 - 15} ]\n", 
         src->code[0].body,
         src->code[1].body
     );
