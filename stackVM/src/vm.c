@@ -558,7 +558,12 @@ ExitCode run(VM* vm, bool verbose) {
         }
         else if (strcmp(opcode, "BUILDARR") == 0) {
             int capacity = atoi(getNext(vm));
-            argc = atoi(getNext(vm));
+            if (isInt(peekNext(vm)))
+                argc = atoi(getNext(vm));
+            else {
+                argc = capacity;
+                capacity = top(vm).value.intVal;
+            }
             if (argc > capacity) {
                 fprintf(stderr, "Error: Attempted to build array of length %d which exceeds capacity %d\n", argc, capacity);
                 return memory_err;
