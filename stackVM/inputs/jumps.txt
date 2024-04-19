@@ -1,9 +1,10 @@
 _entry:
     LOAD_CONST 10
     LOAD_CONST 1
-    LT
+    GT
     SJMPT .less
     SJMPF .not_less
+    JMP .end
     .less:
         LOAD_CONST 1
         CALL println 1

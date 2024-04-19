@@ -127,8 +127,9 @@ void jump(VM* vm, char* label, char** enterJump, int* jumpedFrom) {
         fprintf(stderr, "Error: Could not find jump point '%s'\n", label);
         vm->state = unknown_bytecode;
     }
+    if (strcmp(*enterJump, label) != 0) // only change jumpedFrom if enterJump changes
+        *jumpedFrom = vm->callStack[vm->fp]->pc + 1;
     *enterJump = label;
-    *jumpedFrom = vm->callStack[vm->fp]->pc + 1;
     setPC(vm->callStack[vm->fp], addr);
 }
 
@@ -471,20 +472,30 @@ ExitCode run(VM* vm, bool verbose) {
         }
         else if (strcmp(opcode, "EJMPT") == 0) {
             // skip the rest of the jump block
-            if (top(vm).value.boolVal) {
+            if (pop(vm).value.boolVal) {
                 next = getNext(vm);
                 while (strcmp(next, "EJMP") != 0) {
                     next = getNext(vm);
                 }
+                if (jumpedFrom != 0) {
+                    setPC(vm->callStack[vm->fp], jumpedFrom - 1);
+                    jumpedFrom = 0;
+                }
+                continue;
             }
         }
         else if (strcmp(opcode, "EJMPF") == 0) {
             // skip the rest of the jump block
-            if (!top(vm).value.boolVal) {
+            if (!pop(vm).value.boolVal) {
                 next = getNext(vm);
                 while (strcmp(next, "EJMP") != 0) {
                     next = getNext(vm);
                 }
+                if (jumpedFrom != 0) {
+                    setPC(vm->callStack[vm->fp], jumpedFrom - 1);
+                    jumpedFrom = 0;
+                }
+                continue;
             }
         }
         else if (strcmp(opcode, "SELECT") == 0) {

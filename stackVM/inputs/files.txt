@@ -4,6 +4,7 @@ fileWrite:
     DUP
     JMPT .exists
     JMPF .not_exists
+    JMP .end
     .exists:
         POP
         LOAD 0
@@ -12,7 +13,7 @@ fileWrite:
         LOAD 1
         LOAD 0
         CALL appendToFile 2
-        JMP .end
+        EJMP
     .not_exists:
         ;LOAD 0
         ;CALL createFile 1
@@ -25,14 +26,17 @@ fileWrite:
         LOAD 1
         LOAD 0
         CALL writeToFile 2
+        EJMP
     .end:
         LOAD_CONST NONE
         RET
+        EJMP
 
 _entry:
     LOAD_CONST "hello"
     LOAD_CONST "out.txt"
-    ;CALL fileWrite 2
+    CALL fileWrite 2
+    HALT
     CALL writeToFile 2
     LOAD_CONST "out.txt"
     CALL readFile 1
