@@ -642,6 +642,41 @@ Test(VM, runArrayGet) {
     cr_free(src);
 }
 
+Test(VM, buildArrayOneParam) {
+    char* labels[1] = {"_entry"};
+    char* bodies[1] = {
+        "LOAD_CONST 2 BUILDARR 0 HALT"
+    };
+    int jumpCounts[1] = {0};
+    JumpPoint* jumps[1] = {(JumpPoint[]) {}};
+    SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 1);
+
+    VM* vm = init(src);
+    bool verbose = false;
+    if (verbose)
+        displayCode(src);
+    ExitCode status = run(vm, verbose);
+
+    cr_expect_eq(status, success);
+    cr_expect_eq(vm->fp, 0);
+    Frame* frame = vm->callStack[0];
+    cr_expect_eq(frame->instructions->length, 5);
+    cr_expect_eq(frame->pc, 5);
+    cr_expect_eq(frame->sp, 1);
+    cr_expect_eq(vm->gp, 1);
+
+    cr_expect(isEqual(frame->stack[0], createInt(2)));
+    cr_expect_eq(frame->stack[1].type, Addr);
+    cr_expect_eq(frame->stack[1].length, 0);
+    cr_expect_eq(frame->stack[1].size, 2);
+    cr_expect_eq(frame->stack[1].value.intVal, 0);
+    cr_expect_eq(vm->globals[0].type, None);
+    cr_expect_eq(vm->globals[1].type, None);
+
+    destroy(vm);
+    cr_free(src);
+}
+
 Test(VM, runArrayWrite) {
     char* labels[1] = {"_entry"};
     char* bodies[1] = {
