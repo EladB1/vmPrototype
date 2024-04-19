@@ -16,8 +16,8 @@ void setup() {
     addString(srcCode, "_entry:");
     addString(srcCode, "HALT");
     jumpPoints = (JumpPoint[]) {
-        {"add", 0},
-        {"_entry", 5}
+        {"add", 0, 3},
+        {"_entry", 5, 9}
     };
     frame = loadFrame(srcCode, jumpPoints, 2, 3, 0, NULL);
 }
@@ -90,10 +90,14 @@ Test(Frame, frameWithInstructions, .init = setup, .fini = teardown) {
 }
 
 Test(Frame, frameWithJumps, .init = setup, .fini = teardown) {
-    int index = getJumpIndex(frame, "_entry");
-    cr_expect_eq(index, 5);
-    index = getJumpIndex(frame, "notFound");
-    cr_expect_eq(index, -1);
+    int start = getJumpStart(frame, "_entry");
+    cr_expect_eq(start, 5);
+    int end = getJumpEnd(frame, "_entry");
+    cr_expect_eq(end, 9);
+    start = getJumpStart(frame, "notFound");
+    cr_expect_eq(start, -1);
+    end = getJumpEnd(frame, "notFound");
+    cr_expect_eq(end, -1);
 }
 
 Test(Frame, framePrintArray_empty, .init = cr_redirect_stdout) {

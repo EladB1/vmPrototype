@@ -1,0 +1,38 @@
+const value = -5;
+
+fn test(): boolean {
+    return true;
+}
+
+fn plus_one(int num): int {
+    return num + 1;
+}
+
+fn equals_one(int num): boolean {
+    return num == 1;
+}
+
+fn fib(int n): int {
+    if (n == 0 || n == 1) {
+        return n;
+    }
+    return fib(n - 1) + fib(n - 2);
+}
+
+fn sum(int limit) {
+    int sum = 0;
+    for (int i = 0; i < limit; i++) {
+        sum += i;
+    }
+    return sum;
+}
+
+fn main(): int {
+    plus_one(value == 3.14 ? 4 : 2);
+    boolean isTrue = test();
+    isTrue = isTrue || false;
+    sleep(0.01);
+    int binResult = (fib(6) ^ sum(10)) & isTrue;
+    int power = 2 ** 5;
+    return 0;
+}

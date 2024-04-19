@@ -1,0 +1,142 @@
+doubleUnique:
+    LOAD 0
+    ; Array<int> array
+    CALL _length_a 1
+    DUP
+    STORE
+    ; int len
+    BUILDARR 0
+    STORE
+    ; Array<int> values[len]
+    LOAD_CONST 0
+    ; default int value
+    DUP
+    STORE
+    ; int doubled
+    STORE
+    ; int i
+    JMP .loop_start
+    .loop_start:
+        LOAD 4
+        LOAD 1
+        LT
+        EJMPF
+        LOAD 0
+        LOAD 4
+        AGET
+        LOAD_CONST 2
+        MUL
+        STORE 3
+        LOAD 3
+        LOAD 0
+        CALL _contains_a 2
+        JMPF .append
+        LOAD 4
+        LOAD_CONST 1
+        ADD
+        STORE 4
+        JMP .loop_start
+        EJMP
+    .append:
+        LOAD 3
+        LOAD 2
+        CALL append 2
+        STORE 2
+        EJMP
+    .loop_stop:
+        LOAD 2
+        RET
+        EJMP
+    JMP .loop_stop
+    LOAD_CONST 10
+    RET
+
+simple_loop:
+    LOAD_CONST 0
+    STORE
+    JMP .start
+    .start:
+        LOAD 0
+        LOAD_CONST 10
+        LT
+        EJMPF
+        LOAD 0
+        LOAD_CONST 1
+        ADD
+        DUP
+        STORE 0
+        CALL println 1
+        JMP .start
+        EJMP
+    LOAD_CONST "done"
+    CALL println 1
+    RET
+
+_entry:
+    CALL simple_loop 0
+    LOAD_CONST 1
+    LOAD_CONST 2
+    LOAD_CONST 3
+    BUILDARR 3 3
+    CALL doubleUnique 1
+    CALL println 1
+    LOAD_CONST 0
+    STORE
+    LOAD_CONST false
+    DUP
+    STORE
+    STORE
+    JMP .loop
+    .loop:
+        LOAD 0
+        LOAD_CONST 100
+        LE
+        EJMPF
+        LOAD 0
+        LOAD_CONST 3
+        REM
+        LOAD_CONST 0
+        EQ
+        DUP
+        STORE 1
+        JMPT .fizz
+        LOAD 0
+        LOAD_CONST 5
+        REM
+        LOAD_CONST 0
+        EQ
+        DUP
+        STORE 2
+        JMPT .buzz
+        LOAD 1
+        LOAD 2
+        OR
+        JMPF .num
+        LOAD_CONST ""
+        CALL println 1
+        JMP .iterate
+        EJMP
+    .fizz:
+        LOAD_CONST "fizz"
+        CALL print 1
+        EJMP
+    .buzz:
+        LOAD_CONST "buzz"
+        CALL print 1
+        EJMP
+    .num:
+        LOAD 0
+        CALL println 1
+        JMP .iterate
+        EJMP
+    .iterate:
+        LOAD 0
+        LOAD_CONST 1
+        ADD
+        STORE 0
+        JMP .loop
+        EJMP
+LOAD_CONST "Completed!"
+CALL println 1
+HALT
+        

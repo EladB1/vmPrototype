@@ -1,0 +1,60 @@
+_entry:
+    LOAD_CONST 10
+    LOAD_CONST 1
+    GT
+    SJMPT .less
+    SJMPF .not_less
+    JMP .end
+    .less:
+        LOAD_CONST 1
+        CALL println 1
+        EJMP
+    .not_less:
+        LOAD_CONST 2
+        CALL println 1
+        EJMP
+    .end:
+        LOAD_CONST 3
+        CALL println 1
+        EJMP
+    LOAD_CONST true
+    SJMPF .next
+    LOAD_CONST false
+    AND
+    JMPT .andBlock
+    .andBlock:
+        LOAD_CONST 4
+        CALL println 1
+        EJMP
+    JMP .next
+    ; use the .next block as an optimization to be able to shortcircuit the .andBlock conditional jump
+    .next:
+        LOAD_CONST false
+        SJMPT .orBlock
+        LOAD_CONST true
+        OR
+        JMPT .orBlock
+        EJMP
+    .orBlock:
+        LOAD_CONST 5
+        CALL println 1
+        EJMP
+    LOAD_CONST true
+    LOAD_CONST false
+    OR
+    STORE
+    LOAD_CONST 6
+    STORE
+    LOAD 0
+    JMPT .complex
+    .complex:
+        LOAD 1
+        LOAD_CONST 7
+        LT
+        JMPT .less2
+        EJMP
+    .less2:
+        LOAD 1
+        CALL println 1
+        EJMP
+    HALT

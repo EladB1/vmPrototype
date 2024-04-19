@@ -39,6 +39,7 @@ fib:
     .1:
         LOAD 0
         RET
+        EJMP
 
 sum:
     LOAD_CONST 0
@@ -47,11 +48,13 @@ sum:
     ; sum
     STORE
     STORE
+    JMP .loop_start
     .loop_start:
         LOAD 1
         LOAD 0
+        ; limit (parameter 0)
         LT
-        JMPF .end
+        EJMPF
         LOAD 2
         LOAD 1
         ADD
@@ -61,9 +64,12 @@ sum:
         ADD
         STORE 1
         JMP .loop_start
+        EJMP
+    JMP .end
     .end:
         LOAD 2
         RET
+        EJMP
 
 _entry:
     LOAD_CONST -5

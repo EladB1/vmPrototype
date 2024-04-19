@@ -31,10 +31,10 @@ Test(VM, initAndDestroy) {
     char* labels[2] = {"add", "_entry"};
     char* bodies[2] = {
         "LOAD 0 LOAD 1 ADD RET",
-        "LOAD_CONST 1 LOAD_CONST 5 LE JMPT .end LOAD_CONST 3 CALL println 1 .end: HALT"
+        "LOAD_CONST 1 LOAD_CONST 5 LE JMPT .end LOAD_CONST 3 CALL println 1 .end: HALT EJMP"
     };
     int jumpCounts[2] = {0, 1};
-    JumpPoint* jumps[2] = {(JumpPoint[]) {}, (JumpPoint[]) {{".end", 14}}};
+    JumpPoint* jumps[2] = {(JumpPoint[]) {}, (JumpPoint[]) {{".end", 14, 15}}};
     SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 2);
     
     VM* vm = init(src);
@@ -382,10 +382,10 @@ Test(VM, runLoadAndStore) {
 Test(VM, runWithNoJump) {
     char* labels[1] = {"_entry"};
     char* bodies[1] = {
-        "LOAD_CONST 1 LOAD_CONST 5 GT JMPT .end LOAD_CONST 3 LOAD_CONST 4 LOAD_CONST 5 HALT .end: HALT"
+        "LOAD_CONST 1 LOAD_CONST 5 GT JMPT .end LOAD_CONST 3 LOAD_CONST 4 LOAD_CONST 5 HALT .end: HALT EJMP"
     };
     int jumpCounts[1] = {1};
-    JumpPoint* jumps[1] = {(JumpPoint[]) {{".end", 18}}};
+    JumpPoint* jumps[1] = {(JumpPoint[]) {{".end", 18, 19}}};
     SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 1);
 
     VM* vm = init(src);
@@ -397,7 +397,7 @@ Test(VM, runWithNoJump) {
     cr_expect_eq(status, success);
     cr_expect_eq(vm->fp, 0);
     Frame* frame = vm->callStack[0];
-    cr_expect_eq(frame->instructions->length, 16);
+    cr_expect_eq(frame->instructions->length, 17);
     cr_expect_eq(frame->pc, 14);
     cr_expect_eq(frame->sp, 2);
     
@@ -408,10 +408,10 @@ Test(VM, runWithNoJump) {
 Test(VM, runWithSimpleJump) {
     char* labels[1] = {"_entry"};
     char* bodies[1] = {
-        "LOAD_CONST 1 LOAD_CONST 5 LE JMPT .end LOAD_CONST 3 LOAD_CONST 4 LOAD_CONST 5 HALT .end: HALT"
+        "LOAD_CONST 1 LOAD_CONST 5 LE JMPT .end LOAD_CONST 3 LOAD_CONST 4 LOAD_CONST 5 HALT .end: HALT EJMP"
     };
     int jumpCounts[1] = {1};
-    JumpPoint* jumps[1] = {(JumpPoint[]) {{".end", 15}}};
+    JumpPoint* jumps[1] = {(JumpPoint[]) {{".end", 15, 16}}};
     SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 1);
 
     VM* vm = init(src);
@@ -423,7 +423,7 @@ Test(VM, runWithSimpleJump) {
     cr_expect_eq(status, success);
     cr_expect_eq(vm->fp, 0);
     Frame* frame = vm->callStack[0];
-    cr_expect_eq(frame->instructions->length, 16);
+    cr_expect_eq(frame->instructions->length, 17);
     cr_expect_eq(frame->pc, 16);
     cr_expect_eq(frame->sp, -1);
 
@@ -434,10 +434,10 @@ Test(VM, runWithSimpleJump) {
 Test(VM, runWithShortCircuitJump) {
     char* labels[1] = {"_entry"};
     char* bodies[1] = {
-        "LOAD_CONST 1 LOAD_CONST 5 GT SJMPF .end LOAD_CONST 3 LOAD_CONST 4 LOAD_CONST 5 HALT .end: HALT"
+        "LOAD_CONST 1 LOAD_CONST 5 GT SJMPF .end LOAD_CONST 3 LOAD_CONST 4 LOAD_CONST 5 HALT .end: HALT EJMP"
     };
     int jumpCounts[1] = {1};
-    JumpPoint* jumps[1] = {(JumpPoint[]) {{".end", 15}}};
+    JumpPoint* jumps[1] = {(JumpPoint[]) {{".end", 15, 16}}};
     SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 1);
 
     VM* vm = init(src);
@@ -449,7 +449,7 @@ Test(VM, runWithShortCircuitJump) {
     cr_expect_eq(status, success);
     cr_expect_eq(vm->fp, 0);
     Frame* frame = vm->callStack[0];
-    cr_expect_eq(frame->instructions->length, 16);
+    cr_expect_eq(frame->instructions->length, 17);
     cr_expect_eq(frame->pc, 16);
     cr_expect_eq(frame->sp, 0);
 
@@ -637,6 +637,41 @@ Test(VM, runArrayGet) {
     for (int i = 2; i < 5; i++) {
         cr_expect_eq(vm->globals[i].type, None);
     }
+
+    destroy(vm);
+    cr_free(src);
+}
+
+Test(VM, buildArrayOneParam) {
+    char* labels[1] = {"_entry"};
+    char* bodies[1] = {
+        "LOAD_CONST 2 BUILDARR 0 HALT"
+    };
+    int jumpCounts[1] = {0};
+    JumpPoint* jumps[1] = {(JumpPoint[]) {}};
+    SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 1);
+
+    VM* vm = init(src);
+    bool verbose = false;
+    if (verbose)
+        displayCode(src);
+    ExitCode status = run(vm, verbose);
+
+    cr_expect_eq(status, success);
+    cr_expect_eq(vm->fp, 0);
+    Frame* frame = vm->callStack[0];
+    cr_expect_eq(frame->instructions->length, 5);
+    cr_expect_eq(frame->pc, 5);
+    cr_expect_eq(frame->sp, 1);
+    cr_expect_eq(vm->gp, 1);
+
+    cr_expect(isEqual(frame->stack[0], createInt(2)));
+    cr_expect_eq(frame->stack[1].type, Addr);
+    cr_expect_eq(frame->stack[1].length, 0);
+    cr_expect_eq(frame->stack[1].size, 2);
+    cr_expect_eq(frame->stack[1].value.intVal, 0);
+    cr_expect_eq(vm->globals[0].type, None);
+    cr_expect_eq(vm->globals[1].type, None);
 
     destroy(vm);
     cr_free(src);

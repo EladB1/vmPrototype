@@ -34,6 +34,7 @@ SourceCode* read_file(char* filename) {
     const unsigned int MAX_LENGTH = 256;
     bool prevWasBlank = false;
     char buff[MAX_LENGTH];
+    bool inJump = false;
     while (fgets(buff, MAX_LENGTH, fp)) {
         if (startsWith(buff, ';'))
             continue;
@@ -42,11 +43,12 @@ SourceCode* read_file(char* filename) {
             func.label = getFromSV(split(buff, ":\n"), 0);
         }
         else if (startsWith(buff, '.') && buff[strlen(buff) - 2] == ':') {
+            inJump = true;
             line = split(buff, ":\n");
             line = split(getFromSV(line, 0), " ");
             trimSV(line);
             jmp.label = getFromSV(line, 0);
-            jmp.index = count;
+            jmp.start = count;
             func.jumpPoints[func.jmpCnt++] = jmp;
         }
         else if (strcmp(buff, "\n") == 0) {
@@ -63,6 +65,10 @@ SourceCode* read_file(char* filename) {
         else {
             line = split(buff, " ");
             trimSV(line);
+            if (inJump && strcmp(getFromSV(line, 0), "EJMP") == 0) {
+                func.jumpPoints[func.jmpCnt - 1].end = count;
+                inJump = false;
+            }
             count += line->length;
             out = concat(out, line);
             free(line);
@@ -83,7 +89,7 @@ void displayCode(SourceCode* src) {
         printf(", Jumps: [");
         for (int j = 0; j < src->code[i].jmpCnt; j++) {
             jmp = src->code[i].jumpPoints[j];
-            printf("{%s : %d} ", jmp.label, jmp.index);
+            printf("{%s : %d - %d} ", jmp.label, jmp.start, jmp.end);
         }
         printf("]\n");
     }

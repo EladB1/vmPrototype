@@ -1,0 +1,20 @@
+fn main(): int {
+    if (10 > 1) // .less
+        println(1);
+    else // .not_less
+        println(2);
+    if (true) // .end
+        println(3);
+    if (true && false)
+        println(4);
+    if (false || true)
+        println(5);
+    const boolean someFlag = true || false;
+    const int value = 6;
+    if (someFlag) {
+        if (value < 7) {
+            println(value);
+        }
+    }
+    return 0;
+}
