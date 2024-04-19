@@ -1,0 +1,9 @@
+fn main(): int {
+    if (10 > 1) // .less
+        println(1);
+    else // .not_less
+        println(2);
+    if (true) // .end
+        println(3);
+    return 0;
+}

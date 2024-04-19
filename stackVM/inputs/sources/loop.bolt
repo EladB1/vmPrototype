@@ -1,0 +1,36 @@
+fn doubleUnique(Array<int> array): Array<int> {
+    int len = length(array);
+    Array<int> values[len] = {};
+    int doubled;
+    for (int i = 0; i < len; i++) {
+        doubled = 2 * array[i];
+        if (!contains(array, doubled))
+            values.append(doubled);
+    }
+    return values;
+}
+
+fn simple_loop() {
+    for (int i = 0; i < 10; i++) {
+        println(i);
+    }
+    println("done");
+}
+
+fn main(): int {
+    simple_loop();
+    const Array<int> arr = {1,2,3};
+    println(doubleUnique(arr));
+    for (int i = 0; i <= 100; i++) {
+        if (i % 3 == 0 || i % 5 == 0) {
+            if (i % 3 == 0)
+                print("fizz");
+            if (i % 5 == 0)
+                print("buzz");
+        }
+        else
+            println(num);
+    }
+    println("Completed!");
+    return 0;
+}
