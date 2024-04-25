@@ -105,12 +105,12 @@ DataConstant createNone() {
     return data;
 }
 
-DataConstant createAddr(int addr, int capacity, int length) {
+DataConstant createAddr(DataConstant* addr, int capacity, int length) {
     DataConstant data;
     data.type = Addr;
     data.size = capacity;
     data.length = length;
-    data.value.intVal = addr;
+    data.value.address = addr;
     return data;
 }
 

@@ -62,9 +62,9 @@ bool isBuiltinFunction(char* name) {
 
 DataConstant callBuiltinFunction(char* name, int argc, DataConstant* params, int* globCount, DataConstant** globals, ExitCode* vmState) {
     if (strcmp(name, "print") == 0)
-        print(params[0], *globals, false);
+        print(params[0], false);
     if (strcmp(name, "println") == 0)
-        print(params[0], *globals, true);
+        print(params[0], true);
     if (strcmp(name, "printerr") == 0) {
         if (argc == 1)
             printerr(params[0], false, 0);

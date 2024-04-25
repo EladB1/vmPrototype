@@ -159,6 +159,31 @@ void storeValue(VM* vm) {
     }
 }
 
+void handleArrayReturn(DataConstant* returnValue, DataConstant* source, Frame* target) {
+    returnValue->value.address = ++(target->lp) + target->locals;
+    for (int i = 0; i < returnValue->size; i++) {
+        target->locals[target->lp++] = source[i];
+    }
+    if (returnValue->size > 0)
+        target->lp--;
+}
+
+void convertLocalArrayToGlobal(VM* vm, DataConstant* array) {
+    Frame* currentFrame = vm->callStack[vm->fp];
+    DataConstant* start = array->value.address;
+    DataConstant* stop = start + array->size;
+    array->value.address = ++(vm->gp) + vm->globals;
+    for (DataConstant* curr = start; curr != stop; curr++) {
+        vm->globals[vm->gp++] = *curr;
+    }
+    if (array->size > 0) {
+        vm->gp--;
+        int startIndex = start - currentFrame->locals;
+        memmove(&currentFrame->locals[startIndex], &currentFrame->locals[startIndex + array->size], sizeof(DataConstant) * (currentFrame->lp + 1 - array->size - 1));
+        currentFrame->lp -= array->size;
+    }
+}
+
 ExitCode run(VM* vm, bool verbose) {
     if (verbose)
         printf("Running program...\n");
@@ -429,6 +454,8 @@ ExitCode run(VM* vm, bool verbose) {
                 return operation_err;
             }
             value = pop(vm);
+            if (value.type == Addr)
+                convertLocalArrayToGlobal(vm, &value);
             next = peekNext(vm);
             if (isInt(next)) { // overwrite the value of an existing variable
                 vm->globals[atoi(next)] = value;
@@ -550,11 +577,14 @@ ExitCode run(VM* vm, bool verbose) {
         else if (strcmp(opcode, "RET") == 0) {
             rval = pop(vm);
             addr = currentFrame->returnAddr;
-            deleteFrame(vm->callStack[vm->fp]);
             Frame* caller = vm->callStack[--vm->fp];
             setPC(caller, addr);
-            if (rval.type != None)
+            if (rval.type != None) {
+                if (rval.type == Addr)
+                    handleArrayReturn(&rval, currentFrame->locals, caller);
                 push(vm, rval);
+            }
+            deleteFrame(currentFrame);
         }
         else if (strcmp(opcode, "BUILDARR") == 0) {
             int capacity = atoi(getNext(vm));
@@ -568,19 +598,19 @@ ExitCode run(VM* vm, bool verbose) {
                 fprintf(stderr, "Error: Attempted to build array of length %d which exceeds capacity %d\n", argc, capacity);
                 return memory_err;
             }
-            rval = createAddr(++vm->gp, capacity, argc);
+            rval = createAddr(++currentFrame->lp + currentFrame->locals, capacity, argc);
             for (int i = 0; i < argc; i++) {
-                vm->globals[vm->gp] = pop(vm);
+                currentFrame->locals[currentFrame->lp] = pop(vm);
                 if (i < argc - 1)
-                    vm->gp++;
+                    currentFrame->lp++;
             }
             if (capacity > argc) {
                 if (argc != 0)
-                    vm->gp++;
+                    currentFrame->lp++;
                 for (int i = argc; i < capacity; i++) {
-                    vm->globals[vm->gp] = createNone();
+                    currentFrame->locals[currentFrame->lp] = createNone();
                     if (i < capacity - 1)
-                        vm->gp++;
+                        currentFrame->lp++;
                 }
             }
             push(vm, rval);

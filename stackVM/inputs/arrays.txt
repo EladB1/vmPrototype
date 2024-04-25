@@ -1,3 +1,9 @@
+_func:
+    LOAD_CONST 3
+    LOAD_CONST 4
+    BUILDARR 3 2
+    RET
+
 _entry:
     LOAD_CONST 3
     LOAD_CONST 3
@@ -8,8 +14,18 @@ _entry:
     BUILDARR 5 5
     DUP
     CALL println 1
-    CALL _remove_all_val_a 2
+    ;CALL _remove_all_val_a 2
+    ;CALL println 1
+    CALL _func 0
+    DUP
     CALL println 1
+    LOAD_CONST -1
+    GSTORE
+    GSTORE
+    GLOAD 4
+    CALL println 1
+    LOAD_CONST 8
+    STORE
     HALT
     LOAD_CONST 2
     LOAD_CONST -3

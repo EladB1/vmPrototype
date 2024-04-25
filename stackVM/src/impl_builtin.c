@@ -8,7 +8,7 @@
 
 #define DEFAULT_LINES 1024
 
-void print(DataConstant data, DataConstant* globals, bool newLine) {
+void print(DataConstant data, bool newLine) {
     char end = newLine ? '\n' : '\0';
     if (data.type == Int)
         printf("%d%c", data.value.intVal, end);
@@ -22,11 +22,11 @@ void print(DataConstant data, DataConstant* globals, bool newLine) {
         printf("null%c", end);
     if (data.type == Addr) {
         printf("[");
-        int start = data.value.intVal;
-        int stop = start + data.length;
-        for (int i = start; i < stop; i++) {
-            print(globals[i], globals, false);
-            if (i != stop - 1)
+        DataConstant* start = data.value.address;
+        DataConstant* stop = start + data.length;
+        for (DataConstant* curr = start; curr != stop; curr++) {
+            print(*curr, false);
+            if (curr != stop - 1)
                 printf(", ");
 
         }

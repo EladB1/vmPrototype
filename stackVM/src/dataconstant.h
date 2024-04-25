@@ -18,6 +18,7 @@ typedef union memberVal {
     double dblVal;
     bool boolVal;
     char* strVal;
+    void* address; // pointer to the container of the array values (globals or locals)
 } DataValue;
 
 typedef struct {
@@ -36,7 +37,7 @@ DataConstant createBoolean(bool value);
 DataConstant createString(char* value);
 DataConstant createNull();
 DataConstant createNone();
-DataConstant createAddr(int addr, int capacity, int length);
+DataConstant createAddr(DataConstant* addr, int capacity, int length);
 
 char* toString(DataConstant data);
 bool isZero(DataConstant data);

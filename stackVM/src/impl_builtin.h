@@ -4,7 +4,7 @@
 #include "dataconstant.h"
 #include "exitcode.h"
 
-void print(DataConstant data, DataConstant* globals, bool newLine);
+void print(DataConstant data, bool newLine);
 void printerr(DataConstant data, bool terminates, int exitCode);
 void sleep_(DataConstant seconds);
 char* getType(DataConstant data, DataConstant* globals);
