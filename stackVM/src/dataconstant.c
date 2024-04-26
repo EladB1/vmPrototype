@@ -324,7 +324,6 @@ DataConstant copyAddr(DataConstant src, int* destPtr, DataConstant** dest) {
     DataConstant* start = getArrayStart(src);
     DataConstant* stop = start + src.size;
     for (DataConstant* curr = start; curr != stop; curr++) {
-        printf("%s\n", toString(*curr));
         (*dest)[++(*destPtr)] = *curr;
     }
     return copy;
@@ -357,7 +356,8 @@ DataConstant expandExistingAddr(DataConstant src, int capacity, int* destPtr, Da
     copy.type = Addr;
     copy.size = capacity;
     copy.length = src.length;
-    copy.value.intVal = *destPtr + 1;
+    copy.value.address = *dest;
+    copy.offset = *destPtr + 1;
     DataConstant* start = getArrayStart(src);
     DataConstant* stop = start + src.size;
     for (DataConstant* curr = start; curr != stop; curr++) {
