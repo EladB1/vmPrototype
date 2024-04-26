@@ -160,7 +160,8 @@ void storeValue(VM* vm) {
 }
 
 void handleArrayReturn(DataConstant* returnValue, DataConstant* source, Frame* target) {
-    returnValue->value.address = ++(target->lp) + target->locals;
+    returnValue->offset = ++(target->lp);
+    returnValue->value.address = target->locals;
     for (int i = 0; i < returnValue->size; i++) {
         target->locals[target->lp++] = source[i];
     }
@@ -169,17 +170,21 @@ void handleArrayReturn(DataConstant* returnValue, DataConstant* source, Frame* t
 }
 
 void convertLocalArrayToGlobal(VM* vm, DataConstant* array) {
+    if (array->value.address == vm->globals)
+        return;
     Frame* currentFrame = vm->callStack[vm->fp];
-    DataConstant* start = array->value.address;
+    DataConstant* start = getArrayStart(*array);
     DataConstant* stop = start + array->size;
-    array->value.address = ++(vm->gp) + vm->globals;
+    int offset = array->offset;
+    array->offset = ++(vm->gp);
+    array->value.address = vm->globals;
     for (DataConstant* curr = start; curr != stop; curr++) {
         vm->globals[vm->gp++] = *curr;
     }
     if (array->size > 0) {
         vm->gp--;
-        int startIndex = start - currentFrame->locals;
-        memmove(&currentFrame->locals[startIndex], &currentFrame->locals[startIndex + array->size], sizeof(DataConstant) * (currentFrame->lp + 1 - array->size - 1));
+        // remove the values from locals
+        memmove(&currentFrame->locals[offset], &currentFrame->locals[offset + array->size], sizeof(DataConstant) * (currentFrame->lp + 1 - array->size));
         currentFrame->lp -= array->size;
     }
 }
@@ -557,7 +562,7 @@ ExitCode run(VM* vm, bool verbose) {
                 params[i] = pop(vm);
             }
             if (isBuiltinFunction(next)) {
-                rval = callBuiltinFunction(next, argc, params, &vm->gp, &vm->globals, &(vm->state));
+                rval = callBuiltinFunction(next, argc, params, &currentFrame->lp, &currentFrame->locals, &(vm->state));
                 if (vm->state != success)
                     return vm->state;
                 if (rval.type != None)
@@ -598,7 +603,7 @@ ExitCode run(VM* vm, bool verbose) {
                 fprintf(stderr, "Error: Attempted to build array of length %d which exceeds capacity %d\n", argc, capacity);
                 return memory_err;
             }
-            rval = createAddr(++currentFrame->lp + currentFrame->locals, capacity, argc);
+            rval = createAddr(currentFrame->locals, ++currentFrame->lp, capacity, argc);
             for (int i = 0; i < argc; i++) {
                 currentFrame->locals[currentFrame->lp] = pop(vm);
                 if (i < argc - 1)
@@ -617,30 +622,30 @@ ExitCode run(VM* vm, bool verbose) {
         }
         else if (strcmp(opcode, "COPYARR") == 0) {
             rhs = pop(vm);
-            rval = copyAddr(rhs, &vm->gp, &vm->globals);
+            rval = copyAddr(rhs, &currentFrame->lp, &currentFrame->locals);
             push(vm, rval);
         }
         else if (strcmp(opcode, "AGET") == 0) {
             offset = pop(vm).value.intVal;
             lhs = pop(vm);
-            addr = lhs.value.intVal;
+            DataConstant* start = getArrayStart(lhs);
             if (offset > lhs.size || offset < 0) {
                 fprintf(stderr, "Error: Array index %d out of range %d\n", offset, lhs.size);
                 return memory_err;
             }
-            rval = vm->globals[addr + offset];
+            rval = *(start + offset);
             push(vm, rval);
         }
         else if (strcmp(opcode, "ASTORE") == 0) {
             offset = pop(vm).value.intVal;
             lhs = pop(vm);
-            addr = lhs.value.intVal;
+            DataConstant* start = getArrayStart(lhs);
             if (offset >= lhs.size || offset < 0) {
                 fprintf(stderr, "Error: Array index %d out of range %d\n", offset, lhs.size);
                 return memory_err;
             }
             rhs = pop(vm);
-            rval = vm->globals[addr + offset];
+            rval = *(start + offset);
             if (rval.type == None) {
                 if (offset > lhs.length + 1) {
                     fprintf(stderr, "Error: Cannot write to index %d since previous index values are not initialized\n", offset);
@@ -648,7 +653,7 @@ ExitCode run(VM* vm, bool verbose) {
                 }
                 lhs.length++;
             }
-            vm->globals[addr + offset] = rhs;
+            *(start + offset) = rhs;
             push(vm, lhs);
         }
         else {

@@ -26,6 +26,7 @@ typedef struct {
     DataValue value;
     int size;
     int length;
+    int offset; // store the index of the start of the array
 } DataConstant;
 
 DataConstant readInt(char* value);
@@ -37,7 +38,7 @@ DataConstant createBoolean(bool value);
 DataConstant createString(char* value);
 DataConstant createNull();
 DataConstant createNone();
-DataConstant createAddr(DataConstant* addr, int capacity, int length);
+DataConstant createAddr(DataConstant* addr, int offset, int capacity, int length);
 
 char* toString(DataConstant data);
 bool isZero(DataConstant data);
@@ -47,6 +48,7 @@ DataConstant getMax(DataConstant lhs, DataConstant rhs);
 DataConstant getMin(DataConstant lhs, DataConstant rhs);
 DataConstant binaryArithmeticOperation(DataConstant lhs, DataConstant rhs, char* operation);
 
+DataConstant* getArrayStart(DataConstant array);
 DataConstant copyAddr(DataConstant src, int* addr, DataConstant** globals);
 DataConstant partialCopyAddr(DataConstant src, int start, int len, int* addr, DataConstant** globals);
 DataConstant expandExistingAddr(DataConstant src, int capacity, int* addr, DataConstant** globals);

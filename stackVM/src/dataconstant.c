@@ -13,7 +13,7 @@ char* toString(DataConstant data) {
     if (data.type == Dbl)
         asprintf(&string, "%f", data.value.dblVal);
     if (data.type == Addr)
-        asprintf(&string, "0x%x (%d)", data.value.intVal, data.size);
+        asprintf(&string, "%p (%d)", getArrayStart(data), data.size);
     if (data.type == Bool)
         return data.value.boolVal ? "true" : "false";
     if (data.type == Str) {
@@ -105,12 +105,13 @@ DataConstant createNone() {
     return data;
 }
 
-DataConstant createAddr(DataConstant* addr, int capacity, int length) {
+DataConstant createAddr(DataConstant* addr, int offset, int capacity, int length) {
     DataConstant data;
     data.type = Addr;
     data.size = capacity;
     data.length = length;
     data.value.address = addr;
+    data.offset = offset;
     return data;
 }
 
@@ -309,54 +310,62 @@ DataConstant binaryArithmeticOperation(DataConstant lhs, DataConstant rhs, char*
     return result;
 }
 
-DataConstant copyAddr(DataConstant src, int* globIndex, DataConstant** globals) {
+DataConstant* getArrayStart(DataConstant array) {
+    return (DataConstant *) array.value.address + array.offset;
+}
+
+DataConstant copyAddr(DataConstant src, int* destPtr, DataConstant** dest) {
     DataConstant copy;
     copy.type = Addr;
     copy.size = src.size;
     copy.length = src.length;
-    copy.value.intVal = *globIndex + 1;
-    int srcAddr = src.value.intVal;
-    DataConstant* globs = *globals;
-    for (int i = 0; i < src.size; i++) {
-        globs[++(*globIndex)] = globs[srcAddr + i];
+    copy.value.address = *dest;
+    copy.offset = *destPtr + 1;
+    DataConstant* start = getArrayStart(src);
+    DataConstant* stop = start + src.size;
+    for (DataConstant* curr = start; curr != stop; curr++) {
+        printf("%s\n", toString(*curr));
+        (*dest)[++(*destPtr)] = *curr;
     }
     return copy;
 }
 
-DataConstant partialCopyAddr(DataConstant src, int start, int len, int* globIndex, DataConstant** globals) {
+DataConstant partialCopyAddr(DataConstant src, int begin, int len, int* destPtr, DataConstant** dest) {
     DataConstant copy;
     copy.type = Addr;
     copy.size = src.size;
     copy.length = len;
-    copy.value.intVal = *globIndex + 1;
-    int srcAddr = start;
-    DataConstant* globs = *globals;
-    for (int i = 0; i < len && i < src.size; i++) {
-        globs[++(*globIndex)] = globs[srcAddr + i];
+    copy.value.address = *dest;
+    copy.offset = *destPtr + 1;
+    DataConstant* start = getArrayStart(src) + begin;
+    DataConstant* stop = start + src.size;
+    DataConstant* lengthEnd = start + len;
+    for (DataConstant* curr = start; curr != lengthEnd && curr != stop; curr++) {
+        (*dest)[++(*destPtr)] = *curr;
     }
     if (len < src.size) {
-        for (int i = len; i < src.size; i++) {
-            globs[++(*globIndex)] = createNone();
+        for (DataConstant* curr = lengthEnd; curr != stop; curr++) {
+            (*dest)[++(*destPtr)] = createNone();
         }
     }
     return copy;
 }
 
-DataConstant expandExistingAddr(DataConstant src, int capacity, int* globIndex, DataConstant** globals) {
-    // TODO: remove old array from globals
+DataConstant expandExistingAddr(DataConstant src, int capacity, int* destPtr, DataConstant** dest) {
+    // TODO: remove old array from dest
     DataConstant copy;
     copy.type = Addr;
     copy.size = capacity;
     copy.length = src.length;
-    copy.value.intVal = *globIndex + 1;
-    int srcAddr = src.value.intVal;
-    DataConstant* globs = *globals;
-    for (int i = 0; i < src.size; i++) {
-        globs[++(*globIndex)] = globs[srcAddr + i];
+    copy.value.intVal = *destPtr + 1;
+    DataConstant* start = getArrayStart(src);
+    DataConstant* stop = start + src.size;
+    for (DataConstant* curr = start; curr != stop; curr++) {
+        (*dest)[++(*destPtr)] = *curr;
     }
     if (src.size < copy.size) {
         for (int i = src.size; i < copy.size; i++) {
-            globs[++(*globIndex)] = createNone();
+            (*dest)[++(*destPtr)] = createNone();
         }
     }
     return copy;
