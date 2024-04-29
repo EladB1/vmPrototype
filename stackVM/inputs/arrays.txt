@@ -63,6 +63,18 @@ test_remove_all_values:
     LOAD_CONST NONE
     RET
 
+test_multidimensional_array:
+    LOAD_CONST 3
+    LOAD_CONST 2
+    BUILDARR 3 2
+    BUILDARR 3 0
+    LOAD_CONST 6
+    LOAD_CONST 5
+    LOAD_CONST 4
+    BUILDARR 3 3
+    BUILDARR 3 3
+    RET
+
 _entry:
     LOAD_CONST -1
     GSTORE
@@ -77,4 +89,6 @@ _entry:
     GLOAD 4
     CALL test_slice_arr 1
     CALL test_remove_all_values 0
+    CALL test_multidimensional_array 0
+    CALL println 1
     HALT
