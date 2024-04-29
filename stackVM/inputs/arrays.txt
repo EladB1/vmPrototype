@@ -4,93 +4,77 @@ _func:
     BUILDARR 3 2
     RET
 
-_entry:
-    LOAD_CONST -1
-    GSTORE
-    CALL _func 0
-    GSTORE
-    ;LOAD_CONST 1
-    LOAD_CONST 4
-    GLOAD 4
-    ;CALL _reverse_a 1
-    LOAD_CONST 1
+test_copy_arr:
+    LOAD 0
+    COPYARR
+    CALL _reverse_a 1
+    DUP
+    CALL sort 1
+    CALL println 1
+    LOAD 0
+    CALL println 1
+    LOAD_CONST NONE
+    RET
+
+test_get_and_write:
+    ; locals = [array, index, value]
+    LOAD 0
+    LOAD 1
     AGET
     CALL println 1
-    ; value to write into array
-    LOAD_CONST 0
-    GLOAD 4
-    ; index to write to
-    LOAD_CONST 2
-    ASTORE
-    GSTORE 4
-    GLOAD 4
-    COPYARR
+    LOAD 0
     CALL println 1
-    LOAD_CONST 5
+    LOAD 2
+    LOAD 0
+    ; the COPYARR instruction below changes the array from pass by reference to pass by value
+    ; COPYARR
+    LOAD 1
+    ASTORE
+    STORE 0
+    LOAD 0
+    CALL println 1
+    LOAD 0
+    CALL getType 1
+    LOAD_CONST NONE
+    RET
+
+test_slice_arr:
+    LOAD_CONST 1
+    LOAD 0
+    CALL _slice_a 2
+    CALL println 1
+    LOAD_CONST NONE
+    RET
+
+test_remove_all_values:
+    ; the value to remove from the array
     LOAD_CONST 3
+    ; the array
     LOAD_CONST 3
     LOAD_CONST 2
     LOAD_CONST 3
     LOAD_CONST 3
     LOAD_CONST 4
     BUILDARR 5 5
-    ;CALL _slice_a 3
     DUP
     CALL println 1
     CALL _remove_all_val_a 2
     CALL println 1
-    LOAD_CONST 8
-    STORE
-    HALT
-    LOAD_CONST 2
-    LOAD_CONST -3
-    LOAD_CONST 20
-    LOAD_CONST 1
-    BUILDARR 3 3
-    DUP
-    DUP
-    STORE
-    CALL println 1
-    HALT
-    ;CALL _slice_a 3
-    ;CALL _remove_indx_a 2
-    CALL _reverse_a 1
-    STORE 3
-    LOAD 3
-    CALL println 1
-    COPYARR
-    CALL println 1
-    HALT
-    BUILDARR 3 0
-    BUILDARR 2 2
-    STORE
-    LOAD 3
-    CALL println 1
-    LOAD 3
-    LOAD_CONST 1
-    AGET
+    LOAD_CONST NONE
+    RET
+
+_entry:
+    LOAD_CONST -1
+    GSTORE
+    CALL _func 0
+    GSTORE
+    GLOAD 4
+    CALL test_copy_arr 1
     LOAD_CONST 0
-    AGET
-    LOAD 3
-    LOAD_CONST 1
-    AGET
     LOAD_CONST 2
-    ASTORE
-    LOAD 3
-    LOAD_CONST 1
-    ASTORE
-    STORE 3
-    LOAD_CONST 2
-    LOAD 3
-    LOAD_CONST 1
-    AGET
-    CALL _contains_a 2
-    BUILDARR 1 1
-    LOAD_CONST false
-    LOAD_CONST true
-    BUILDARR 3 2
-    CONCAT
-    CALL println 1
-    LOAD 3
-    CALL getType 1
+    GLOAD 4
+    CALL test_get_and_write 3
+    GLOAD 4
+    CALL test_slice_arr 1
+    CALL test_remove_all_values 0
     HALT
