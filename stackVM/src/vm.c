@@ -160,13 +160,24 @@ void storeValue(VM* vm) {
 }
 
 void handleArrayReturn(DataConstant* returnValue, DataConstant* source, Frame* target) {
-    returnValue->offset = ++(target->lp);
+    int offset = returnValue->offset;
+    returnValue->offset = returnValue->size == 0 ? target->lp : target->lp + 1;
     returnValue->value.address = target->locals;
-    for (int i = 0; i < returnValue->size; i++) {
-        target->locals[target->lp++] = source[i];
+    DataConstant* arrayRefs[returnValue->size];
+    int arrayRefCount = 0;
+    for (int i = offset; i < offset + returnValue->size; i++) {
+        if (source[i].type == Addr) {
+            handleArrayReturn(&source[i], source, target);
+            arrayRefs[arrayRefCount++] = &source[i];
+        }
+        else
+            target->locals[++(target->lp)] = source[i];
     }
-    if (returnValue->size > 0)
-        target->lp--;
+    if (arrayRefCount != 0)
+        returnValue->offset = returnValue->size == 0 ? target->lp : target->lp + 1;
+    for (int i = 0; i < arrayRefCount; i++) {
+        target->locals[++(target->lp)] = *(arrayRefs[i]);
+    }
 }
 
 void convertLocalArrayToGlobal(VM* vm, DataConstant* array) {
@@ -176,17 +187,30 @@ void convertLocalArrayToGlobal(VM* vm, DataConstant* array) {
     DataConstant* start = getArrayStart(*array);
     DataConstant* stop = start + array->size;
     int offset = array->offset;
-    array->offset = ++(vm->gp);
+    array->offset = array->size == 0 ? vm->gp : vm->gp + 1;
     array->value.address = vm->globals;
+    DataConstant* arrayRefs[array->size];
+    int arrayRefCount = 0;
     for (DataConstant* curr = start; curr != stop; curr++) {
-        vm->globals[vm->gp++] = *curr;
+        if (curr->type == Addr) {
+            convertLocalArrayToGlobal(vm, curr);
+            arrayRefs[arrayRefCount++] = curr;
+        }
+        else
+            vm->globals[++(vm->gp)] = *curr;
     }
+    if (arrayRefCount != 0)
+        array->offset = array->size == 0 ? vm->gp : vm->gp + 1;
+    for (int i = 0; i < arrayRefCount; i++) {
+        vm->globals[++(vm->gp)] = *(arrayRefs[i]);
+    }
+    /*
     if (array->size > 0) {
-        vm->gp--;
         // remove the values from locals
         memmove(&currentFrame->locals[offset], &currentFrame->locals[offset + array->size], sizeof(DataConstant) * (currentFrame->lp + 1 - array->size));
         currentFrame->lp -= array->size;
     }
+    */
 }
 
 ExitCode run(VM* vm, bool verbose) {
