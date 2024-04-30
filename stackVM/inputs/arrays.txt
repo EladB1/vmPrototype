@@ -73,9 +73,33 @@ test_multidimensional_array:
     LOAD_CONST 4
     BUILDARR 3 3
     BUILDARR 3 3
+    DUP
+    CALL println 1
     GSTORE
     GLOAD 17
+    COPYARR
     RET
+
+
+test_slice_multidimensional:
+    LOAD_CONST 2
+    LOAD_CONST 0
+    LOAD_CONST 3
+    LOAD_CONST 2
+    BUILDARR 3 2
+    BUILDARR 3 0
+    LOAD_CONST 6
+    LOAD_CONST 5
+    LOAD_CONST 4
+    BUILDARR 3 3
+    BUILDARR 3 3
+    CALL _slice_a 3
+    ;DUP
+    ;CALL println 1
+    ;COPYARR
+    ;LOAD_CONST NONE
+    RET
+    
 
 _entry:
     LOAD_CONST -1
@@ -92,5 +116,7 @@ _entry:
     CALL test_slice_arr 1
     CALL test_remove_all_values 0
     CALL test_multidimensional_array 0
+    CALL println 1
+    CALL test_slice_multidimensional 0
     CALL println 1
     HALT

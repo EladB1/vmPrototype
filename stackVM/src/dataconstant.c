@@ -323,8 +323,20 @@ DataConstant copyAddr(DataConstant src, int* destPtr, DataConstant** dest) {
     copy.offset = *destPtr + 1;
     DataConstant* start = getArrayStart(src);
     DataConstant* stop = start + src.size;
+    DataConstant* arrayRefs[src.size];
+    int arrayRefCount = 0;
     for (DataConstant* curr = start; curr != stop; curr++) {
-        (*dest)[++(*destPtr)] = *curr;
+        if (curr->type == Addr) {
+            copyAddr(*curr, destPtr, dest);
+            arrayRefs[arrayRefCount++] = curr;
+        }
+        else
+            (*dest)[++(*destPtr)] = *curr;
+    }
+    if (arrayRefCount != 0)
+        copy.offset = *destPtr + 1;
+    for (int i = 0; i < arrayRefCount; i++) {
+        (*dest)[++(*destPtr)] = *(arrayRefs[i]);
     }
     return copy;
 }
@@ -339,8 +351,20 @@ DataConstant partialCopyAddr(DataConstant src, int begin, int len, int* destPtr,
     DataConstant* start = getArrayStart(src) + begin;
     DataConstant* stop = start + src.size;
     DataConstant* lengthEnd = start + len;
+    DataConstant* arrayRefs[src.size];
+    int arrayRefCount = 0;
     for (DataConstant* curr = start; curr != lengthEnd && curr != stop; curr++) {
-        (*dest)[++(*destPtr)] = *curr;
+        if (curr->type == Addr) {
+            copyAddr(*curr, destPtr, dest);
+            arrayRefs[arrayRefCount++] = curr;
+        }
+        else
+            (*dest)[++(*destPtr)] = *curr;
+    }
+    if (arrayRefCount != 0)
+        copy.offset = *destPtr + 1;
+    for (int i = 0; i < arrayRefCount; i++) {
+        (*dest)[++(*destPtr)] = *(arrayRefs[i]);
     }
     if (len < src.size) {
         for (DataConstant* curr = lengthEnd; curr != stop; curr++) {

@@ -492,8 +492,6 @@ ExitCode run(VM* vm, bool verbose) {
             if (value.type == Addr) {
                 int offset = value.offset;
                 convertLocalArrayToGlobal(vm, &value);
-                // array order will be reversed due to recursion so reverse it again
-                callBuiltinFunction("_reverse_a", 1, (DataConstant [1]){value}, &vm->gp, &vm->globals, &(vm->state));
                 removeFromLocals(currentFrame, &value, offset);
             }
             next = peekNext(vm);
@@ -622,10 +620,6 @@ ExitCode run(VM* vm, bool verbose) {
             if (rval.type != None) {
                 if (rval.type == Addr) {
                     handleArrayReturn(vm, &rval, currentFrame->locals, caller);
-                    if (rval.value.address != vm->globals) { 
-                        // array order will be reversed due to recursion so reverse it again
-                        callBuiltinFunction("_reverse_a", 1, (DataConstant [1]){rval}, &caller->lp, &caller->locals, &(vm->state));
-                    }
                 }
                 push(vm, rval);
             }
