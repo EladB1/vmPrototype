@@ -73,15 +73,8 @@ test_multidimensional_array:
     LOAD_CONST 4
     BUILDARR 3 3
     BUILDARR 3 3
-    ;CALL println 1
     GSTORE
     GLOAD 17
-    LOAD_CONST 2
-    AGET
-    LOAD_CONST 1
-    AGET
-    CALL println 1
-    HALT
     RET
 
 _entry:

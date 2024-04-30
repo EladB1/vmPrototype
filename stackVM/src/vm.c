@@ -159,7 +159,9 @@ void storeValue(VM* vm) {
     }
 }
 
-void handleArrayReturn(DataConstant* returnValue, DataConstant* source, Frame* target) {
+void handleArrayReturn(VM* vm, DataConstant* returnValue, DataConstant* source, Frame* target) {
+    if (returnValue->value.address == vm->globals)
+        return;
     int offset = returnValue->offset;
     returnValue->offset = returnValue->size == 0 ? target->lp : target->lp + 1;
     returnValue->value.address = target->locals;
@@ -167,7 +169,7 @@ void handleArrayReturn(DataConstant* returnValue, DataConstant* source, Frame* t
     int arrayRefCount = 0;
     for (int i = offset; i < offset + returnValue->size; i++) {
         if (source[i].type == Addr) {
-            handleArrayReturn(&source[i], source, target);
+            handleArrayReturn(vm, &source[i], source, target);
             arrayRefs[arrayRefCount++] = &source[i];
         }
         else
@@ -183,10 +185,8 @@ void handleArrayReturn(DataConstant* returnValue, DataConstant* source, Frame* t
 void convertLocalArrayToGlobal(VM* vm, DataConstant* array) {
     if (array->value.address == vm->globals)
         return;
-    Frame* currentFrame = vm->callStack[vm->fp];
     DataConstant* start = getArrayStart(*array);
     DataConstant* stop = start + array->size;
-    int offset = array->offset;
     array->offset = array->size == 0 ? vm->gp : vm->gp + 1;
     array->value.address = vm->globals;
     DataConstant* arrayRefs[array->size];
@@ -204,13 +204,19 @@ void convertLocalArrayToGlobal(VM* vm, DataConstant* array) {
     for (int i = 0; i < arrayRefCount; i++) {
         vm->globals[++(vm->gp)] = *(arrayRefs[i]);
     }
-    /*
-    if (array->size > 0) {
-        // remove the values from locals
-        memmove(&currentFrame->locals[offset], &currentFrame->locals[offset + array->size], sizeof(DataConstant) * (currentFrame->lp + 1 - array->size));
-        currentFrame->lp -= array->size;
+}
+
+void removeFromLocals(Frame* frame, DataConstant* array, int offset) {
+    if (array->size == 0)
+        return;
+    for (int i = offset + array->size - 1; i >= offset; i--) {
+        if (frame->locals[i].type == Addr) {
+            frame->lp -= frame->locals[i].size;
+            //removeFromLocals(frame, &frame->locals[i], frame->locals[i].offset);
+        }
     }
-    */
+    memmove(&frame->locals[offset], &frame->locals[offset + array->size], sizeof(DataConstant) * (frame->lp + 1 - array->size));
+    frame->lp -= array->size;
 }
 
 ExitCode run(VM* vm, bool verbose) {
@@ -483,8 +489,13 @@ ExitCode run(VM* vm, bool verbose) {
                 return operation_err;
             }
             value = pop(vm);
-            if (value.type == Addr)
+            if (value.type == Addr) {
+                int offset = value.offset;
                 convertLocalArrayToGlobal(vm, &value);
+                // array order will be reversed due to recursion so reverse it again
+                callBuiltinFunction("_reverse_a", 1, (DataConstant [1]){value}, &vm->gp, &vm->globals, &(vm->state));
+                removeFromLocals(currentFrame, &value, offset);
+            }
             next = peekNext(vm);
             if (isInt(next)) { // overwrite the value of an existing variable
                 vm->globals[atoi(next)] = value;
@@ -609,8 +620,13 @@ ExitCode run(VM* vm, bool verbose) {
             Frame* caller = vm->callStack[--vm->fp];
             setPC(caller, addr);
             if (rval.type != None) {
-                if (rval.type == Addr)
-                    handleArrayReturn(&rval, currentFrame->locals, caller);
+                if (rval.type == Addr) {
+                    handleArrayReturn(vm, &rval, currentFrame->locals, caller);
+                    if (rval.value.address != vm->globals) { 
+                        // array order will be reversed due to recursion so reverse it again
+                        callBuiltinFunction("_reverse_a", 1, (DataConstant [1]){rval}, &caller->lp, &caller->locals, &(vm->state));
+                    }
+                }
                 push(vm, rval);
             }
             deleteFrame(currentFrame);
