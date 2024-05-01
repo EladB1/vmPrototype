@@ -315,30 +315,7 @@ DataConstant* getArrayStart(DataConstant array) {
 }
 
 DataConstant copyAddr(DataConstant src, int* destPtr, DataConstant** dest) {
-    DataConstant copy;
-    copy.type = Addr;
-    copy.size = src.size;
-    copy.length = src.length;
-    copy.value.address = *dest;
-    copy.offset = *destPtr + 1;
-    DataConstant* start = getArrayStart(src);
-    DataConstant* stop = start + src.size;
-    DataConstant* arrayRefs[src.size];
-    int arrayRefCount = 0;
-    for (DataConstant* curr = start; curr != stop; curr++) {
-        if (curr->type == Addr) {
-            copyAddr(*curr, destPtr, dest);
-            arrayRefs[arrayRefCount++] = curr;
-        }
-        else
-            (*dest)[++(*destPtr)] = *curr;
-    }
-    if (arrayRefCount != 0)
-        copy.offset = *destPtr + 1;
-    for (int i = 0; i < arrayRefCount; i++) {
-        (*dest)[++(*destPtr)] = *(arrayRefs[i]);
-    }
-    return copy;
+   return partialCopyAddr(src, 0, src.length, destPtr, dest);
 }
 
 DataConstant partialCopyAddr(DataConstant src, int begin, int len, int* destPtr, DataConstant** dest) {

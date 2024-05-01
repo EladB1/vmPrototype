@@ -159,29 +159,6 @@ void storeValue(VM* vm) {
     }
 }
 
-void handleArrayReturn(VM* vm, DataConstant* returnValue, DataConstant* source, Frame* target) {
-    if (returnValue->value.address == vm->globals)
-        return;
-    int offset = returnValue->offset;
-    returnValue->offset = returnValue->size == 0 ? target->lp : target->lp + 1;
-    returnValue->value.address = target->locals;
-    DataConstant* arrayRefs[returnValue->size];
-    int arrayRefCount = 0;
-    for (int i = offset; i < offset + returnValue->size; i++) {
-        if (source[i].type == Addr) {
-            handleArrayReturn(vm, &source[i], source, target);
-            arrayRefs[arrayRefCount++] = &source[i];
-        }
-        else
-            target->locals[++(target->lp)] = source[i];
-    }
-    if (arrayRefCount != 0)
-        returnValue->offset = returnValue->size == 0 ? target->lp : target->lp + 1;
-    for (int i = 0; i < arrayRefCount; i++) {
-        target->locals[++(target->lp)] = *(arrayRefs[i]);
-    }
-}
-
 void convertLocalArrayToGlobal(VM* vm, DataConstant* array) {
     if (array->value.address == vm->globals)
         return;
@@ -204,19 +181,6 @@ void convertLocalArrayToGlobal(VM* vm, DataConstant* array) {
     for (int i = 0; i < arrayRefCount; i++) {
         vm->globals[++(vm->gp)] = *(arrayRefs[i]);
     }
-}
-
-void removeFromLocals(Frame* frame, DataConstant* array, int offset) {
-    if (array->size == 0)
-        return;
-    for (int i = offset + array->size - 1; i >= offset; i--) {
-        if (frame->locals[i].type == Addr) {
-            frame->lp -= frame->locals[i].size;
-            //removeFromLocals(frame, &frame->locals[i], frame->locals[i].offset);
-        }
-    }
-    memmove(&frame->locals[offset], &frame->locals[offset + array->size], sizeof(DataConstant) * (frame->lp + 1 - array->size));
-    frame->lp -= array->size;
 }
 
 ExitCode run(VM* vm, bool verbose) {
@@ -490,9 +454,7 @@ ExitCode run(VM* vm, bool verbose) {
             }
             value = pop(vm);
             if (value.type == Addr) {
-                int offset = value.offset;
-                convertLocalArrayToGlobal(vm, &value);
-                removeFromLocals(currentFrame, &value, offset);
+                value = copyAddr(value, &vm->gp, &vm->globals);
             }
             next = peekNext(vm);
             if (isInt(next)) { // overwrite the value of an existing variable
@@ -618,8 +580,8 @@ ExitCode run(VM* vm, bool verbose) {
             Frame* caller = vm->callStack[--vm->fp];
             setPC(caller, addr);
             if (rval.type != None) {
-                if (rval.type == Addr) {
-                    handleArrayReturn(vm, &rval, currentFrame->locals, caller);
+                if (rval.type == Addr && rval.value.address != vm->globals) {
+                    rval = copyAddr(rval, &caller->lp, &caller->locals);
                 }
                 push(vm, rval);
             }

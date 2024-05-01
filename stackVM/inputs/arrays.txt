@@ -77,7 +77,10 @@ test_multidimensional_array:
     CALL println 1
     GSTORE
     GLOAD 17
-    COPYARR
+    ;LOAD_CONST 2
+    ;AGET
+    ;CALL println 1
+    ;COPYARR
     RET
 
 
@@ -94,10 +97,9 @@ test_slice_multidimensional:
     BUILDARR 3 3
     BUILDARR 3 3
     CALL _slice_a 3
-    ;DUP
-    ;CALL println 1
-    ;COPYARR
-    ;LOAD_CONST NONE
+    DUP
+    CALL println 1
+    COPYARR
     RET
     
 
