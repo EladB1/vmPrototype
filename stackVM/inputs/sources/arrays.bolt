@@ -1,0 +1,45 @@
+const int globVal = -1;
+Array<int> val[3];
+
+fn _func(): Array<int> {
+    Array<int> arr[3] = {4, 3};
+    return arr;
+}
+
+fn test_copy_arr(Array<int> array) {
+    println(sort(reverse(array)));
+    println(array);
+}
+
+fn test_get_and_write(Array<int> array, int index, int value) {
+    println(array[index]);
+    println(array);
+    array[index] = value;
+    println(array);
+    getType(array);
+}
+
+fn test_slice_arr(Array<int> array) {
+    println(slice(array, 1));
+}
+
+fn test_remove_all_values() {
+    const Array<int> arr = {4, 3, 3, 2, 3};
+    println(arr);
+    println(remove_all_values(arr, 3));
+}
+
+fn test_multidimensional_array(): Array<Array<int>> {
+    const Array<Array<int>> mda[3][3] = {{2, 3}, {}, {4, 5, 6}};
+    return mda;
+}
+
+fn main(): int {
+    vals = _func();
+    test_copy_arr(vals);
+    test_get_and_write(vals, 2, 0);
+    test_slice_arr(vals);
+    test_remove_all_values();
+    println(test_multidimensional_array());
+    return 0;
+}

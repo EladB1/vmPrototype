@@ -604,6 +604,86 @@ Test(VM, runWithFunctionCall_addWithReturn) {
     cr_free(src);
 }
 
+Test(VM, runWithFunctionCall_arrayReturn) {
+    char* labels[2] = {"test", "_entry"};
+    char* bodies[2] = {
+        "LOAD_CONST 2 LOAD_CONST 1 BUILDARR 2 2 RET",
+        "LOAD_CONST true STORE CALL test 0 HALT"
+    };
+    int jumpCounts[2] = {0, 0};
+    JumpPoint* jumps[2] = {(JumpPoint[]) {}, (JumpPoint[]) {}};
+    SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 2);
+
+    VM* vm = init(src);
+    bool verbose = false;
+    if (verbose)
+        displayCode(src);
+    ExitCode status = run(vm, verbose);
+
+    cr_expect_eq(status, success);
+    cr_expect_eq(vm->fp, 0);
+    Frame* frame = vm->callStack[0];
+    cr_expect_eq(frame->instructions->length, 7);
+    cr_expect_eq(frame->pc, 7);
+    cr_expect_eq(frame->sp, 0);
+    cr_expect_eq(frame->lp, 2);
+
+    cr_expect_eq(frame->stack[0].type, Addr);
+    cr_expect_eq(frame->stack[0].value.address, frame->locals);
+    cr_expect_eq(frame->stack[0].offset, 1);
+    cr_expect_eq(frame->stack[0].size, 2);
+    cr_expect_eq(frame->stack[0].length, 2);
+    
+    cr_expect_eq(frame->locals[1].value.intVal, 1);
+    cr_expect_eq(frame->locals[2].value.intVal, 2);
+
+    destroy(vm);
+    cr_free(src);
+}
+
+Test(VM, runWithFunctionCall_nestedArrayReturn) {
+    char* labels[2] = {"test", "_entry"};
+    char* bodies[2] = {
+        "LOAD_CONST 2 LOAD_CONST 1 BUILDARR 2 2 BUILDARR 2 1 RET",
+        "LOAD_CONST true STORE CALL test 0 HALT"
+    };
+    int jumpCounts[2] = {0, 0};
+    JumpPoint* jumps[2] = {(JumpPoint[]) {}, (JumpPoint[]) {}};
+    SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 2);
+
+    VM* vm = init(src);
+    bool verbose = false;
+    if (verbose)
+        displayCode(src);
+    ExitCode status = run(vm, verbose);
+
+    cr_expect_eq(status, success);
+    cr_expect_eq(vm->fp, 0);
+    Frame* frame = vm->callStack[0];
+    cr_expect_eq(frame->instructions->length, 7);
+    cr_expect_eq(frame->pc, 7);
+    cr_expect_eq(frame->sp, 0);
+    cr_expect_eq(frame->lp, 4);
+
+    cr_expect_eq(frame->stack[0].type, Addr);
+    cr_expect_eq(frame->stack[0].value.address, frame->locals);
+    cr_expect_eq(frame->stack[0].offset, 3);
+    cr_expect_eq(frame->stack[0].size, 2);
+    cr_expect_eq(frame->stack[0].length, 1);
+
+    cr_expect_eq(frame->locals[1].value.intVal, 1);
+    cr_expect_eq(frame->locals[2].value.intVal, 2);
+    cr_expect_eq(frame->locals[3].type, Addr);
+    cr_expect_eq(frame->locals[3].value.address, frame->locals);
+    cr_expect_eq(frame->locals[3].offset, 1);
+    cr_expect_eq(frame->locals[3].size, 2);
+    cr_expect_eq(frame->locals[3].length, 2);
+    cr_expect_eq(frame->locals[4].type, None);
+
+    destroy(vm);
+    cr_free(src);
+}
+
 Test(VM, runUknownFunction, .init = cr_redirect_stderr) {
     testRuntimeError("CALL asdf 0 HALT", "Error: could not find function 'asdf'\n", unknown_bytecode, false);
 }
@@ -629,13 +709,14 @@ Test(VM, runArrayGet) {
     cr_expect_eq(frame->instructions->length, 11);
     cr_expect_eq(frame->pc, 11);
     cr_expect_eq(frame->sp, 0);
-    cr_expect_eq(vm->gp, 4);
+    cr_expect_eq(vm->gp, -1);
+    cr_expect_eq(frame->lp, 4);
 
     cr_expect(isEqual(frame->stack[0], createInt(2)));
-    cr_expect(isEqual(vm->globals[0], createInt(1)));
-    cr_expect(isEqual(vm->globals[1], createInt(2)));
+    cr_expect(isEqual(frame->locals[0], createInt(1)));
+    cr_expect(isEqual(frame->locals[1], createInt(2)));
     for (int i = 2; i < 5; i++) {
-        cr_expect_eq(vm->globals[i].type, None);
+        cr_expect_eq(frame->locals[i].type, None);
     }
 
     destroy(vm);
@@ -663,15 +744,16 @@ Test(VM, buildArrayOneParam) {
     cr_expect_eq(frame->instructions->length, 5);
     cr_expect_eq(frame->pc, 5);
     cr_expect_eq(frame->sp, 1);
-    cr_expect_eq(vm->gp, 1);
+    cr_expect_eq(vm->gp, -1);
+    cr_expect_eq(frame->lp, 1);
 
     cr_expect(isEqual(frame->stack[0], createInt(2)));
     cr_expect_eq(frame->stack[1].type, Addr);
     cr_expect_eq(frame->stack[1].length, 0);
     cr_expect_eq(frame->stack[1].size, 2);
-    cr_expect_eq(frame->stack[1].value.intVal, 0);
-    cr_expect_eq(vm->globals[0].type, None);
-    cr_expect_eq(vm->globals[1].type, None);
+    cr_expect_eq(frame->stack[1].offset, 0);
+    cr_expect_eq(frame->locals[0].type, None);
+    cr_expect_eq(frame->locals[1].type, None);
 
     destroy(vm);
     cr_free(src);
@@ -680,7 +762,7 @@ Test(VM, buildArrayOneParam) {
 Test(VM, runArrayWrite) {
     char* labels[1] = {"_entry"};
     char* bodies[1] = {
-        "LOAD_CONST 2 LOAD_CONST 1 BUILDARR 5 2 STORE LOAD_CONST 0 LOAD 0 LOAD_CONST 1 ASTORE STORE 0 LOAD_CONST 4 LOAD 0 LOAD_CONST 2 ASTORE STORE 0 HALT"
+        "LOAD_CONST 2 LOAD_CONST 1 BUILDARR 5 2 STORE LOAD_CONST 0 LOAD 5 LOAD_CONST 1 ASTORE STORE 5 LOAD_CONST 4 LOAD 5 LOAD_CONST 2 ASTORE STORE 5 HALT"
     };
     int jumpCounts[1] = {0};
     JumpPoint* jumps[1] = {(JumpPoint[]) {}};
@@ -699,18 +781,19 @@ Test(VM, runArrayWrite) {
  
     cr_expect_eq(frame->pc, 27);
     cr_expect_eq(frame->sp, -1);
-    cr_expect_eq(frame->lp, 0);
-    cr_expect_eq(vm->gp, 4);
+    cr_expect_eq(vm->gp, -1);
+    cr_expect_eq(frame->lp, 5);
 
-    cr_expect_eq(frame->locals[0].type, Addr);
-    cr_expect_eq(frame->locals[0].value.intVal, 0);
-    cr_expect_eq(frame->locals[0].length, 3);
-    cr_expect_eq(frame->locals[0].size, 5);
-    cr_expect(isEqual(vm->globals[0], createInt(1)));
-    cr_expect(isEqual(vm->globals[1], createInt(0)));
-    cr_expect(isEqual(vm->globals[2], createInt(4)));
+    cr_expect_eq(frame->locals[5].type, Addr);
+    cr_expect_eq(frame->locals[5].value.address, frame->locals);
+    cr_expect_eq(frame->locals[5].offset, 0);
+    cr_expect_eq(frame->locals[5].length, 3);
+    cr_expect_eq(frame->locals[5].size, 5);
+    cr_expect(isEqual(frame->locals[0], createInt(1)));
+    cr_expect(isEqual(frame->locals[1], createInt(0)));
+    cr_expect(isEqual(frame->locals[2], createInt(4)));
     for (int i = 3; i < 5; i++) {
-        cr_expect_eq(vm->globals[i].type, None);
+        cr_expect_eq(frame->locals[i].type, None);
     }
 
     destroy(vm);
@@ -739,21 +822,23 @@ Test(VM, runArrayConcat) {
  
     cr_expect_eq(frame->pc, 16);
     cr_expect_eq(frame->sp, 0);
-    cr_expect_eq(vm->gp, 9);
+    cr_expect_eq(vm->gp, -1);
+    cr_expect_eq(frame->lp, 9);
 
     cr_expect_eq(frame->stack[0].type, Addr);
     cr_expect_eq(frame->stack[0].length, 4);
     cr_expect_eq(frame->stack[0].size, 5);
-    cr_expect(isEqual(vm->globals[0], createInt(1)));
-    cr_expect(isEqual(vm->globals[1], createInt(2)));
-    cr_expect_eq(vm->globals[2].type, None);
-    cr_expect(isEqual(vm->globals[3], createInt(0)));
-    cr_expect(isEqual(vm->globals[4], createInt(1)));
-    cr_expect(isEqual(vm->globals[5], createInt(1)));
-    cr_expect(isEqual(vm->globals[6], createInt(2)));
-    cr_expect(isEqual(vm->globals[7], createInt(0)));
-    cr_expect(isEqual(vm->globals[8], createInt(1)));
-    cr_expect_eq(vm->globals[9].type, None);
+
+    cr_expect(isEqual(frame->locals[0], createInt(1)));
+    cr_expect(isEqual(frame->locals[1], createInt(2)));
+    cr_expect_eq(frame->locals[2].type, None);
+    cr_expect(isEqual(frame->locals[3], createInt(0)));
+    cr_expect(isEqual(frame->locals[4], createInt(1)));
+    cr_expect(isEqual(frame->locals[5], createInt(1)));
+    cr_expect(isEqual(frame->locals[6], createInt(2)));
+    cr_expect(isEqual(frame->locals[7], createInt(0)));
+    cr_expect(isEqual(frame->locals[8], createInt(1)));
+    cr_expect_eq(frame->locals[9].type, None);
 
     destroy(vm);
     cr_free(src);
@@ -781,20 +866,150 @@ Test(VM, runArrayCopy) {
  
     cr_expect_eq(frame->pc, 10);
     cr_expect_eq(frame->sp, 1);
-    cr_expect_eq(vm->gp, 3);
+    cr_expect_eq(vm->gp, -1);
+    cr_expect_eq(frame->lp, 3);
 
     cr_expect_eq(frame->stack[0].type, Addr);
-    cr_expect_eq(frame->stack[0].value.intVal, 0);
+    cr_expect_eq(frame->stack[0].offset, 0);
     cr_expect_eq(frame->stack[0].length, 2);
     cr_expect_eq(frame->stack[0].size, 2);
     cr_expect_eq(frame->stack[1].type, Addr);
-    cr_expect_eq(frame->stack[1].value.intVal, 2);
+    cr_expect_eq(frame->stack[1].offset, 2);
     cr_expect_eq(frame->stack[1].length, 2);
     cr_expect_eq(frame->stack[1].size, 2);
-    cr_expect(isEqual(vm->globals[0], createInt(1)));
-    cr_expect(isEqual(vm->globals[1], createInt(2)));
-    cr_expect(isEqual(vm->globals[2], createInt(1)));
-    cr_expect(isEqual(vm->globals[3], createInt(2)));
+    cr_expect(isEqual(frame->locals[0], createInt(1)));
+    cr_expect(isEqual(frame->locals[1], createInt(2)));
+    cr_expect(isEqual(frame->locals[2], createInt(1)));
+    cr_expect(isEqual(frame->locals[3], createInt(2)));
+
+    destroy(vm);
+    cr_free(src);
+}
+
+Test(VM, runArrayGlobalStore) {
+    char* labels[1] = {"_entry"};
+    char* bodies[1] = {
+        "LOAD_CONST 3.14 GSTORE LOAD_CONST 2 LOAD_CONST 1 BUILDARR 5 2 GSTORE HALT"
+    };
+    int jumpCounts[1] = {0};
+    JumpPoint* jumps[1] = {(JumpPoint[]) {}};
+    SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 1);
+
+    VM* vm = init(src);
+    bool verbose = false;
+    if (verbose)
+        displayCode(src);
+    ExitCode status = run(vm, verbose);
+
+    cr_expect_eq(status, success);
+    cr_expect_eq(vm->fp, 0);
+    Frame* frame = vm->callStack[0];
+    cr_expect_eq(frame->instructions->length, 12);
+    cr_expect_eq(frame->pc, 12);
+    cr_expect_eq(frame->sp, -1);
+    cr_expect_eq(vm->gp, 6);
+    cr_expect_eq(frame->lp, 4);
+
+    cr_expect(isEqual(frame->locals[0], createInt(1)));
+    cr_expect(isEqual(frame->locals[1], createInt(2)));
+    for (int i = 2; i < 5; i++) {
+        cr_expect_eq(frame->locals[i].type, None);
+    }
+
+    cr_expect(isEqual(vm->globals[1], createInt(1)));
+    cr_expect(isEqual(vm->globals[2], createInt(2)));
+    for (int i = 3; i < 6; i++) {
+        cr_expect_eq(vm->globals[i].type, None);
+    }
+
+    cr_expect_eq(vm->globals[6].type, Addr);
+    cr_expect_eq(vm->globals[6].value.address, vm->globals);
+    cr_expect_eq(vm->globals[6].offset, 1);
+    cr_expect_eq(vm->globals[6].length, 2);
+    cr_expect_eq(vm->globals[6].size, 5);
+
+    destroy(vm);
+    cr_free(src);
+}
+
+Test(VM, runArrayGlobalStoreNested) {
+    char* labels[1] = {"_entry"};
+    char* bodies[1] = {
+        "LOAD_CONST 3.14 GSTORE LOAD_CONST 2 LOAD_CONST 1 BUILDARR 2 2 BUILDARR 2 0 LOAD_CONST 1 BUILDARR 2 1 BUILDARR 4 3 GSTORE HALT"
+    };
+    int jumpCounts[1] = {0};
+    JumpPoint* jumps[1] = {(JumpPoint[]) {}};
+    SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 1);
+
+    VM* vm = init(src);
+    bool verbose = false;
+    if (verbose)
+        displayCode(src);
+    ExitCode status = run(vm, verbose);
+
+    cr_expect_eq(status, success);
+    cr_expect_eq(vm->fp, 0);
+    Frame* frame = vm->callStack[0];
+    cr_expect_eq(frame->instructions->length, 23);
+    cr_expect_eq(frame->pc, 23);
+    cr_expect_eq(frame->sp, -1);
+    cr_expect_eq(vm->gp, 11);
+    cr_expect_eq(frame->lp, 9);
+
+    // locals
+    cr_expect(isEqual(frame->locals[0], createInt(1)));
+    cr_expect(isEqual(frame->locals[1], createInt(2)));
+    cr_expect_eq(frame->locals[2].type, None);
+    cr_expect_eq(frame->locals[3].type, None);
+    cr_expect(isEqual(frame->locals[4], createInt(1)));
+    cr_expect_eq(frame->locals[5].type, None);
+
+    cr_expect_eq(frame->locals[6].type, Addr);
+    // NOTE: GSTORE will change the local address to a global one for each nested array, but we don't need those values anymore so it doesn't matter
+    // cr_expect_eq(frame->locals[6].value.address, vm->globals);
+    cr_expect_eq(frame->locals[6].offset, 1);
+    cr_expect_eq(frame->locals[6].size, 2);
+    cr_expect_eq(frame->locals[6].length, 1);
+    cr_expect_eq(frame->locals[7].type, Addr);
+    cr_expect_eq(frame->locals[7].offset, 3);
+    cr_expect_eq(frame->locals[7].size, 2);
+    cr_expect_eq(frame->locals[7].length, 0);
+    cr_expect_eq(frame->locals[8].type, Addr);
+    cr_expect_eq(frame->locals[8].offset, 5);
+    cr_expect_eq(frame->locals[8].size, 2);
+    cr_expect_eq(frame->locals[8].length, 2);
+    cr_expect_eq(frame->locals[9].type, None);
+
+    // globals
+    cr_expect(isEqual(vm->globals[1], createInt(1)));
+    cr_expect_eq(vm->globals[2].type, None);
+    cr_expect_eq(vm->globals[3].type, None);
+    cr_expect_eq(vm->globals[4].type, None);
+    cr_expect(isEqual(vm->globals[5], createInt(1)));
+    cr_expect(isEqual(vm->globals[6], createInt(2)));
+
+    cr_expect_eq(vm->globals[7].type, Addr);
+    cr_expect_eq(vm->globals[7].value.address, vm->globals);
+    cr_expect_eq(vm->globals[7].offset, 1);
+    cr_expect_eq(vm->globals[7].size, 2);
+    cr_expect_eq(vm->globals[7].length, 1);
+    cr_expect_eq(vm->globals[8].type, Addr);
+    cr_expect_eq(vm->globals[8].value.address, vm->globals);
+    cr_expect_eq(vm->globals[8].offset, 3);
+    cr_expect_eq(vm->globals[8].size, 2);
+    cr_expect_eq(vm->globals[8].length, 0);
+    cr_expect_eq(vm->globals[9].type, Addr);
+    cr_expect_eq(vm->globals[9].value.address, vm->globals);
+    cr_expect_eq(vm->globals[9].offset, 5);
+    cr_expect_eq(vm->globals[9].size, 2);
+    cr_expect_eq(vm->globals[9].length, 2);
+    cr_expect_eq(vm->globals[10].type, None);
+
+    cr_expect_eq(vm->globals[11].type, Addr);
+    cr_expect_eq(vm->globals[11].value.address, vm->globals);
+    cr_expect_eq(vm->globals[11].offset, 7);
+    cr_expect_eq(vm->globals[11].size, 4);
+    cr_expect_eq(vm->globals[11].length, 3);
 
     destroy(vm);
     cr_free(src);

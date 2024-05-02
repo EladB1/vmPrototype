@@ -60,11 +60,11 @@ bool isBuiltinFunction(char* name) {
     return false;
 }
 
-DataConstant callBuiltinFunction(char* name, int argc, DataConstant* params, int* globCount, DataConstant** globals, ExitCode* vmState) {
+DataConstant callBuiltinFunction(char* name, int argc, DataConstant* params, int* lp, DataConstant** locals, ExitCode* vmState) {
     if (strcmp(name, "print") == 0)
-        print(params[0], *globals, false);
+        print(params[0], false);
     if (strcmp(name, "println") == 0)
-        print(params[0], *globals, true);
+        print(params[0], true);
     if (strcmp(name, "printerr") == 0) {
         if (argc == 1)
             printerr(params[0], false, 0);
@@ -78,7 +78,7 @@ DataConstant callBuiltinFunction(char* name, int argc, DataConstant* params, int
     if (strcmp(name, "capacity") == 0)
         return createInt(params[0].size);
     if (strcmp(name, "getType") == 0)
-        return createString(getType(params[0], *globals));
+        return createString(getType(params[0]));
     if (strcmp(name, "max") == 0)
         return getMax(params[0], params[1]);
     if (strcmp(name, "min") == 0)
@@ -95,48 +95,48 @@ DataConstant callBuiltinFunction(char* name, int argc, DataConstant* params, int
     if (strcmp(name, "_slice_a") == 0) {
         DataConstant array = params[0];
         int end = argc == 2 ? array.length : params[2].value.intVal;
-        return sliceArr(array, params[1].value.intVal, end, globCount, globals, vmState);
+        return sliceArr(array, params[1].value.intVal, end, lp, locals, vmState);
     }
     if (strcmp(name, "append") == 0) {
         DataConstant array = params[0];
-        append(&array, params[1], globals, vmState);
+        append(&array, params[1], vmState);
         return array;
     }
     if (strcmp(name, "prepend") == 0) {
         DataConstant array = params[0];
-        prepend(&array, params[1], globals, vmState);
+        prepend(&array, params[1], vmState);
         return array;
     }
     if (strcmp(name, "insert") == 0) {
         DataConstant array = params[0];
-        insert(&array, params[1], params[2].value.intVal, globals, vmState);
+        insert(&array, params[1], params[2].value.intVal, vmState);
         return array;
     }
     if (strcmp(name, "_remove_indx_a") == 0) {
         int index = params[1].value.intVal;
-        removeByIndex(&params[0], index, globals, vmState);
+        removeByIndex(&params[0], index, vmState);
         return params[0];
     }
     if (strcmp(name, "_remove_val_a") == 0) {
-        int index = indexOf(params[0], params[1], *globals);
+        int index = indexOf(params[0], params[1]);
         if (index != -1)
-            removeByIndex(&params[0], index, globals, vmState);
+            removeByIndex(&params[0], index, vmState);
         return params[0];
     }
     if (strcmp(name, "_remove_all_val_a") == 0) {
-        int index = indexOf(params[0], params[1], *globals);
+        int index = indexOf(params[0], params[1]);
         while (index != -1) {
-            removeByIndex(&params[0], index, globals, vmState);
-            index = indexOf(params[0], params[1], *globals);
+            removeByIndex(&params[0], index, vmState);
+            index = indexOf(params[0], params[1]);
         }
         return params[0];
     }
     if (strcmp(name, "_contains_s") == 0)
         return createBoolean(contains(params[0].value.strVal, params[1].value.strVal));
     if (strcmp(name, "_contains_a") == 0)
-        return createBoolean(arrayContains(params[0], params[1], *globals));
+        return createBoolean(arrayContains(params[0], params[1]));
     if (strcmp(name, "indexOf") == 0)
-        return createInt(indexOf(params[0], params[1], *globals));
+        return createInt(indexOf(params[0], params[1]));
     if (strcmp(name, "toString") == 0)
         return createString(toString(params[0]));
     if (strcmp(name, "_toInt_s") == 0)
@@ -151,16 +151,16 @@ DataConstant callBuiltinFunction(char* name, int argc, DataConstant* params, int
         return createString(at(params[0].value.strVal, params[1].value.intVal, vmState));
     if (strcmp(name, "join") == 0) {
         char* delim = argc == 1 ? "" : params[1].value.strVal;
-        return createString(join(params[0], delim, *globals));
+        return createString(join(params[0], delim));
     }
     if (strcmp(name, "_reverse_s") == 0)
         return createString(reverse(params[0].value.strVal));
     if (strcmp(name, "_reverse_a") == 0) {
-        reverseArr(params[0], globals);
+        reverseArr(params[0]);
         return params[0];
     }
     if (strcmp(name, "sort") == 0)
-        sort(params[0], *globals);
+        sort(params[0]);
     if (strcmp(name, "sleep") == 0)
         sleep_(params[0]);
     if (strcmp(name, "exit") == 0) {
@@ -173,7 +173,7 @@ DataConstant callBuiltinFunction(char* name, int argc, DataConstant* params, int
     if (strcmp(name, "createFile") == 0)
         createFile(params[0].value.strVal, vmState);
     if (strcmp(name, "readFile") == 0)
-        return readFile(params[0].value.strVal, globCount, globals, vmState);
+        return readFile(params[0].value.strVal, lp, locals, vmState);
     if (strcmp(name, "writeToFile") == 0)
         writeToFile(params[0].value.strVal, params[1].value.strVal, "w", vmState);
     if (strcmp(name, "appendToFile") == 0)
