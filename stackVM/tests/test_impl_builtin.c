@@ -43,6 +43,27 @@ ParameterizedTest(getTypeInput* input, impl_builtin, print_non_array, .init = cr
     cr_assert_stdout_eq_str(input->result);
 }
 
+
+Test(impl_builtin, print_empty_array, .init = cr_redirect_stdout) {
+        DataConstant* fakeLocals = (DataConstant [1]) {createNone()};
+        DataConstant addr = createAddr(fakeLocals, 0, 1, 0);
+
+        setbuf(stdout, NULL);
+        print(addr, true);
+        cr_assert_stdout_eq_str("[]\n");
+}
+
+Test(impl_builtin, print_array, .init = cr_redirect_stdout, .disabled = true) {
+        // NOTE: this test fails due to a bug with cr_assert_stdout_eq_str so skipping it
+        DataConstant* fakeLocals = (DataConstant [1]) {createInt(5)};
+        DataConstant addr = createAddr(fakeLocals, 0, 1, 1);
+
+        setbuf(stdout, NULL);
+        print(addr, true);
+        logStdout(cr_get_redirected_stdout());
+        cr_assert_stdout_eq_str("[5]\n");
+}
+
 Test(impl_builtin, printerr_non_terminating, .init = cr_redirect_stderr, .exit_code = 0) {
     DataConstant message = createString("Could not open socket");
     printerr(message, false, 1);

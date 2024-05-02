@@ -26,3 +26,17 @@ SourceCode* createSource(char** labels, char** bodies, int* jumpCounts, JumpPoin
     src = &code;
     return src;
 }
+
+void logStdout(FILE* stdout) {
+    char buff[1024];
+    while(fgets(buff, 1024, stdout)) {
+        cr_log_info("STDOUT: %s", buff);
+    }
+}
+
+void logStderr(FILE* stderr) {
+    char buff[1024];
+    while(fgets(buff, 1024, stderr)) {
+        cr_log_info("STDERR: %s", buff);
+    }
+}
