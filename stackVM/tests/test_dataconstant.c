@@ -91,10 +91,13 @@ Test(DataConstant, createNone) {
 }
 
 Test(DataConstant, createAddr) {
-    DataConstant data = createAddr(0, 12, 10);
-    cr_expect(data.type == Addr);
-    cr_expect(data.size == 12);
-    cr_expect(data.length == 10);
+    DataConstant* locals = (DataConstant[]) {createBoolean(true)};
+    DataConstant data = createAddr(locals, 1, 12, 10);
+    cr_expect_eq(data.type, Addr);
+    cr_expect_eq((DataConstant *) data.value.address, locals);
+    cr_expect_eq(data.offset, 1);
+    cr_expect_eq(data.size, 12);
+    cr_expect_eq(data.length, 10);
 }
 
 typedef struct {
@@ -114,16 +117,21 @@ void free_toString_input(struct criterion_test_params* inputs) {
 }
 
 ParameterizedTestParameters(DataConstant, toString) {
+    DataConstant* locals = (DataConstant[]) {};
+    char* arrayToString;
+    cr_asprintf(&arrayToString, "%p (10)", locals + 15);
     size_t count = 8;
     toStringInput* values = cr_malloc(sizeof(toStringInput) * count);
+
     values[0] = (toStringInput) {createInt(10), cr_strdup("10")};
     values[1] = (toStringInput) {createDouble(2.78), cr_strdup("2.780000")};
     values[2] = (toStringInput) {createBoolean(true), cr_strdup("true")};
     values[3] = (toStringInput) {createBoolean(false), cr_strdup("false")};
     values[4] = (toStringInput) {createString(cr_strdup("Hello")), cr_strdup("\"Hello\"")};
-    values[5] = (toStringInput) {createAddr(15, 10, 4), cr_strdup("0xf (10)")};
-    values[6] = (toStringInput) {createNull(), cr_strdup("null")};
-    values[7] = (toStringInput) {createNone(), cr_strdup("None")};
+    values[5] = (toStringInput) {createNull(), cr_strdup("null")};
+    values[6] = (toStringInput) {createNone(), cr_strdup("None")};
+    values[7] = (toStringInput) {createAddr(locals, 15, 10, 1), cr_strdup(arrayToString)};
+    cr_free(arrayToString);
     return cr_make_param_array(toStringInput, values, count, free_toString_input);
 }
 
@@ -301,12 +309,13 @@ Test(DataConstant, binaryArithmeticOperation_expZeroByNegative, .init = cr_redir
 Test(DataConstant, copyAddr) {
     DataConstant* globals = (DataConstant[4]){createInt(1), createInt(5)};
     int globIndex = 1;
-    DataConstant addr = createAddr(0, 2, 2);
+    DataConstant addr = createAddr(globals, 0, 2, 2);
     DataConstant copy = copyAddr(addr, &globIndex, &globals);
     cr_expect_eq(copy.type, Addr);
     cr_expect_eq(copy.size, 2);
     cr_expect_eq(copy.length, 2);
-    cr_expect_eq(copy.value.intVal, 2);
+    cr_expect_eq((DataConstant *) copy.value.address, globals);
+    cr_expect_eq(copy.offset, 2);
     cr_expect(isEqual(globals[2], globals[0]));
     cr_expect(isEqual(globals[3], globals[1]));
     cr_expect_eq(globIndex, 3);
@@ -315,12 +324,13 @@ Test(DataConstant, copyAddr) {
 Test(DataConstant, partialCopyAddr) {
     DataConstant* globals = (DataConstant[4]){createInt(1), createInt(5)};
     int globIndex = 1;
-    DataConstant addr = createAddr(0, 2, 2);
+    DataConstant addr = createAddr(globals, 0, 2, 2);
     DataConstant copy = partialCopyAddr(addr, 0, 1, &globIndex, &globals);
     cr_expect_eq(copy.type, Addr);
     cr_expect_eq(copy.size, 2);
     cr_expect_eq(copy.length, 1);
-    cr_expect_eq(copy.value.intVal, 2);
+    cr_expect_eq((DataConstant *) copy.value.address, globals);
+    cr_expect_eq(copy.offset, 2);
     cr_expect(isEqual(globals[2], globals[0]));
     cr_expect_eq(globals[3].type, None);
     cr_expect_eq(globIndex, 3);
@@ -329,12 +339,13 @@ Test(DataConstant, partialCopyAddr) {
 Test(DataConstant, expandExistingAddr) {
     DataConstant* globals = (DataConstant[6]){createInt(1), createInt(5)};
     int globIndex = 1;
-    DataConstant addr = createAddr(0, 2, 2);
+    DataConstant addr = createAddr(globals, 0, 2, 2);
     DataConstant copy = expandExistingAddr(addr, 4, &globIndex, &globals);
     cr_expect_eq(copy.type, Addr);
     cr_expect_eq(copy.size, 4);
     cr_expect_eq(copy.length, 2);
-    cr_expect_eq(copy.value.intVal, 2);
+    cr_expect_eq((DataConstant *) copy.value.address, globals);
+    cr_expect_eq(copy.offset, 2);
     cr_expect(isEqual(globals[2], globals[0]));
     cr_expect(isEqual(globals[3], globals[1]));
     cr_expect_eq(globals[4].type, None);

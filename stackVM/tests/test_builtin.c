@@ -72,46 +72,48 @@ Test(builtin, slice_string_three_params) {
 
 Test(builtin, slice_array_two_params) {
     ExitCode vmState = success;
-    DataConstant* globals = (DataConstant[6]) {createInt(4), createInt(2), createInt(1)};
-    int globCount = 2;
-    DataConstant params[2] = {createAddr(0, 3, 3), createInt(1)};
-    DataConstant result = callBuiltinFunction("_slice_a", 2, params, &globCount, &globals, &vmState);
+    DataConstant* locals = (DataConstant[6]) {createInt(4), createInt(2), createInt(1)};
+    int lp = 2;
+    DataConstant params[2] = {createAddr(locals, 0, 3, 3), createInt(1)};
+    DataConstant result = callBuiltinFunction("_slice_a", 2, params, &lp, &locals, &vmState);
     cr_expect_eq(result.length, 2);
     cr_expect_eq(result.size, 3);
-    cr_expect_eq(result.value.intVal, 3);
-    cr_expect_eq(globCount, 5);
-    cr_expect_eq(globals[5].type, None);
+    cr_expect_eq((DataConstant *) result.value.address, locals);
+    cr_expect_eq(result.offset, 3);
+    cr_expect_eq(lp, 5);
+    cr_expect_eq(locals[5].type, None);
 }
 
 Test(builtin, slice_array_three_params) {
     ExitCode vmState = success;
-    DataConstant* globals = (DataConstant[8]) {createInt(8), createInt(4), createInt(2), createInt(1)};
-    int globCount = 3;
-    DataConstant params[3] = {createAddr(0, 4, 4), createInt(1), createInt(3)};
-    DataConstant result = callBuiltinFunction("_slice_a", 3, params, &globCount, &globals, &vmState);
+    DataConstant* locals = (DataConstant[8]) {createInt(8), createInt(4), createInt(2), createInt(1)};
+    int lp = 3;
+    DataConstant params[3] = {createAddr(locals, 0, 4, 4), createInt(1), createInt(3)};
+    DataConstant result = callBuiltinFunction("_slice_a", 3, params, &lp, &locals, &vmState);
     cr_expect_eq(result.length, 2);
     cr_expect_eq(result.size, 4);
-    cr_expect_eq(result.value.intVal, 4);
-    cr_expect_eq(globCount, 7);
-    cr_expect_eq(globals[7].type, None);
+    cr_expect_eq((DataConstant *) result.value.address, locals);
+    cr_expect_eq(result.offset, 4);
+    cr_expect_eq(lp, 7);
+    cr_expect_eq(locals[7].type, None);
 }
 
 // _remove_val_a
 Test(builtin, remove_value_array_not_found) {
     ExitCode vmState = success;
-    int globCount = 2;
-    DataConstant* globals = (DataConstant[]) {createDouble(3.14), createDouble(2.718)};
-    DataConstant params[2] = {createAddr(0, 2, 2), createDouble(-9.8)};
-    DataConstant result = callBuiltinFunction("_remove_val_a", 2, params, &globCount, &globals, &vmState);
+    int lp = 2;
+    DataConstant* locals = (DataConstant[]) {createDouble(3.14), createDouble(2.718)};
+    DataConstant params[2] = {createAddr(locals, 0, 2, 2), createDouble(-9.8)};
+    DataConstant result = callBuiltinFunction("_remove_val_a", 2, params, &lp, &locals, &vmState);
     cr_expect_eq(result.length, params[0].length); // nothing happens
 }
 
 Test(builtin, remove_value_array_found) {
     ExitCode vmState = success;
-    int globCount = 2;
-    DataConstant* globals = (DataConstant[]) {createDouble(3.14), createDouble(2.718)};
-    DataConstant params[2] = {createAddr(0, 2, 2), createDouble(2.718)};
-    DataConstant result = callBuiltinFunction("_remove_val_a", 2, params, &globCount, &globals, &vmState);
+    int lp = 2;
+    DataConstant* locals = (DataConstant[]) {createDouble(3.14), createDouble(2.718)};
+    DataConstant params[2] = {createAddr(locals, 0, 2, 2), createDouble(2.718)};
+    DataConstant result = callBuiltinFunction("_remove_val_a", 2, params, &lp, &locals, &vmState);
     cr_expect_eq(result.length, 1);
 }
 
@@ -119,34 +121,34 @@ Test(builtin, remove_value_array_found) {
 Test(builtin, remove_all_values_array_found) {
     ExitCode vmState = success;
     DataConstant math_e = createDouble(2.718);
-    int globCount = 5;
-    DataConstant* globals = (DataConstant[]) {math_e, createDouble(3.14), math_e, math_e, createDouble(-9.8)};
-    DataConstant params[2] = {createAddr(0, 5, 5), math_e};
-    DataConstant result = callBuiltinFunction("_remove_all_val_a", 2, params, &globCount, &globals, &vmState);
+    int lp = 5;
+    DataConstant* locals = (DataConstant[]) {math_e, createDouble(3.14), math_e, math_e, createDouble(-9.8)};
+    DataConstant params[2] = {createAddr(locals, 0, 5, 5), math_e};
+    DataConstant result = callBuiltinFunction("_remove_all_val_a", 2, params, &lp, &locals, &vmState);
     cr_expect_eq(result.length, 2);
-    cr_expect_eq(globals[0].type, Dbl);
-    cr_expect_eq(globals[0].value.dblVal, 3.14);
-    cr_expect_eq(globals[1].type, Dbl);
-    cr_expect_eq(globals[1].value.dblVal, -9.8);
-    cr_expect_eq(globals[2].type, None);
+    cr_expect_eq(locals[0].type, Dbl);
+    cr_expect_eq(locals[0].value.dblVal, 3.14);
+    cr_expect_eq(locals[1].type, Dbl);
+    cr_expect_eq(locals[1].value.dblVal, -9.8);
+    cr_expect_eq(locals[2].type, None);
 }
 
 // join
 Test(builtin, join_single_param) {
     ExitCode vmState = success;
-    int globCount = 3;
-    DataConstant* globals = (DataConstant[]) {createString("a"), createString("b"), createString("c")};
-    DataConstant params[1] = {createAddr(0, globCount, globCount)};
-    DataConstant result = callBuiltinFunction("join", 1, params, &globCount, &globals, &vmState);
+    int lp = 3;
+    DataConstant* locals = (DataConstant[]) {createString("a"), createString("b"), createString("c")};
+    DataConstant params[1] = {createAddr(locals, 0, lp, lp)};
+    DataConstant result = callBuiltinFunction("join", 1, params, &lp, &locals, &vmState);
     cr_expect_str_eq(result.value.strVal, "abc");
 }
 
 Test(builtin, join_multiple_params) {
     ExitCode vmState = success;
-    int globCount = 3;
-    DataConstant* globals = (DataConstant[]) {createString("a"), createString("b"), createString("c")};
-    DataConstant params[2] = {createAddr(0, globCount, globCount), createString(",")};
-    DataConstant result = callBuiltinFunction("join", 2, params, &globCount, &globals, &vmState);
+    int lp = 3;
+    DataConstant* locals = (DataConstant[]) {createString("a"), createString("b"), createString("c")};
+    DataConstant params[2] = {createAddr(locals, 0, lp, lp), createString(",")};
+    DataConstant result = callBuiltinFunction("join", 2, params, &lp, &locals, &vmState);
     cr_expect_str_eq(result.value.strVal, "a,b,c");
 }
 

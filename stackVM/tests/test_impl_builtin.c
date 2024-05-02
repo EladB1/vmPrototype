@@ -38,9 +38,8 @@ ParameterizedTestParameters(impl_builtin, print_non_array) {
 
 /* NOTE: There is a bug with cr_assert_stdout_eq_str that doesn't handle printing without new line characters*/
 ParameterizedTest(getTypeInput* input, impl_builtin, print_non_array, .init = cr_redirect_stdout) {
-    DataConstant fakeGlobals[0] = {};
     setbuf(stdout, NULL);
-    print(input->dc, fakeGlobals, true);
+    print(input->dc, true);
     cr_assert_stdout_eq_str(input->result);
 }
 
@@ -57,6 +56,9 @@ Test(impl_builtin, printerr_terminating, .init = cr_redirect_stderr, .exit_code 
 }
 
 ParameterizedTestParameters(impl_builtin, getType) {
+    DataConstant* fakeLocals = cr_malloc(sizeof(DataConstant) * 2);
+    fakeLocals[0] = createInt(4);
+    fakeLocals[1] = createInt(2);
     size_t count = 8;
     getTypeInput* values = cr_malloc(sizeof(getTypeInput) * count);
     
@@ -66,15 +68,14 @@ ParameterizedTestParameters(impl_builtin, getType) {
     values[3] = (getTypeInput) {createString("whoami"), cr_strdup("string")};
     values[4] = (getTypeInput) {createNull(), cr_strdup("null")};
     values[5] = (getTypeInput) {createNone(), cr_strdup("None")};
-    values[6] = (getTypeInput) {createAddr(0, 2, 2), cr_strdup("Array<int>")};
-    values[7] = (getTypeInput) {(DataConstant) {8, (DataValue){}, 0, 0}, cr_strdup("Unknown")};
+    values[6] = (getTypeInput) {createAddr(fakeLocals, 0, 2, 2), cr_strdup("Array<int>")};
+    values[7] = (getTypeInput) {(DataConstant) {8, (DataValue){}, 0, 0, 0}, cr_strdup("Unknown")};
     return cr_make_param_array(getTypeInput, values, count, free_getTypeInput);
 
 }
 
 ParameterizedTest(getTypeInput* input, impl_builtin, getType) {
-    DataConstant fakeGlobals[2] = {createInt(4), createInt(2)};
-    char* result = getType(input->dc, fakeGlobals);
+    char* result = getType(input->dc);
     // cr_log_info("Result: %s\n", result);
     cr_expect_str_eq(result, input->result);
 }
@@ -247,9 +248,9 @@ Test(impl_builtin, renameFile_nonExistant, .init = cr_redirect_stderr) {
 Test(impl_builtin, readFile_nonExistant, .init = cr_redirect_stderr) {
     ExitCode vmState = success;
     cr_expect_not(fileExists(TESTFILE));
-    int globCount = 0;
-    DataConstant* globals = (DataConstant[]) {};
-    DataConstant read = readFile(TESTFILE, &globCount, &globals, &vmState);
+    int lp = 0;
+    DataConstant* locals = (DataConstant[]) {};
+    DataConstant read = readFile(TESTFILE, &lp, &locals, &vmState);
     cr_expect_eq(read.type, None);
     cr_expect_stderr_eq_str("FileError: Cannot read file '.temporary_testing_file.txt' because it does not exist\n");
     cr_expect_eq(vmState, file_err);
@@ -258,37 +259,37 @@ Test(impl_builtin, readFile_nonExistant, .init = cr_redirect_stderr) {
 Test(impl_builtin, writeAppendReadDeleteFile) {
     ExitCode vmState = success;
     cr_expect_not(fileExists(TESTFILE));
-    int globCount = -1;
-    DataConstant* globals = (DataConstant[]) {createNone(), createNone(), createNone(), createNone()}; // need to have a none value in there for test to pass
+    int lp = -1;
+    DataConstant* locals = (DataConstant[]) {createNone(), createNone(), createNone(), createNone()}; // need to have a none value in there for test to pass
     
     writeToFile(TESTFILE, "hello", "w", &vmState);
     cr_expect_eq(vmState, success);
     cr_expect(fileExists(TESTFILE));
-    DataConstant read1 = readFile(TESTFILE, &globCount, &globals, &vmState);
+    DataConstant read1 = readFile(TESTFILE, &lp, &locals, &vmState);
     cr_expect_eq(vmState, success);
     cr_expect_eq(read1.length, 1);
     cr_expect_eq(read1.value.intVal, 0);
-    cr_expect_eq(globCount, 0);
-    cr_expect_str_eq(globals[0].value.strVal, "hello\n");
+    cr_expect_eq(lp, 0);
+    cr_expect_str_eq(locals[0].value.strVal, "hello\n");
     
     writeToFile(TESTFILE, "hello", "w", &vmState); // should overwrite file contents
     cr_expect_eq(vmState, success);
-    DataConstant read2 = readFile(TESTFILE, &globCount, &globals, &vmState);
+    DataConstant read2 = readFile(TESTFILE, &lp, &locals, &vmState);
     cr_expect_eq(vmState, success);
     cr_expect_eq(read2.length, 1);
     cr_expect_eq(read2.value.intVal, 1);
-    cr_expect_eq(globCount, 1);
-    cr_expect_str_eq(globals[1].value.strVal, "hello\n");
+    cr_expect_eq(lp, 1);
+    cr_expect_str_eq(locals[1].value.strVal, "hello\n");
     
     writeToFile(TESTFILE, "world", "a", &vmState); // should not overwrite file contents
     cr_expect_eq(vmState, success);
-    DataConstant read3 = readFile(TESTFILE, &globCount, &globals, &vmState);
+    DataConstant read3 = readFile(TESTFILE, &lp, &locals, &vmState);
     cr_expect_eq(vmState, success);
     cr_expect_eq(read3.length, 2);
     cr_expect_eq(read3.value.intVal, 2);
-    cr_expect_eq(globCount, 3);
-    cr_expect_str_eq(globals[2].value.strVal, "hello\n");
-    cr_expect_str_eq(globals[3].value.strVal, "world\n");
+    cr_expect_eq(lp, 3);
+    cr_expect_str_eq(locals[2].value.strVal, "hello\n");
+    cr_expect_str_eq(locals[3].value.strVal, "world\n");
     
     deleteFile(TESTFILE, &vmState);
     cr_expect_eq(vmState, success);
@@ -316,62 +317,63 @@ Test(impl_builtin, createRenameDeleteFile) {
 // Array functions
 
 Test(impl_builtin, reverseArr) {
-    DataConstant* globals = (DataConstant[]) {createInt(2), createInt(0), createInt(-1)};
-    DataConstant array = createAddr(0, 3, 3);
-    reverseArr(array, &globals);
-    cr_expect_eq(globals[0].value.intVal, -1);
-    cr_expect_eq(globals[1].value.intVal, 0);
-    cr_expect_eq(globals[2].value.intVal, 2);
+    DataConstant* locals = (DataConstant[]) {createInt(2), createInt(0), createInt(-1)};
+    DataConstant array = createAddr(locals, 0, 3, 3);
+    reverseArr(array);
+    cr_expect_eq(locals[0].value.intVal, -1);
+    cr_expect_eq(locals[1].value.intVal, 0);
+    cr_expect_eq(locals[2].value.intVal, 2);
 }
 
 Test(impl_builtin, sliceArr_valid) {
     ExitCode vmState = success;
-    int globCount = 3;
-    DataConstant* globals = (DataConstant[]) {createInt(2), createInt(0), createInt(-1)};
-    DataConstant array = createAddr(0, globCount, globCount);
-    DataConstant result = sliceArr(array, 1, 3, &globCount, &globals, &vmState);
+    int lp = 3;
+    DataConstant* locals = (DataConstant[]) {createInt(2), createInt(0), createInt(-1)};
+    DataConstant array = createAddr(locals, 0, lp, lp);
+    DataConstant result = sliceArr(array, 1, 3, &lp, &locals, &vmState);
     cr_expect_neq(result.type, None);
     cr_expect_eq(result.length, 2);
     cr_expect_eq(result.size, array.size);
-    cr_expect_eq(result.value.intVal, 4);
-    cr_expect_eq(globals[4].value.intVal, 0);
-    cr_expect_eq(globals[5].value.intVal, -1);
+    cr_expect_eq((DataConstant *) result.value.address, locals);
+    cr_expect_eq(result.offset, 4);
+    cr_expect_eq(locals[4].value.intVal, 0);
+    cr_expect_eq(locals[5].value.intVal, -1);
 }
 
 Test(impl_builtin, sliceArr_invalid, .init = cr_redirect_stderr) {
     ExitCode vmState = success;
-    int globCount = 3;
-    DataConstant* globals = (DataConstant[]) {createInt(2), createInt(0), createInt(-1)};
-    DataConstant array = createAddr(0, globCount, globCount);
-    DataConstant sliced = sliceArr(array, 4, 3, &globCount, &globals, &vmState);
+    int lp = 3;
+    DataConstant* locals = (DataConstant[]) {createInt(2), createInt(0), createInt(-1)};
+    DataConstant array = createAddr(locals, 0, lp, lp);
+    DataConstant sliced = sliceArr(array, 4, 3, &lp, &locals, &vmState);
     cr_expect_eq(sliced.type, None);
     cr_expect_stderr_eq_str("Array index out of bounds in call to slice. start: 4, end: 3\n");
     cr_expect_eq(vmState, memory_err);
 }
 
 Test(impl_builtin, arrayContains_true) {
-    DataConstant* globals = (DataConstant[]) {createInt(2), createInt(0), createInt(-1)};
-    DataConstant array = createAddr(0, 3, 3);
-    cr_expect(arrayContains(array, createInt(0), globals));
+    DataConstant* locals = (DataConstant[]) {createInt(2), createInt(0), createInt(-1)};
+    DataConstant array = createAddr(locals, 0, 3, 3);
+    cr_expect(arrayContains(array, createInt(0)));
 }
 
 Test(impl_builtin, arrayContains_false) {
-    DataConstant* globals = (DataConstant[]) {createInt(2), createInt(0), createInt(-1)};
-    DataConstant array = createAddr(0, 3, 3);
-    cr_expect_not(arrayContains(array, createInt(5), globals));
+    DataConstant* locals = (DataConstant[]) {createInt(2), createInt(0), createInt(-1)};
+    DataConstant array = createAddr(locals, 0, 3, 3);
+    cr_expect_not(arrayContains(array, createInt(5)));
 }
 
 Test(impl_builtin, join_empty) {
-    DataConstant globals[0] = {};
-    DataConstant array = createAddr(0, 0, 0);
-    char* result = join(array, "", globals);
+    DataConstant locals[0] = {};
+    DataConstant array = createAddr(locals, 0, 0, 0);
+    char* result = join(array, "");
     cr_expect_str_eq(result, "");
 }
 
 Test(impl_builtin, join_non_empty) {
-    DataConstant globals[2] = {createString("hello"), createString("world")};
-    DataConstant array = createAddr(0, 2, 2);
-    char* result = join(array, ", ", globals);
+    DataConstant* locals = (DataConstant[2]) {createString("hello"), createString("world")};
+    DataConstant array = createAddr(locals, 0, 2, 2);
+    char* result = join(array, ", ");
     cr_expect_str_eq(result, "hello, world");
 }
 
@@ -384,118 +386,118 @@ bool arraysEqual(DataConstant* array1, DataConstant* array2, int length) {
 }
 
 Test(impl_builtin, sort_strs) {
-    DataConstant* globals = (DataConstant[]) {createString("world"), createString("a"), createString("hello")};
+    DataConstant* locals = (DataConstant[]) {createString("world"), createString("a"), createString("hello")};
     DataConstant* expected = (DataConstant[]) {createString("a"), createString("hello"), createString("world")};
-    cr_expect_not(arraysEqual(expected, globals, 3));
-    DataConstant array = createAddr(0, 3, 3);
-    sort(array, globals);
-    cr_expect(arraysEqual(expected, globals, 3));
+    cr_expect_not(arraysEqual(expected, locals, 3));
+    DataConstant array = createAddr(locals, 0, 3, 3);
+    sort(array);
+    cr_expect(arraysEqual(expected, locals, 3));
 }
 
 Test(impl_builtin, sort_bools) {
-    DataConstant* globals = (DataConstant[]) {createBoolean(false), createBoolean(true), createBoolean(true), createNull(), createBoolean(false)};
+    DataConstant* locals = (DataConstant[]) {createBoolean(false), createBoolean(true), createBoolean(true), createNull(), createBoolean(false)};
     DataConstant* expected = (DataConstant[]) {createNull(), createBoolean(false), createBoolean(false), createBoolean(true), createBoolean(true)};
-    cr_expect_not(arraysEqual(expected, globals, 5));
-    DataConstant array = createAddr(0, 5, 5);
-    sort(array, globals);
-    cr_expect(arraysEqual(expected, globals, 5));
+    cr_expect_not(arraysEqual(expected, locals, 5));
+    DataConstant array = createAddr(locals, 0, 5, 5);
+    sort(array);
+    cr_expect(arraysEqual(expected, locals, 5));
 }
 
 Test(impl_builtin, sort_ints) {
-    DataConstant* globals = (DataConstant[]) {createInt(9), createInt(-5), createInt(0), createInt(0)};
+    DataConstant* locals = (DataConstant[]) {createInt(9), createInt(-5), createInt(0), createInt(0)};
     DataConstant* expected = (DataConstant[]) {createInt(-5), createInt(0), createInt(0), createInt(9)};
-    cr_expect_not(arraysEqual(expected, globals, 4));
-    DataConstant array = createAddr(0, 4, 4);
-    sort(array, globals);
-    cr_expect(arraysEqual(expected, globals, 4));
+    cr_expect_not(arraysEqual(expected, locals, 4));
+    DataConstant array = createAddr(locals, 0, 4, 4);
+    sort(array);
+    cr_expect(arraysEqual(expected, locals, 4));
 }
 
 Test(impl_builtin, sort_doubles) {
-    DataConstant* globals = (DataConstant[]) {createDouble(0.9), createDouble(-0.0001), createDouble(-0.000099), createDouble(0.00001)};
+    DataConstant* locals = (DataConstant[]) {createDouble(0.9), createDouble(-0.0001), createDouble(-0.000099), createDouble(0.00001)};
     DataConstant* expected = (DataConstant[]) {createDouble(-0.0001), createDouble(-0.000099), createDouble(0.00001), createDouble(0.9)};
-    cr_expect_not(arraysEqual(expected, globals, 4));
-    DataConstant array = createAddr(0, 4, 4);
-    sort(array, globals);
-    cr_expect(arraysEqual(expected, globals, 4));
+    cr_expect_not(arraysEqual(expected, locals, 4));
+    DataConstant array = createAddr(locals, 0, 4, 4);
+    sort(array);
+    cr_expect(arraysEqual(expected, locals, 4));
 }
 
 Test(impl_builtin, removeByIndex_valid) {
     ExitCode vmState = success;
-    DataConstant* globals = (DataConstant[]) {createInt(2), createInt(0), createInt(-1)};
-    DataConstant array = createAddr(0, 3, 3);
-    removeByIndex(&array, 0, &globals, &vmState);
+    DataConstant* locals = (DataConstant[]) {createInt(2), createInt(0), createInt(-1)};
+    DataConstant array = createAddr(locals, 0, 3, 3);
+    removeByIndex(&array, 0, &vmState);
     cr_expect_eq(array.length, 2);
     cr_expect_eq(array.size, 3);
-    cr_expect_eq(globals[0].value.intVal, 0);
-    cr_expect_eq(globals[1].value.intVal, -1);
-    cr_expect_eq(globals[2].type, None);
+    cr_expect_eq(locals[0].value.intVal, 0);
+    cr_expect_eq(locals[1].value.intVal, -1);
+    cr_expect_eq(locals[2].type, None);
 }
 
 Test(impl_builtin, removeByIndex_invalid, .init = cr_redirect_stderr) {
     ExitCode vmState = success;
-    DataConstant* globals = (DataConstant[]) {createInt(2), createInt(0), createInt(-1)};
-    DataConstant array = createAddr(0, 3, 3);
-    removeByIndex(&array, 4, &globals, &vmState);
+    DataConstant* locals = (DataConstant[]) {createInt(2), createInt(0), createInt(-1)};
+    DataConstant array = createAddr(locals, 0, 3, 3);
+    removeByIndex(&array, 4, &vmState);
     cr_expect_stderr_eq_str("Array index out of bounds\n");
     cr_expect_eq(vmState, memory_err);
 }
 
 Test(impl_builtin, append_valid) {
     ExitCode vmState = success;
-    DataConstant* globals = (DataConstant[]) {createBoolean(false), createNone()};
-    DataConstant array = createAddr(0, 2, 1);
-    append(&array, createBoolean(true), &globals, &vmState);
+    DataConstant* locals = (DataConstant[]) {createBoolean(false), createNone()};
+    DataConstant array = createAddr(locals, 0, 2, 1);
+    append(&array, createBoolean(true), &vmState);
     cr_expect_eq(array.size, 2);
     cr_expect_eq(array.length, 2);
-    cr_expect_eq(globals[1].type, Bool);
-    cr_expect_eq(globals[1].value.boolVal, true);
+    cr_expect_eq(locals[1].type, Bool);
+    cr_expect_eq(locals[1].value.boolVal, true);
 }
 
 Test(impl_builtin, append_full, .init = cr_redirect_stderr) {
     ExitCode vmState = success;
-    DataConstant* globals = (DataConstant[]) {createBoolean(false)};
-    DataConstant array = createAddr(0, 1, 1);
-    append(&array, createBoolean(true), &globals, &vmState);
+    DataConstant* locals = (DataConstant[]) {createBoolean(false)};
+    DataConstant array = createAddr(locals, 0, 1, 1);
+    append(&array, createBoolean(true), &vmState);
     cr_expect_stderr_eq_str("Array size limit 1 reached. Cannot insert into array.\n");
     cr_expect_eq(vmState, memory_err);
 }
 
 Test(impl_builtin, prepend_valid) {
     ExitCode vmState = success;
-    DataConstant* globals = (DataConstant[]) {createBoolean(false), createNone()};
-    DataConstant array = createAddr(0, 2, 1);
-    prepend(&array, createBoolean(true), &globals, &vmState);
+    DataConstant* locals = (DataConstant[]) {createBoolean(false), createNone()};
+    DataConstant array = createAddr(locals, 0, 2, 1);
+    prepend(&array, createBoolean(true), &vmState);
     cr_expect_eq(array.size, 2);
     cr_expect_eq(array.length, 2);
-    cr_expect_eq(globals[0].type, Bool);
-    cr_expect_eq(globals[0].value.boolVal, true);
+    cr_expect_eq(locals[0].type, Bool);
+    cr_expect_eq(locals[0].value.boolVal, true);
 }
 
 Test(impl_builtin, prepend_full, .init = cr_redirect_stderr) {
     ExitCode vmState = success;
-    DataConstant* globals = (DataConstant[]) {createBoolean(false)};
-    DataConstant array = createAddr(0, 1, 1);
-    prepend(&array, createBoolean(true), &globals, &vmState);
+    DataConstant* locals = (DataConstant[]) {createBoolean(false)};
+    DataConstant array = createAddr(locals, 0, 1, 1);
+    prepend(&array, createBoolean(true), &vmState);
     cr_expect_stderr_eq_str("Array size limit 1 reached. Cannot insert into array.\n");
     cr_expect_eq(vmState, memory_err);
 }
 
 Test(impl_builtin, insert_valid) {
     ExitCode vmState = success;
-    DataConstant* globals = (DataConstant[]) {createBoolean(false), createBoolean(false), createNone()};
-    DataConstant array = createAddr(0, 3, 2);
-    insert(&array, createBoolean(true), 1, &globals, &vmState);
+    DataConstant* locals = (DataConstant[]) {createBoolean(false), createBoolean(false), createNone()};
+    DataConstant array = createAddr(locals, 0, 3, 2);
+    insert(&array, createBoolean(true), 1, &vmState);
     cr_expect_eq(array.size, 3);
     cr_expect_eq(array.length, 3);
-    cr_expect_eq(globals[1].type, Bool);
-    cr_expect_eq(globals[1].value.boolVal, true);
+    cr_expect_eq(locals[1].type, Bool);
+    cr_expect_eq(locals[1].value.boolVal, true);
 }
 
 Test(impl_builtin, insert_out_of_range, .init = cr_redirect_stderr) {
     ExitCode vmState = success;
-    DataConstant* globals = (DataConstant[]) {createBoolean(false), createBoolean(false), createNone()};
-    DataConstant array = createAddr(0, 3, 2);
-    insert(&array, createBoolean(true), 3, &globals, &vmState);
+    DataConstant* locals = (DataConstant[]) {createBoolean(false), createBoolean(false), createNone()};
+    DataConstant array = createAddr(locals, 0, 3, 2);
+    insert(&array, createBoolean(true), 3, &vmState);
     cr_expect_stderr_eq_str("Array index 3 out of range 2\n");
     cr_expect_eq(vmState, memory_err);
 
@@ -503,9 +505,9 @@ Test(impl_builtin, insert_out_of_range, .init = cr_redirect_stderr) {
 
 Test(impl_builtin, insert_full, .init = cr_redirect_stderr) {
     ExitCode vmState = success;
-    DataConstant* globals = (DataConstant[]) {createBoolean(false)};
-    DataConstant array = createAddr(0, 1, 1);
-    insert(&array, createBoolean(true), 0, &globals, &vmState);
+    DataConstant* locals = (DataConstant[]) {createBoolean(false)};
+    DataConstant array = createAddr(locals, 0, 1, 1);
+    insert(&array, createBoolean(true), 0, &vmState);
     cr_expect_stderr_eq_str("Array size limit 1 reached. Cannot insert into array.\n");
     cr_expect_eq(vmState, memory_err);
 }

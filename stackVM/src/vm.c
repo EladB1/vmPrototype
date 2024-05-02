@@ -277,22 +277,28 @@ ExitCode run(VM* vm, bool verbose) {
                 rval.type = Addr;
                 rval.size = lhs.size + rhs.size;
                 rval.length = lhs.length + rhs.length;
-                rval.value.intVal = ++vm->gp;
-                for (int i = 0; i < lhs.length; i++) {
-                    vm->globals[vm->gp] = vm->globals[lhs.value.intVal + i];
-                    vm->gp++;
+                rval.value.address = currentFrame->locals;
+                rval.offset = currentFrame->lp + 1;
+                DataConstant* start = getArrayStart(lhs);
+                DataConstant* stop = start + lhs.length;
+                for (DataConstant* curr = start; curr != stop; curr++) {
+                    currentFrame->locals[++currentFrame->lp] = *curr;
                 }
-                for (int i = 0; i < rhs.length; i++) {
-                    vm->globals[vm->gp] = vm->globals[rhs.value.intVal + i];
-                    if (i < rhs.length - 1)
-                        vm->gp++;
+                start = getArrayStart(rhs);
+                stop = start + rhs.length;
+                if (rhs.length != 0)
+                    currentFrame->lp++;
+                for (DataConstant* curr = start; curr != stop; curr++) {
+                    currentFrame->locals[currentFrame->lp] = *curr;
+                    if (curr != stop - 1)
+                        currentFrame->lp++;
                 }
                 if (rval.size > rval.length) {
-                    vm->gp++;
+                    currentFrame->lp++;
                     for (int i = rval.length; i < rval.size; i++) {
-                        vm->globals[vm->gp] = createNone();
+                        currentFrame->locals[currentFrame->lp] = createNone();
                         if (i < rval.size - 1)
-                            vm->gp++;
+                            currentFrame->lp++;
                     }
                 }
             }
