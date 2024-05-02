@@ -159,30 +159,6 @@ void storeValue(VM* vm) {
     }
 }
 
-void convertLocalArrayToGlobal(VM* vm, DataConstant* array) {
-    if (array->value.address == vm->globals)
-        return;
-    DataConstant* start = getArrayStart(*array);
-    DataConstant* stop = start + array->size;
-    array->offset = array->size == 0 ? vm->gp : vm->gp + 1;
-    array->value.address = vm->globals;
-    DataConstant* arrayRefs[array->size];
-    int arrayRefCount = 0;
-    for (DataConstant* curr = start; curr != stop; curr++) {
-        if (curr->type == Addr) {
-            convertLocalArrayToGlobal(vm, curr);
-            arrayRefs[arrayRefCount++] = curr;
-        }
-        else
-            vm->globals[++(vm->gp)] = *curr;
-    }
-    if (arrayRefCount != 0)
-        array->offset = array->size == 0 ? vm->gp : vm->gp + 1;
-    for (int i = 0; i < arrayRefCount; i++) {
-        vm->globals[++(vm->gp)] = *(arrayRefs[i]);
-    }
-}
-
 ExitCode run(VM* vm, bool verbose) {
     if (verbose)
         printf("Running program...\n");
