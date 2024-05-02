@@ -353,21 +353,7 @@ DataConstant partialCopyAddr(DataConstant src, int begin, int len, int* destPtr,
 
 DataConstant expandExistingAddr(DataConstant src, int capacity, int* destPtr, DataConstant** dest) {
     // TODO: remove old array from dest
-    DataConstant copy;
-    copy.type = Addr;
+    DataConstant copy = copyAddr(src, destPtr, dest);
     copy.size = capacity;
-    copy.length = src.length;
-    copy.value.address = *dest;
-    copy.offset = *destPtr + 1;
-    DataConstant* start = getArrayStart(src);
-    DataConstant* stop = start + src.size;
-    for (DataConstant* curr = start; curr != stop; curr++) {
-        (*dest)[++(*destPtr)] = *curr;
-    }
-    if (src.size < copy.size) {
-        for (int i = src.size; i < copy.size; i++) {
-            (*dest)[++(*destPtr)] = createNone();
-        }
-    }
     return copy;
 }

@@ -51,6 +51,6 @@ DataConstant binaryArithmeticOperation(DataConstant lhs, DataConstant rhs, char*
 DataConstant* getArrayStart(DataConstant array);
 DataConstant copyAddr(DataConstant src, int* destPtr, DataConstant** dest);
 DataConstant partialCopyAddr(DataConstant src, int begin, int len, int* destPtr, DataConstant** dest);
-DataConstant expandExistingAddr(DataConstant src, int capacity, int* addr, DataConstant** globals);
+DataConstant expandExistingAddr(DataConstant src, int capacity, int* destPtr, DataConstant** dest);
 
 #endif
