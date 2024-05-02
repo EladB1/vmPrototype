@@ -98,6 +98,24 @@ test_slice_multidimensional:
     CALL println 1
     COPYARR
     RET
+
+test_modify_array_copy:
+    ; value to write to the array
+    LOAD_CONST -2
+    LOAD_CONST 1
+    LOAD_CONST 0
+    BUILDARR 3 2
+    STORE
+    LOAD 3
+    COPYARR
+    ; index to write to
+    LOAD_CONST 2
+    ASTORE
+    CALL println 1
+    LOAD 3
+    CALL println 1
+    LOAD_CONST NONE
+    RET
     
 
 _entry:
@@ -118,4 +136,5 @@ _entry:
     CALL println 1
     CALL test_slice_multidimensional 0
     CALL println 1
+    CALL test_modify_array_copy 0
     HALT

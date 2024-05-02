@@ -26,7 +26,7 @@ VM* init(SourceCode* src) {
     vm->fp = 0;
     vm->gp = -1;
     vm->state = success;
-    vm->globals = malloc(sizeof(DataConstant) * (INT_MAX - 1));
+    vm->globals = malloc(sizeof(DataConstant) * INT_MAX);
     vm->callStack = malloc(sizeof(Frame*) * MAX_FRAMES);
     int index = findLabelIndex(src, ENTRYPOINT);
     if (index == -1) {

@@ -6,6 +6,7 @@
 #include "frame.h"
 
 #define STACK_SIZE 256
+#define LOCALS_SIZE 1 << 16
 
 Frame* loadFrame(StringVector* code, JumpPoint* jumps, int jc, int pc, int argc, DataConstant* params) {
     Frame* frame = malloc(sizeof(Frame));
@@ -17,7 +18,7 @@ Frame* loadFrame(StringVector* code, JumpPoint* jumps, int jc, int pc, int argc,
     frame->lp = -1;
     frame->sp = -1;
     frame->stack = malloc(sizeof(DataConstant) * STACK_SIZE);
-    frame->locals = malloc(sizeof(DataConstant) * STACK_SIZE);
+    frame->locals = malloc(sizeof(DataConstant) * LOCALS_SIZE);
     for (int i = 0; i < argc; i++) {
         frame->locals[++frame->lp] = params[i];
     }
