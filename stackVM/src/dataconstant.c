@@ -332,7 +332,7 @@ DataConstant partialCopyAddr(DataConstant src, int begin, int len, int* destPtr,
     int arrayRefCount = 0;
     for (DataConstant* curr = start; curr != lengthEnd && curr != stop; curr++) {
         if (curr->type == Addr) {
-            copyAddr(*curr, destPtr, dest);
+            *curr = copyAddr(*curr, destPtr, dest);
             arrayRefs[arrayRefCount++] = curr;
         }
         else

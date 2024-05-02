@@ -77,10 +77,7 @@ test_multidimensional_array:
     CALL println 1
     GSTORE
     GLOAD 17
-    ;LOAD_CONST 2
-    ;AGET
-    ;CALL println 1
-    ;COPYARR
+    COPYARR
     RET
 
 
