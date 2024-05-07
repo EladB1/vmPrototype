@@ -10,6 +10,9 @@
 # Storage sizes of Terrabytes and above are not currently supported, but can use large numbers to represent them
 # soft maxes must be less than hard maxes
 
+# Memory expansion may have a performance cost
+# To disable it, set the soft and hard maxes to the same values
+
 # frame refers to an execution frame of a function
 # when a function is called, both the caller and callee are "active" frames
 # Recursive functions can potentially create a lot of frames
@@ -19,19 +22,19 @@
 - frames_hard_max: 4K
 
 # Stack size is the number of elements that can be held in memory in a frame
-# The numbers represent the size of the memory allocate in bytes (divide number by size of DataConstant struct (32 B) to get number of DataConstants)
+# The numbers represent the size of the memory allocated in bytes (divide number by size of DataConstant struct (32 B) to get number of DataConstants)
 ## Recommentdation: 128 - 1M
 - stack_size_soft_max: 256
 - stack_size_hard_max: 1K
 
 # The local storage of a frame
-# The numbers represent the size of the memory allocate in bytes (divide number by size of DataConstant struct (32 B) to get number of DataConstants)
+# The numbers represent the size of the memory allocated in bytes (divide number by size of DataConstant struct (32 B) to get number of DataConstants)
 ## Recommendation: 1K - 5M
 - locals_soft_max: 64K
 - locals_hard_max: 1M
 
 # The size of global VM storage (heap equivalent)
-# The numbers represent the size of the memory allocate in bytes (divide number by size of DataConstant struct (32 B) to get number of DataConstants)
+# The numbers represent the size of the memory allocated in bytes (divide number by size of DataConstant struct (32 B) to get number of DataConstants)
 ## Recommendation: 128K - 4G (or you can allocate 20-25% of available memory)
 - globals_soft_max: 1M
 - globals_hard_max: 512M

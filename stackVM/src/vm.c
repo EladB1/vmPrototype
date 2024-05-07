@@ -170,7 +170,7 @@ ExitCode run(VM* vm, bool verbose) {
     DataConstant value, lhs, rhs, rval;
     Frame* currentFrame;
     char* next;
-    int addr, argc, offset;
+    int addr, argc, offset, total;
     char* enterJump = "";
     int jumpedFrom = 0;
     JumpPoint jumpPoint;
@@ -443,6 +443,17 @@ ExitCode run(VM* vm, bool verbose) {
             value = pop(vm);
             if (value.type == Addr) {
                 //printf("%ld\n", vm->globalsHardMax);
+                total = vm->gp + value.size;
+                if (!globalsExpanded && total >= vm->globalsSoftMax - 1 && total < vm->globalsHardMax - 1) {
+                    if (verbose)
+                        printf("Expanding size of globals from %ld to %ld\n", vm->globalsSoftMax, vm->globalsHardMax);
+                    globalsExpanded = true;
+                    vm->globals = realloc(vm->globals, sizeof(DataConstant) * vm->globalsHardMax);
+                }
+                if (total >= vm->globalsHardMax - 1) {
+                    fprintf(stderr, "HeapOverflow: Global storage hard maximum of %ld reached\n", vm->globalsHardMax);
+                    return memory_err;
+                }
                 value = copyAddr(value, &vm->gp, &vm->globals);
             }
             next = peekNext(vm);
