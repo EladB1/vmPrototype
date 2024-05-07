@@ -121,6 +121,9 @@ test_modify_array_copy:
 _entry:
     LOAD_CONST -1
     GSTORE
+    BUILDARR 32678 0
+    GSTORE
+    HALT
     CALL _func 0
     GSTORE
     GLOAD 4

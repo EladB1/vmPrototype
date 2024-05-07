@@ -10,7 +10,6 @@
 #include "builtin.h"
 
 #define ENTRYPOINT "_entry"
-#define MAX_FRAMES 2048
 
 int findLabelIndex(SourceCode* src, char* label) {
     for (int i = 0; i < src->length; i++) {
@@ -20,14 +19,19 @@ int findLabelIndex(SourceCode* src, char* label) {
     return -1;
 }
 
-VM* init(SourceCode* src) {
+VM* init(SourceCode* src, KeyValue* config) {
     VM* vm = malloc(sizeof(VM));
     vm->src = src;
     vm->fp = 0;
     vm->gp = -1;
     vm->state = success;
-    vm->globals = malloc(sizeof(DataConstant) * INT_MAX);
-    vm->callStack = malloc(sizeof(Frame*) * MAX_FRAMES);
+    vm->frameSoftMax = getByKey(config, "frames_soft_max");
+    vm->frameHardMax = getByKey(config, "frames_hard_max");
+    vm->globalsSoftMax = getByKey(config, "globals_soft_max") / sizeof(DataConstant);
+    vm->globalsHardMax = getByKey(config, "globals_hard_max") / sizeof(DataConstant);
+    //printf("Frame*: %ld, DC: %ld\n", sizeof(Frame*) * vm->frameSoftMax, sizeof(DataConstant) * vm->globalsSoftMax);
+    vm->globals = malloc(sizeof(DataConstant) * vm->globalsSoftMax);
+    vm->callStack = malloc(sizeof(Frame*) * vm->frameSoftMax);
     int index = findLabelIndex(src, ENTRYPOINT);
     if (index == -1) {
         fprintf(stderr, "Error: Could not find entry point function label: '%s'\n", ENTRYPOINT);
@@ -171,6 +175,8 @@ ExitCode run(VM* vm, bool verbose) {
     int jumpedFrom = 0;
     JumpPoint jumpPoint;
     bool skipped = false;
+    bool framesExpanded = false;
+    bool globalsExpanded = false;
     while (1) {
         if (vm->state != success)
             return vm->state;
@@ -436,6 +442,7 @@ ExitCode run(VM* vm, bool verbose) {
             }
             value = pop(vm);
             if (value.type == Addr) {
+                //printf("%ld\n", vm->globalsHardMax);
                 value = copyAddr(value, &vm->gp, &vm->globals);
             }
             next = peekNext(vm);
@@ -443,8 +450,19 @@ ExitCode run(VM* vm, bool verbose) {
                 vm->globals[atoi(next)] = value;
                 stepOver(vm);
             }
-            else
+            else {
+                if (!globalsExpanded && vm->gp >= vm->globalsSoftMax - 1 && vm->gp < vm->globalsHardMax - 1) {
+                    if (verbose)
+                        printf("Expanding size of globals from %ld to %ld\n", vm->globalsSoftMax, vm->globalsHardMax);
+                    globalsExpanded = true;
+                    vm->globals = realloc(vm->globals, sizeof(DataConstant) * vm->globalsHardMax);
+                }
+                if (vm->gp >= vm->globalsHardMax - 1) {
+                    fprintf(stderr, "HeapOverflow: Global storage hard maximum of %ld reached\n", vm->globalsHardMax);
+                    return memory_err;
+                }
                 vm->globals[++vm->gp] = value;
+            }
         }
         else if (strcmp(opcode, "GLOAD") == 0) {
             addr = atoi(getNext(vm));
@@ -550,6 +568,16 @@ ExitCode run(VM* vm, bool verbose) {
                 if (addr == -1) {
                     fprintf(stderr, "Error: could not find function '%s'\n", next);
                     return unknown_bytecode;
+                }
+                if (!framesExpanded && vm->fp == vm->frameSoftMax - 1) {
+                    if (verbose)
+                        printf("Expanding number of frames from %ld to %ld\n", vm->frameSoftMax, vm->frameHardMax);
+                    framesExpanded = true;
+                    vm->callStack = realloc(vm->callStack, sizeof(Frame) * vm->frameHardMax);
+                }
+                if (vm->fp == vm->frameHardMax) {
+                    fprintf(stderr, "StackOverflow: Number of frames exceeded frame hard maximum of %ld\n", vm->frameHardMax);
+                    return  memory_err;
                 }
                 Frame* frame = loadFrame(vm->src->code[addr].body, vm->src->code[addr].jumpPoints, vm->src->code[addr].jmpCnt, currentFrame->pc, argc, params);
                 vm->callStack[++vm->fp] = frame;
