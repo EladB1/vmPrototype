@@ -5,10 +5,7 @@
 
 #include "frame.h"
 
-#define STACK_SIZE 256
-#define LOCALS_SIZE 1 << 16
-
-Frame* loadFrame(StringVector* code, JumpPoint* jumps, int jc, int pc, int argc, DataConstant* params) {
+Frame* loadFrame(StringVector* code, JumpPoint* jumps, int jc, long stackSize, long localsSize, int pc, int argc, DataConstant* params) {
     Frame* frame = malloc(sizeof(Frame));
     frame->instructions = code;
     frame->returnAddr = pc;
@@ -17,8 +14,10 @@ Frame* loadFrame(StringVector* code, JumpPoint* jumps, int jc, int pc, int argc,
     frame->pc = 0;
     frame->lp = -1;
     frame->sp = -1;
-    frame->stack = malloc(sizeof(DataConstant) * STACK_SIZE);
-    frame->locals = malloc(sizeof(DataConstant) * LOCALS_SIZE);
+    frame->stack = malloc(sizeof(DataConstant) * stackSize);
+    frame->locals = malloc(sizeof(DataConstant) * localsSize);
+    frame->expandedStack = false;
+    frame->expandedLocals = false;
     for (int i = 0; i < argc; i++) {
         frame->locals[++frame->lp] = params[i];
     }
@@ -29,6 +28,16 @@ void deleteFrame(Frame* frame) {
     free(frame->locals);
     free(frame->stack);
     free(frame);
+}
+
+Frame* expandStack(Frame* frame, long stackSize) {
+    frame->stack = realloc(frame->stack, sizeof(DataConstant) * stackSize);
+    return frame;
+}
+
+Frame* expandLocals(Frame* frame, long localsSize) {
+    frame->locals = realloc(frame->locals, sizeof(DataConstant) * localsSize);
+    return frame;
 }
 
 void framePush(Frame* frame, DataConstant value) {

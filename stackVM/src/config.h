@@ -4,15 +4,22 @@
 #include <stdbool.h>
 
 typedef struct {
-    char* key;
-    long value;
-} KeyValue;
+    bool dynamicResourceExpansionEnabled;
+    bool useHeapStorageBackup;
+    long framesSoftMax;
+    long framesHardMax;
+    long globalsSoftMax;
+    long globalsHardMax;
+    long stackSizeSoftMax;
+    long stackSizeHardMax;
+    long localsSoftMax;
+    long localsHardMax;
+} VMConfig;
 
-void displayKeyValue(KeyValue pair);
-void displayConfigKeyValues(KeyValue* configPairs);
 long processValue(char* value, char* filePath, int line);
-KeyValue* read_yaml_file(char* filePath);
-long getByKey(KeyValue* configPairs, char* key);
-bool validateConfig(KeyValue* configPairs, char* filePath);
+VMConfig getDefaultConfig();
+VMConfig readConfigFile(char* filePath);
+void displayVMConfig(VMConfig conf);
+bool validateVMConfig(VMConfig conf, char* filePath);
 
 #endif

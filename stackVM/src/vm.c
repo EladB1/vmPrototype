@@ -19,25 +19,35 @@ int findLabelIndex(SourceCode* src, char* label) {
     return -1;
 }
 
-VM* init(SourceCode* src, KeyValue* config) {
+VM* init(SourceCode* src, VMConfig conf) {
     VM* vm = malloc(sizeof(VM));
     vm->src = src;
     vm->fp = 0;
     vm->gp = -1;
     vm->state = success;
-    vm->frameSoftMax = getByKey(config, "frames_soft_max");
-    vm->frameHardMax = getByKey(config, "frames_hard_max");
-    vm->globalsSoftMax = getByKey(config, "globals_soft_max") / sizeof(DataConstant);
-    vm->globalsHardMax = getByKey(config, "globals_hard_max") / sizeof(DataConstant);
+
+    vm->frameSoftMax = conf.dynamicResourceExpansionEnabled ? conf.framesSoftMax : conf.framesHardMax;
+    vm->frameHardMax = conf.framesHardMax;
+
+    vm->globalsHardMax = conf.globalsHardMax / sizeof(DataConstant);
+    vm->globalsSoftMax = conf.dynamicResourceExpansionEnabled ? conf.globalsSoftMax / sizeof(DataConstant) : vm->globalsHardMax;
+
+    vm->localsHardMax = conf.localsHardMax / sizeof(DataConstant);
+    vm->localsSoftMax = conf.dynamicResourceExpansionEnabled ? conf.localsSoftMax / sizeof(DataConstant) : vm->localsHardMax;
+
+    vm->stackHardMax = conf.stackSizeHardMax / sizeof(DataConstant);
+    vm->stackSoftMax = conf.dynamicResourceExpansionEnabled ? conf.stackSizeSoftMax / sizeof(DataConstant) : vm->stackHardMax;
+
     //printf("Frame*: %ld, DC: %ld\n", sizeof(Frame*) * vm->frameSoftMax, sizeof(DataConstant) * vm->globalsSoftMax);
-    vm->globals = malloc(sizeof(DataConstant) * vm->globalsSoftMax);
-    vm->callStack = malloc(sizeof(Frame*) * vm->frameSoftMax);
+    //printf("stack: %ld, LC: %ld\n", sizeof(DataConstant) * vm->stackSoftMax, sizeof(DataConstant) * vm->localsSoftMax);
+    vm->globals = malloc(conf.dynamicResourceExpansionEnabled || conf.framesSoftMax == conf.framesHardMax ? conf.globalsSoftMax : conf.globalsHardMax);
+    vm->callStack = malloc(conf.dynamicResourceExpansionEnabled || conf.globalsSoftMax == conf.globalsHardMax ? conf.framesSoftMax : conf.framesHardMax);
     int index = findLabelIndex(src, ENTRYPOINT);
     if (index == -1) {
         fprintf(stderr, "Error: Could not find entry point function label: '%s'\n", ENTRYPOINT);
         return NULL;
     }
-    vm->callStack[0] = loadFrame(src->code[index].body, src->code[index].jumpPoints, src->code[index].jmpCnt, 0, 0, NULL);
+    vm->callStack[0] = loadFrame(src->code[index].body, src->code[index].jumpPoints, src->code[index].jmpCnt, vm->stackSoftMax, vm->localsSoftMax, 0, 0, NULL);
     return vm;
 }
 
@@ -48,7 +58,17 @@ void destroy(VM* vm) {
 }
 
 void push(VM* vm, DataConstant value) {
-    framePush(vm->callStack[vm->fp], value);
+    Frame* frame = vm->callStack[vm->fp];
+    if (!frame->expandedStack && vm->stackSoftMax != vm->stackHardMax && frame->sp >= vm->stackSoftMax && frame->sp < vm->stackHardMax) {
+        frame->expandedStack = true;
+        printf("Expanding current frame stack from %ld to %ld\n", vm->stackSoftMax, vm->stackHardMax);
+        frame = expandStack(frame, vm->stackHardMax);
+    }
+    if (frame->sp >= vm->stackHardMax) {
+        fprintf(stderr, "StackOverflow: Exceeded stack space of %ld\n", vm->stackHardMax);
+        vm->state = memory_err;
+    }
+    framePush(frame, value);
 }
 
 DataConstant pop(VM* vm) {
@@ -151,15 +171,26 @@ DataConstant load(VM* vm) {
     return loadLocal(vm->callStack[vm->fp], addr);
 }
 
-void storeValue(VM* vm) {
+void storeValue(VM* vm, bool verbose) {
     DataConstant value = pop(vm);
+    Frame* frame = vm->callStack[vm->fp];
     char* next = peekNext(vm);
     if (isInt(next)) {
-        storeLocalAtAddr(vm->callStack[vm->fp], value, atoi(next));
+        storeLocalAtAddr(frame, value, atoi(next));
         stepOver(vm);
     }
     else {
-        storeLocal(vm->callStack[vm->fp], value);
+        if (!frame->expandedLocals && vm->localsSoftMax != vm->localsHardMax && frame->lp >= vm->localsSoftMax && frame->lp < vm->localsHardMax) {
+            if (verbose)
+                printf("Expanding local storage from %ld to %ld\n", vm->localsSoftMax, vm->localsHardMax);
+            expandLocals(frame, vm->localsHardMax);
+            frame->expandedLocals = true;
+        }
+        if (frame->lp >= vm->localsHardMax) {
+            fprintf(stderr, "StackOverflow: Exceeded local storage maximum of %ld\n", vm->localsHardMax);
+            vm->state = memory_err;
+        }
+        storeLocal(frame, value);
     }
 }
 
@@ -429,7 +460,7 @@ ExitCode run(VM* vm, bool verbose) {
                 fprintf(stderr, "Error: no value to store\n");
                 return operation_err;
             }
-            storeValue(vm);
+            storeValue(vm, verbose);
         }
         else if (strcmp(opcode, "LOAD") == 0) {
             value = load(vm);
@@ -444,13 +475,13 @@ ExitCode run(VM* vm, bool verbose) {
             if (value.type == Addr) {
                 //printf("%ld\n", vm->globalsHardMax);
                 total = vm->gp + value.size;
-                if (!globalsExpanded && total >= vm->globalsSoftMax - 1 && total < vm->globalsHardMax - 1) {
+                if (!globalsExpanded && vm->globalsSoftMax != vm->globalsHardMax && total >= vm->globalsSoftMax && total < vm->globalsHardMax) {
                     if (verbose)
                         printf("Expanding size of globals from %ld to %ld\n", vm->globalsSoftMax, vm->globalsHardMax);
                     globalsExpanded = true;
                     vm->globals = realloc(vm->globals, sizeof(DataConstant) * vm->globalsHardMax);
                 }
-                if (total >= vm->globalsHardMax - 1) {
+                if (total >= vm->globalsHardMax) {
                     fprintf(stderr, "HeapOverflow: Global storage hard maximum of %ld reached\n", vm->globalsHardMax);
                     return memory_err;
                 }
@@ -462,13 +493,13 @@ ExitCode run(VM* vm, bool verbose) {
                 stepOver(vm);
             }
             else {
-                if (!globalsExpanded && vm->gp >= vm->globalsSoftMax - 1 && vm->gp < vm->globalsHardMax - 1) {
+                if (!globalsExpanded && vm->globalsSoftMax != vm->globalsHardMax && vm->gp >= vm->globalsSoftMax && vm->gp < vm->globalsHardMax) {
                     if (verbose)
                         printf("Expanding size of globals from %ld to %ld\n", vm->globalsSoftMax, vm->globalsHardMax);
                     globalsExpanded = true;
                     vm->globals = realloc(vm->globals, sizeof(DataConstant) * vm->globalsHardMax);
                 }
-                if (vm->gp >= vm->globalsHardMax - 1) {
+                if (vm->gp >= vm->globalsHardMax) {
                     fprintf(stderr, "HeapOverflow: Global storage hard maximum of %ld reached\n", vm->globalsHardMax);
                     return memory_err;
                 }
@@ -580,17 +611,17 @@ ExitCode run(VM* vm, bool verbose) {
                     fprintf(stderr, "Error: could not find function '%s'\n", next);
                     return unknown_bytecode;
                 }
-                if (!framesExpanded && vm->fp == vm->frameSoftMax - 1) {
+                if (!framesExpanded && vm->frameSoftMax != vm->frameHardMax && vm->fp >= vm->frameSoftMax && vm->fp < vm->frameHardMax) {
                     if (verbose)
                         printf("Expanding number of frames from %ld to %ld\n", vm->frameSoftMax, vm->frameHardMax);
                     framesExpanded = true;
                     vm->callStack = realloc(vm->callStack, sizeof(Frame) * vm->frameHardMax);
                 }
-                if (vm->fp == vm->frameHardMax) {
+                if (vm->fp >= vm->frameHardMax) {
                     fprintf(stderr, "StackOverflow: Number of frames exceeded frame hard maximum of %ld\n", vm->frameHardMax);
                     return  memory_err;
                 }
-                Frame* frame = loadFrame(vm->src->code[addr].body, vm->src->code[addr].jumpPoints, vm->src->code[addr].jmpCnt, currentFrame->pc, argc, params);
+                Frame* frame = loadFrame(vm->src->code[addr].body, vm->src->code[addr].jumpPoints, vm->src->code[addr].jmpCnt, vm->stackSoftMax, vm->localsSoftMax, currentFrame->pc, argc, params);
                 vm->callStack[++vm->fp] = frame;
             }
             
@@ -618,6 +649,17 @@ ExitCode run(VM* vm, bool verbose) {
             }
             if (argc > capacity) {
                 fprintf(stderr, "Error: Attempted to build array of length %d which exceeds capacity %d\n", argc, capacity);
+                return memory_err;
+            }
+            total = currentFrame->lp + capacity;
+            if (!currentFrame->expandedLocals && vm->localsSoftMax != vm->localsHardMax && total >= vm->localsSoftMax && total < vm->localsHardMax) {
+                if (verbose)
+                    printf("Expanding local storage from %ld to %ld\n", vm->localsSoftMax, vm->localsHardMax);
+                expandLocals(currentFrame, vm->localsHardMax);
+                currentFrame->expandedLocals = true;
+            }
+            if (total >= vm->localsHardMax) {
+                fprintf(stderr, "StackOverflow: Exceeded local storage maximum of %ld\n", vm->localsHardMax);
                 return memory_err;
             }
             rval = createAddr(currentFrame->locals, ++currentFrame->lp, capacity, argc);

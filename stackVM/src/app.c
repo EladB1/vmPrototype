@@ -34,15 +34,15 @@ int main(int argc, char** argv) {
         return -1;
     }
 
-    KeyValue* conf = read_yaml_file(CONFIG_FILE);
-    if (!validateConfig(conf, CONFIG_FILE))
+    VMConfig conf = readConfigFile(CONFIG_FILE);
+    if (!validateVMConfig(conf, CONFIG_FILE))
         return -1;
 
     SourceCode* src = read_file(filename);
     if (src == NULL)
         return -1;
     if (verbose) {
-        displayConfigKeyValues(conf);
+        displayVMConfig(conf);
         displayCode(src);
     }
     VM* vm = init(src, conf);
@@ -52,7 +52,6 @@ int main(int argc, char** argv) {
 
     destroy(vm);
     deleteSourceCode(src);
-    free(conf);
 
     return runStatus;
 }

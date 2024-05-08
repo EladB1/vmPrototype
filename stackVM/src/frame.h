@@ -15,10 +15,14 @@ typedef struct {
     int sp;
     int lp;
     int returnAddr;
+    bool expandedStack;
+    bool expandedLocals;
 } Frame;
 
-Frame* loadFrame(StringVector* code, JumpPoint* jumps, int jc, int pc, int argc, DataConstant* params);
+Frame* loadFrame(StringVector* code, JumpPoint* jumps, int jc, long stackSize, long localsSize, int pc, int argc, DataConstant* params);
 void deleteFrame(Frame* frame);
+Frame* expandStack(Frame* frame, long stackSize);
+Frame* expandLocals(Frame* frame, long localsSize);
 void framePush(Frame* frame, DataConstant value);
 DataConstant framePop(Frame* frame);
 DataConstant frameTop(Frame* frame);

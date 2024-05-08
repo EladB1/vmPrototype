@@ -1,5 +1,3 @@
-; Use to test out VM configuration values and errors
-
 total:
     LOAD 0
     LOAD_CONST 1
@@ -34,17 +32,34 @@ test_globals:
     RET
 
 test_stack:
+    LOAD_CONST true
+    LOAD_CONST false
+    DUP
+    ;DUP
     LOAD_CONST NONE
     RET
 
 test_locals:
+    BUILDARR 3 0
+    LOAD_CONST 3
+    STORE
+    LOAD_CONST 4
+    STORE
+    LOAD_CONST 5
+    STORE
+    LOAD_CONST NONE
+    RET
+
+test_locals_large_array:
+    BUILDARR 3 0
     LOAD_CONST NONE
     RET
 
 _entry:
-    ; comment out function calls as needed
+    ; uncomment function calls as needed
     ;CALL test_frames 0
-    CALL test_globals 0
+    ;CALL test_globals 0
     ;CALL test_stack 0
     ;CALL test_locals 0
+    CALL test_locals_large_array 0
     HALT
