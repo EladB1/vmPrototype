@@ -24,6 +24,12 @@ typedef struct {
     long stackHardMax;
 } VM;
 
+typedef struct {
+    DataConstant* target;
+    int* targetp;
+    Frame* frame;
+} ArrayTarget;
+
 VM* init(SourceCode* src, VMConfig conf);
 ExitCode run(VM* vm, bool verbose);
 void destroy(VM* vm);

@@ -193,6 +193,48 @@ void storeValue(VM* vm, bool verbose) {
     }
 }
 
+ArrayTarget checkAndRetrieveArrayValuesTarget(VM* vm, Frame* frame, int arraySize, bool* globalsExpanded, bool verbose) {
+    ArrayTarget arrayTarget;
+    arrayTarget.target = frame->locals;
+    arrayTarget.targetp = &frame->lp;
+    arrayTarget.frame = frame;
+    int total = frame->lp + arraySize;
+    if (!frame->expandedLocals && vm->localsSoftMax != vm->localsHardMax && total >= vm->localsSoftMax - 1 && total < vm->localsHardMax) {
+        if (verbose)
+            printf("Expanding local storage from %ld to %ld\n", vm->localsSoftMax, vm->localsHardMax);
+        arrayTarget.frame = expandLocals(frame, vm->localsHardMax);
+        arrayTarget.frame->expandedLocals = true;
+        arrayTarget.target = frame->locals;
+        arrayTarget.targetp = &frame->lp;
+    }
+    if (total >= vm->localsHardMax) {
+        if (vm->useHeapStorageBackup) {
+            arrayTarget.target = vm->globals;
+            arrayTarget.targetp = &vm->gp;
+            total = vm->gp + arraySize;
+            if (!globalsExpanded && vm->globalsSoftMax != vm->globalsHardMax && total >= vm->globalsSoftMax && total < vm->globalsSoftMax) {
+                if (verbose)
+                    printf("Expanding size of globals from %ld to %ld\n", vm->globalsSoftMax, vm->globalsHardMax);
+                *globalsExpanded = true;
+                vm->globals = realloc(vm->globals, sizeof(DataConstant) * vm->globalsHardMax);
+            }
+            if (total >= vm->globalsHardMax) {
+                fprintf(stderr, "StackOverflow: Exceeded local storage maximum of %ld and global storage maximum of %ld\n", vm->localsHardMax, vm->globalsHardMax);
+                vm->state = memory_err;
+                return arrayTarget;
+            }
+            if (verbose)
+                printf("INFO: Using heap storage for array %p\n", vm->globals + vm->gp + 1);
+        }
+        else {
+            fprintf(stderr, "StackOverflow: Exceeded local storage maximum of %ld\n", vm->localsHardMax);
+            vm->state = memory_err;
+            return arrayTarget;
+        }
+    }
+    return arrayTarget;
+}
+
 ExitCode run(VM* vm, bool verbose) {
     if (verbose)
         printf("Running program...\n");
@@ -207,6 +249,7 @@ ExitCode run(VM* vm, bool verbose) {
     bool skipped = false;
     bool framesExpanded = false;
     bool globalsExpanded = false;
+    ArrayTarget arrayTarget;
     while (1) {
         if (vm->state != success)
             return vm->state;
@@ -286,61 +329,24 @@ ExitCode run(VM* vm, bool verbose) {
                 rval = createString(concat);
             }
             else if (lhs.type == Addr) {
-                DataConstant* target = currentFrame->locals;
-                int* targetp = &currentFrame->lp;
-                total = currentFrame->lp + lhs.size + rhs.size;
-                if (!currentFrame->expandedLocals && vm->localsSoftMax != vm->localsHardMax && total >= vm->localsSoftMax - 1 && total < vm->localsHardMax) {
-                    if (verbose)
-                        printf("Expanding local storage from %ld to %ld\n", vm->localsSoftMax, vm->localsHardMax);
-                    currentFrame = expandLocals(currentFrame, vm->localsHardMax);
-                    currentFrame->expandedLocals = true;
-                    target = currentFrame->locals;
-                    targetp = &currentFrame->lp;
-                }
-                if (total >= vm->localsHardMax) {
-                    if (vm->useHeapStorageBackup) {
-                        target = vm->globals;
-                        targetp = &vm->gp;
-                        total = vm->gp + lhs.size + rhs.size;
-                        if (!globalsExpanded && vm->globalsSoftMax != vm->globalsHardMax && total >= vm->globalsSoftMax && total < vm->globalsSoftMax) {
-                            if (verbose)
-                                printf("Expanding size of globals from %ld to %ld\n", vm->globalsSoftMax, vm->globalsHardMax);
-                            globalsExpanded = true;
-                            vm->globals = realloc(vm->globals, sizeof(DataConstant) * vm->globalsHardMax);
-                        }
-                        if (total >= vm->globalsHardMax) {
-                            fprintf(stderr, "StackOverflow: Exceeded local storage maximum of %ld and global storage maximum of %ld\n", vm->localsHardMax, vm->globalsHardMax);
-                            return memory_err;
-                        }
-                        if (verbose)
-                            printf("INFO: Using heap storage for array %p\n", vm->globals + vm->gp + 1);
-                    }
-                    else {
-                        fprintf(stderr, "StackOverflow: Exceeded local storage maximum of %ld\n", vm->localsHardMax);
-                        return memory_err;
-                    }
-                }
-                rval = createAddr(target, *targetp + 1, lhs.size + rhs.size, lhs.length + rhs.length);
+                arrayTarget = checkAndRetrieveArrayValuesTarget(vm, currentFrame, lhs.size + rhs.size, &globalsExpanded, verbose);
+                if (vm->state != success)
+                    return vm->state;
+                currentFrame = arrayTarget.frame;
+                rval = createAddr(arrayTarget.target, *(arrayTarget.targetp) + 1, lhs.size + rhs.size, lhs.length + rhs.length);
                 DataConstant* start = getArrayStart(lhs);
                 DataConstant* stop = start + lhs.length;
                 for (DataConstant* curr = start; curr != stop; curr++) {
-                    target[++(*targetp)] = *curr;
+                    arrayTarget.target[++(*arrayTarget.targetp)] = *curr;
                 }
                 start = getArrayStart(rhs);
                 stop = start + rhs.length;
-                if (rhs.length != 0)
-                    (*targetp)++;
                 for (DataConstant* curr = start; curr != stop; curr++) {
-                    target[(*targetp)] = *curr;
-                    if (curr != stop - 1)
-                        (*targetp)++;
+                    arrayTarget.target[++(*arrayTarget.targetp)] = *curr;
                 }
-                if (rval.size > rval.length) {
-                    (*targetp)++;
+                if (rval.length < rval.size) {
                     for (int i = rval.length; i < rval.size; i++) {
-                        target[(*targetp)] = createNone();
-                        if (i < rval.size - 1)
-                            (*targetp)++;
+                        arrayTarget.target[++(*arrayTarget.targetp)] = createNone();
                     }
                 }
             }
@@ -660,43 +666,13 @@ ExitCode run(VM* vm, bool verbose) {
             addr = currentFrame->returnAddr;
             Frame* caller = vm->callStack[--vm->fp];
             setPC(caller, addr);
-            DataConstant* target = caller->locals;
-            int* targetp = &caller->lp;
             if (rval.type != None) {
                 if (rval.type == Addr && rval.value.address != vm->globals) {
-                    total = caller->lp + rval.size;
-                    if (!caller->expandedLocals && vm->localsSoftMax != vm->localsHardMax && total >= vm->localsSoftMax - 1 && total < vm->localsHardMax) {
-                        if (verbose)
-                            printf("Expanding local storage from %ld to %ld\n", vm->localsSoftMax, vm->localsHardMax);
-                        caller = expandLocals(caller, vm->localsHardMax);
-                        caller->expandedLocals = true;
-                        target = caller->locals;
-                        targetp = &caller->lp;
-                    }
-                    if (total >= vm->localsHardMax) {
-                        if (vm->useHeapStorageBackup) {
-                            target = vm->globals;
-                            targetp = &vm->gp;
-                            total = vm->gp + rval.size;
-                            if (!globalsExpanded && vm->globalsSoftMax != vm->globalsHardMax && total >= vm->globalsSoftMax && total < vm->globalsSoftMax) {
-                                if (verbose)
-                                    printf("Expanding size of globals from %ld to %ld\n", vm->globalsSoftMax, vm->globalsHardMax);
-                                globalsExpanded = true;
-                                vm->globals = realloc(vm->globals, sizeof(DataConstant) * vm->globalsHardMax);
-                            }
-                            if (total >= vm->globalsHardMax) {
-                                fprintf(stderr, "StackOverflow: Exceeded local storage maximum of %ld and global storage maximum of %ld\n", vm->localsHardMax, vm->globalsHardMax);
-                                return memory_err;
-                            }
-                            if (verbose)
-                                printf("INFO: Using heap storage for array %p\n", vm->globals + vm->gp + 1);
-                        }
-                        else {
-                            fprintf(stderr, "StackOverflow: Exceeded local storage maximum of %ld\n", vm->localsHardMax);
-                            return memory_err;
-                        }
-                    }
-                    rval = copyAddr(rval, targetp, &target);
+                    arrayTarget = checkAndRetrieveArrayValuesTarget(vm, caller, rval.size, &globalsExpanded, verbose);
+                    if (vm->state != success)
+                        return vm->state;
+                    caller = arrayTarget.frame;
+                    rval = copyAddr(rval, arrayTarget.targetp, &arrayTarget.target);
                 }
                 push(vm, rval);
             }
@@ -714,88 +690,28 @@ ExitCode run(VM* vm, bool verbose) {
                 fprintf(stderr, "Error: Attempted to build array of length %d which exceeds capacity %d\n", argc, capacity);
                 return memory_err;
             }
-            DataConstant* target = currentFrame->locals;
-            int* targetp = &currentFrame->lp;
-            total = currentFrame->lp + capacity;
-            if (!currentFrame->expandedLocals && vm->localsSoftMax != vm->localsHardMax && total >= vm->localsSoftMax && total < vm->localsHardMax) {
-                if (verbose)
-                    printf("Expanding local storage from %ld to %ld\n", vm->localsSoftMax, vm->localsHardMax);
-                currentFrame = expandLocals(currentFrame, vm->localsHardMax);
-                currentFrame->expandedLocals = true;
-                target = currentFrame->locals;
-                targetp = &currentFrame->lp;
-            }
-            if (total >= vm->localsHardMax) {
-                if (vm->useHeapStorageBackup) {
-                    target = vm->globals;
-                    targetp = &vm->gp;
-                    total = vm->gp + capacity;
-                    if (!globalsExpanded && vm->globalsSoftMax != vm->globalsHardMax && total >= vm->globalsSoftMax && total < vm->globalsSoftMax) {
-                        if (verbose)
-                            printf("Expanding size of globals from %ld to %ld\n", vm->globalsSoftMax, vm->globalsHardMax);
-                        globalsExpanded = true;
-                        vm->globals = realloc(vm->globals, sizeof(DataConstant) * vm->globalsHardMax);
-                    }
-                    if (total >= vm->globalsHardMax) {
-                        fprintf(stderr, "StackOverflow: Exceeded local storage maximum of %ld and global storage maximum of %ld\n", vm->localsHardMax, vm->globalsHardMax);
-                        return memory_err;
-                    }
-                    if (verbose)
-                        printf("INFO: Using heap storage for array %p\n", vm->globals + vm->gp + 1);
-                }
-                else {
-                    fprintf(stderr, "StackOverflow: Exceeded local storage maximum of %ld\n", vm->localsHardMax);
-                    return memory_err;
-                }
-            }
-            rval = createAddr(target, ++(*targetp), capacity, argc);
+            arrayTarget = checkAndRetrieveArrayValuesTarget(vm, currentFrame, capacity, &globalsExpanded, verbose);
+            if (vm->state != success)
+                return vm->state;
+            currentFrame = arrayTarget.frame;
+            rval = createAddr(arrayTarget.target, (*arrayTarget.targetp) + 1, capacity, argc);
             for (int i = 0; i < argc; i++) {
-                target[(*targetp)] = pop(vm);
-                if (i < argc - 1)
-                    (*targetp)++;
+                arrayTarget.target[++(*arrayTarget.targetp)] = pop(vm);
             }
             if (capacity > argc) {
-                if (argc != 0)
-                    (*targetp)++;
                 for (int i = argc; i < capacity; i++) {
-                    target[(*targetp)] = createNone();
-                    if (i < capacity - 1)
-                        (*targetp)++;
+                    arrayTarget.target[++(*arrayTarget.targetp)] = createNone();
                 }
             }
             push(vm, rval);
         }
         else if (strcmp(opcode, "COPYARR") == 0) {
             rhs = pop(vm);
-            total = rhs.size + currentFrame->lp;
-            DataConstant** target = &currentFrame->locals;
-            int* targetp = &currentFrame->lp;
-            if (!currentFrame->expandedLocals && vm->localsSoftMax != vm->localsHardMax && total >= vm->localsSoftMax && total < vm->localsHardMax) {
-                if (verbose)
-                    printf("Expanding local storage from %ld to %ld\n", vm->localsSoftMax, vm->localsHardMax);
-                currentFrame = expandLocals(currentFrame, vm->localsHardMax);
-                currentFrame->expandedLocals = true;
-                target = &currentFrame->locals;
-                targetp = &currentFrame->lp;
-            }
-            if (total >= vm->localsHardMax) {
-                if (vm->useHeapStorageBackup) {
-                    total = rhs.size + vm->gp;
-                    target = &vm->globals;
-                    targetp = &vm->gp;
-                    if (total >= vm->globalsHardMax) {
-                        fprintf(stderr, "StackOverflow: Exceeded local storage maximum of %ld and global storage maximum of %ld\n", vm->localsHardMax, vm->globalsHardMax);
-                        return memory_err;
-                    }
-                    if (verbose)
-                        printf("INFO: Using heap storage for array %p\n", vm->globals + vm->gp + 1);
-                }
-                else {
-                    fprintf(stderr, "StackOverflow: Exceeded local storage maximum of %ld\n", vm->localsHardMax);
-                    return memory_err;
-                }
-            }
-            rval = copyAddr(rhs, targetp, target);
+            arrayTarget = checkAndRetrieveArrayValuesTarget(vm, currentFrame, rhs.size, &globalsExpanded, verbose);
+            if (vm->state != success)
+                return vm->state;
+            currentFrame = arrayTarget.frame;
+            rval = copyAddr(rhs, arrayTarget.targetp, &arrayTarget.target);
             push(vm, rval);
         }
         else if (strcmp(opcode, "AGET") == 0) {

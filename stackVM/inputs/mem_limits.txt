@@ -51,9 +51,15 @@ test_locals:
     RET
 
 test_return_array:
+    LOAD_CONST 5
+    STORE
     LOAD_CONST true
     LOAD_CONST false
-    BUILDARR 2 2
+    BUILDARR 3 2
+    LOAD_CONST false
+    LOAD_CONST true
+    BUILDARR 3 2
+    CONCAT
     RET
 
 test_locals_large_array:
@@ -64,7 +70,6 @@ test_locals_large_array:
     BUILDARR 10 0
     CONCAT
     COPYARR
-    HALT
     LOAD_CONST NONE
     RET
 
