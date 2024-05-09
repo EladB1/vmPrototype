@@ -6,8 +6,8 @@
 typedef struct {
     bool dynamicResourceExpansionEnabled;
     bool useHeapStorageBackup;
-    long framesSoftMax;
-    long framesHardMax;
+    short framesSoftMax;
+    short framesHardMax;
     long globalsSoftMax;
     long globalsHardMax;
     long stackSizeSoftMax;

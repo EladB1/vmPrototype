@@ -105,10 +105,10 @@ VMConfig readConfigFile(char* filePath) {
                         conf.useHeapStorageBackup = (strcmp(value, "disabled") != 0);
                     }
                     if (strcmp(key, "frames_soft_max") == 0) {
-                        conf.framesSoftMax = processValue(value, filePath, line);
+                        conf.framesSoftMax = (short) processValue(value, filePath, line);
                     }
                     if (strcmp(key, "frames_hard_max") == 0) {
-                        conf.framesHardMax = processValue(value, filePath, line);
+                        conf.framesHardMax = (short) processValue(value, filePath, line);
                     }
                     if (strcmp(key, "stack_size_soft_max") == 0) {
                         conf.stackSizeSoftMax = processValue(value, filePath, line);
@@ -179,8 +179,8 @@ void printEstimatedMemory(VMConfig conf) {
 void displayVMConfig(VMConfig conf) {
     printf("DynamicResourceExpansion: %s\n", conf.dynamicResourceExpansionEnabled ? "enabled" : "disabled");
     printf("HeapStorageBackup: %s\n", conf.useHeapStorageBackup ? "enabled" : "disabled");
-    printf("frames_soft_max: %ld frames\n", conf.framesSoftMax);
-    printf("frames_hard_max: %ld frames\n", conf.framesHardMax);
+    printf("frames_soft_max: %hd frames\n", conf.framesSoftMax);
+    printf("frames_hard_max: %hd frames\n", conf.framesHardMax);
     printf("stack_size_soft_max: %ld B (%ld values)\n", conf.stackSizeSoftMax, conf.stackSizeSoftMax / sizeof(DataConstant));
     printf("stack_size_hard_max: %ld B (%ld values)\n", conf.stackSizeHardMax, conf.stackSizeHardMax / sizeof(DataConstant));
     printf("locals_soft_max: %ld B (%ld values)\n", conf.localsSoftMax, conf.localsSoftMax / sizeof(DataConstant));
@@ -196,8 +196,8 @@ bool validateVMConfig(VMConfig conf, char* filePath) {
     char* valueError = "ConfigError: '%s' must be between %ld and %ld in config file: '%s'\n";
     char* improperValue = "ConfigError: '%s' must be less than or equal to '%s' in config file: '%s'\n";
     if (conf.dynamicResourceExpansionEnabled) {
-        if (conf.framesSoftMax < 1 || conf.framesSoftMax > LONG_MAX) {
-            fprintf(stderr, valueError, "frames_soft_max", 1, LONG_MAX, filePath);
+        if (conf.framesSoftMax < 1 || conf.framesSoftMax > SHRT_MAX) {
+            fprintf(stderr, valueError, "frames_soft_max", 1, SHRT_MAX, filePath);
             valid = false;
         }
         if (conf.stackSizeSoftMax < valueSize || conf.stackSizeSoftMax > LONG_MAX) {
@@ -232,8 +232,8 @@ bool validateVMConfig(VMConfig conf, char* filePath) {
             valid = false;
         }
     }
-    if (conf.framesHardMax < 1 || conf.framesHardMax > LONG_MAX) {
-        fprintf(stderr, valueError, "frames_hard_max", 1, LONG_MAX, filePath);
+    if (conf.framesHardMax < 1 || conf.framesHardMax > SHRT_MAX) {
+        fprintf(stderr, valueError, "frames_hard_max", 1, SHRT_MAX, filePath);
         valid = false;
     }
     if (conf.stackSizeHardMax < valueSize || conf.stackSizeHardMax > LONG_MAX) {

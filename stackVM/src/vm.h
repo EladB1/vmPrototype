@@ -13,8 +13,9 @@ typedef struct {
     int fp;
     int gp;
     ExitCode state;
-    long frameSoftMax;
-    long frameHardMax;
+    bool useHeapStorageBackup;
+    short framesSoftMax;
+    short framesHardMax;
     long globalsSoftMax;
     long globalsHardMax;
     long localsSoftMax;

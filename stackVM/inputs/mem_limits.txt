@@ -50,8 +50,21 @@ test_locals:
     LOAD_CONST NONE
     RET
 
+test_return_array:
+    LOAD_CONST true
+    LOAD_CONST false
+    BUILDARR 2 2
+    RET
+
 test_locals_large_array:
-    BUILDARR 3 0
+    LOAD_CONST 1
+    STORE
+    CALL test_return_array 0
+    BUILDARR 2 0
+    BUILDARR 10 0
+    CONCAT
+    COPYARR
+    HALT
     LOAD_CONST NONE
     RET
 

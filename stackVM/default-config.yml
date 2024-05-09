@@ -26,6 +26,7 @@
 # when a function is called, both the caller and callee are "active" frames
 # Recursive functions can potentially create a lot of frames
 ## Values: Numeric
+## Range: 1 - 32767
 ## Units: Number of Frames
 ## Recommendation: 128 - 4K
 - frames_soft_max: 512
@@ -52,3 +53,7 @@
 ## Recommendation: 128K - 4G (or you can allocate 20-25% of available memory)
 - globals_soft_max: 1M
 - globals_hard_max: 512M
+
+### Total Memory Footprint:
+## Best case: globals_soft_max + (frames_soft_max * (stack_size_soft_max + locals_soft_max))
+## Worst case: globals_hard_max + (frames_hard_max * (stack_size_hard_max + locals_hard_max))
