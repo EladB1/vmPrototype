@@ -38,8 +38,8 @@ VM* init(SourceCode* src, VMConfig conf) {
     vm->stackHardMax = conf.stackSizeHardMax / sizeof(DataConstant);
     vm->stackSoftMax = conf.dynamicResourceExpansionEnabled ? conf.stackSizeSoftMax / sizeof(DataConstant) : vm->stackHardMax;
 
-    vm->globals = malloc(conf.dynamicResourceExpansionEnabled || conf.framesSoftMax == conf.framesHardMax ? conf.globalsSoftMax : conf.globalsHardMax);
-    vm->callStack = malloc(conf.dynamicResourceExpansionEnabled || conf.globalsSoftMax == conf.globalsHardMax ? conf.framesSoftMax : conf.framesHardMax);
+    vm->globals = malloc(conf.dynamicResourceExpansionEnabled || conf.globalsSoftMax == conf.globalsHardMax ? conf.globalsSoftMax : conf.globalsHardMax);
+    vm->callStack = malloc(conf.dynamicResourceExpansionEnabled || conf.framesSoftMax == conf.framesHardMax ? conf.framesSoftMax : conf.framesHardMax);
     vm->useHeapStorageBackup = conf.useHeapStorageBackup;
     int index = findLabelIndex(src, ENTRYPOINT);
     if (index == -1) {
@@ -216,7 +216,7 @@ ArrayTarget checkAndRetrieveArrayValuesTarget(VM* vm, Frame* frame, int arraySiz
                 if (verbose)
                     printf("Expanding size of globals from %ld to %ld\n", vm->globalsSoftMax, vm->globalsHardMax);
                 *globalsExpanded = true;
-                vm->globals = realloc(vm->globals, sizeof(DataConstant) * vm->globalsHardMax);
+                vm->globals = realloc(vm->globals, vm->globalsHardMax);
             }
             if (total >= vm->globalsHardMax) {
                 fprintf(stderr, "StackOverflow: Exceeded local storage maximum of %ld and global storage maximum of %ld\n", vm->localsHardMax, vm->globalsHardMax);
@@ -637,8 +637,9 @@ ExitCode run(VM* vm, bool verbose) {
                 rval = callBuiltinFunction(next, argc, params, &currentFrame->lp, &currentFrame->locals, &(vm->state));
                 if (vm->state != success)
                     return vm->state;
-                if (rval.type != None)
+                if (rval.type != None) {
                     push(vm, rval);
+                }
             }
             else {
                 addr = findLabelIndex(vm->src, next);
@@ -694,9 +695,12 @@ ExitCode run(VM* vm, bool verbose) {
             if (vm->state != success)
                 return vm->state;
             currentFrame = arrayTarget.frame;
-            rval = createAddr(arrayTarget.target, (*arrayTarget.targetp) + 1, capacity, argc);
+            rval = createAddr(arrayTarget.target, ++(*arrayTarget.targetp), capacity, argc);
             for (int i = 0; i < argc; i++) {
-                arrayTarget.target[++(*arrayTarget.targetp)] = pop(vm);
+                //printf("%d: %s\n", *arrayTarget.targetp + 1, toString(top(vm)));
+                arrayTarget.target[(*arrayTarget.targetp)] = pop(vm);
+                if (i < capacity - 1)
+                    (*arrayTarget.targetp)++;
             }
             if (capacity > argc) {
                 for (int i = argc; i < capacity; i++) {
