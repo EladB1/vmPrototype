@@ -16,17 +16,20 @@
 
 ## Numeric Values guidelines:
 # No decimal points or negative numbers allowed
-# Values under 1024, can just be numbers
-# Values over 1024 and under 1048576, can be abbreviated with K
-# Values over 1,048,576 and under 1073741824, can be abbreviated with M
+# Values under 1,024, can just be numbers
+# Values over 1,024 and under 1,048,576, can be abbreviated with K
+# Values over 1,048,576 and under 1,073,741,824, can be abbreviated with M
 # Values over 1,073,741,824, can be abbreviated with G
+# sizeof(DataConstant) is 32 Bytes on 64-bit systems (maybe smaller on other systems)
 # soft maxes must be less than hard maxes
+
+
 
 # Number of frames (executing functions)
 # when a function is called, both the caller and callee are "active" frames
 # Recursive functions can potentially create a lot of frames
 ## Values: Numeric
-## Range: 1 - 32767
+## Range: 1 - 16K
 ## Units: Number of Frames
 ## Recommendation: 128 - 4K
 - frames_soft_max: 512
@@ -34,6 +37,7 @@
 
 # Stack size is the number of elements that can be held in memory in a frame
 ## Values: Numeric
+## Range: sizeof(DataConstant) - 64K
 ## Units: Bytes
 ## Recommentdation: 512 - 32K
 - stack_size_soft_max: 1K
@@ -42,6 +46,7 @@
 # The local storage of a frame
 # Used for storing local variables and is the default location where array values are placed
 ## Values: Numeric
+## Range: sizeof(DataConstant) - 1M
 ## Units: Bytes
 ## Recommendation: 1K - 5M
 - locals_soft_max: 64K
@@ -49,10 +54,11 @@
 
 # The size of global VM storage (heap equivalent)
 ## Values: Numeric
+## Range: sizeof(DataConstant) - 32G
 ## Units: Bytes
 ## Recommendation: 128K - 4G (or you can allocate 20-25% of available memory)
 - globals_soft_max: 1M
-- globals_hard_max: 512M
+- globals_hard_max: 512H
 
 ### Total Memory Footprint:
 ## Best case: globals_soft_max + (frames_soft_max * (stack_size_soft_max + locals_soft_max))

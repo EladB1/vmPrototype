@@ -7,6 +7,11 @@
 #include "config.h"
 #include "dataconstant.h"
 
+#define MAX_FRAMES_SIZE 1 << 14
+#define MAX_STACK_SIZE 1 << 16
+#define MAX_LOCALS_SIZE 1 << 20
+#define MAX_GLOBALS_SIZE (long) 1 << 35
+
 // manually process instead of using regex
 long processValue(char* value, char* filePath, int line) {
     char* digits = "";
@@ -196,20 +201,20 @@ bool validateVMConfig(VMConfig conf, char* filePath) {
     char* valueError = "ConfigError: '%s' must be between %ld and %ld in config file: '%s'\n";
     char* improperValue = "ConfigError: '%s' must be less than or equal to '%s' in config file: '%s'\n";
     if (conf.dynamicResourceExpansionEnabled) {
-        if (conf.framesSoftMax < 1 || conf.framesSoftMax > SHRT_MAX) {
-            fprintf(stderr, valueError, "frames_soft_max", 1, SHRT_MAX, filePath);
+        if (conf.framesSoftMax < 1 || conf.framesSoftMax > MAX_FRAMES_SIZE) {
+            fprintf(stderr, valueError, "frames_soft_max", 1, MAX_FRAMES_SIZE, filePath);
             valid = false;
         }
-        if (conf.stackSizeSoftMax < valueSize || conf.stackSizeSoftMax > LONG_MAX) {
-            fprintf(stderr, valueError, "stack_size_soft_max", valueSize, LONG_MAX, filePath);
+        if (conf.stackSizeSoftMax < valueSize || conf.stackSizeSoftMax > MAX_STACK_SIZE) {
+            fprintf(stderr, valueError, "stack_size_soft_max", valueSize, MAX_STACK_SIZE, filePath);
             valid = false;
         }
-        if (conf.localsSoftMax < valueSize || conf.localsSoftMax > LONG_MAX) {
-            fprintf(stderr, valueError, "locals_soft_max", valueSize, LONG_MAX, filePath);
+        if (conf.localsSoftMax < valueSize || conf.localsSoftMax > MAX_LOCALS_SIZE) {
+            fprintf(stderr, valueError, "locals_soft_max", valueSize, MAX_LOCALS_SIZE, filePath);
             valid = false;
         }
-        if (conf.globalsSoftMax < valueSize || conf.globalsSoftMax > LONG_MAX) {
-            fprintf(stderr, valueError, "globals_soft_max", valueSize, LONG_MAX, filePath);
+        if (conf.globalsSoftMax < valueSize || conf.globalsSoftMax > MAX_GLOBALS_SIZE) {
+            fprintf(stderr, valueError, "globals_soft_max", valueSize, MAX_GLOBALS_SIZE, filePath);
             valid = false;
         }
         if (conf.framesSoftMax > conf.framesHardMax) {
@@ -232,20 +237,20 @@ bool validateVMConfig(VMConfig conf, char* filePath) {
             valid = false;
         }
     }
-    if (conf.framesHardMax < 1 || conf.framesHardMax > SHRT_MAX) {
-        fprintf(stderr, valueError, "frames_hard_max", 1, SHRT_MAX, filePath);
+    if (conf.framesHardMax < 1 || conf.framesHardMax > MAX_FRAMES_SIZE) {
+        fprintf(stderr, valueError, "frames_hard_max", 1, MAX_FRAMES_SIZE, filePath);
         valid = false;
     }
-    if (conf.stackSizeHardMax < valueSize || conf.stackSizeHardMax > LONG_MAX) {
-        fprintf(stderr, valueError, "stack_size_hard_max", valueSize, LONG_MAX, filePath);
+    if (conf.stackSizeHardMax < valueSize || conf.stackSizeHardMax > MAX_STACK_SIZE) {
+        fprintf(stderr, valueError, "stack_size_hard_max", valueSize, MAX_STACK_SIZE, filePath);
         valid = false;
     }
-    if (conf.localsHardMax < valueSize || conf.localsHardMax > LONG_MAX) {
-        fprintf(stderr, valueError, "locals_hard_max", valueSize, LONG_MAX, filePath);
+    if (conf.localsHardMax < valueSize || conf.localsHardMax > MAX_LOCALS_SIZE) {
+        fprintf(stderr, valueError, "locals_hard_max", valueSize, MAX_LOCALS_SIZE, filePath);
         valid = false;
     }
-    if (conf.globalsHardMax < valueSize || conf.globalsHardMax > LONG_MAX) {
-        fprintf(stderr, valueError, "globals_hard_max", valueSize, LONG_MAX, filePath);
+    if (conf.globalsHardMax < valueSize || conf.globalsHardMax > MAX_GLOBALS_SIZE) {
+        fprintf(stderr, valueError, "globals_hard_max", valueSize, MAX_GLOBALS_SIZE, filePath);
         valid = false;
     }
     return valid;
