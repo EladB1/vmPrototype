@@ -50,9 +50,9 @@ VMConfig getDefaultConfig() {
     conf.framesSoftMax = 1 << 9;
     conf.framesHardMax = 1 << 10;
     conf.stackSizeSoftMax = 1 << 10;
-    conf.stackSizeHardMax = 10 * (1 << 10);
+    conf.stackSizeHardMax = 1 << 13;
     conf.localsSoftMax = 1 << 16;
-    conf.localsHardMax = 1 << 20;
+    conf.localsHardMax = 1 << 17;
     conf.globalsSoftMax = 1 << 20;
     conf.globalsHardMax = 1 << 29;
     return conf;

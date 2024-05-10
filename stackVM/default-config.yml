@@ -39,18 +39,18 @@
 ## Values: Numeric
 ## Range: sizeof(DataConstant) - 64K
 ## Units: Bytes
-## Recommentdation: 512 - 32K
+## Recommentdation: 512 - 16K
 - stack_size_soft_max: 1K
-- stack_size_hard_max: 10K
+- stack_size_hard_max: 8K
 
 # The local storage of a frame
 # Used for storing local variables and is the default location where array values are placed
 ## Values: Numeric
 ## Range: sizeof(DataConstant) - 1M
 ## Units: Bytes
-## Recommendation: 1K - 5M
+## Recommendation: 1K - 256K
 - locals_soft_max: 64K
-- locals_hard_max: 1M
+- locals_hard_max: 128K
 
 # The size of global VM storage (heap equivalent)
 ## Values: Numeric
@@ -58,7 +58,7 @@
 ## Units: Bytes
 ## Recommendation: 128K - 4G (or you can allocate 20-25% of available memory)
 - globals_soft_max: 1M
-- globals_hard_max: 512H
+- globals_hard_max: 512M
 
 ### Total Memory Footprint:
 ## Best case: globals_soft_max + (frames_soft_max * (stack_size_soft_max + locals_soft_max))
