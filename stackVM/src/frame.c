@@ -31,7 +31,7 @@ void deleteFrame(Frame* frame) {
 }
 
 Frame* expandStack(Frame* frame, long stackSize) {
-    frame->stack = realloc(frame->stack, stackSize);
+    frame->stack = realloc(frame->stack, sizeof(DataConstant) *  stackSize);
     return frame;
 }
 

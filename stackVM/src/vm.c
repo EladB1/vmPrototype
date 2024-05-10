@@ -58,7 +58,7 @@ void destroy(VM* vm) {
 
 void push(VM* vm, DataConstant value) {
     Frame* frame = vm->callStack[vm->fp];
-    if (!frame->expandedStack && vm->stackSoftMax != vm->stackHardMax && frame->sp >= vm->stackSoftMax && frame->sp < vm->stackHardMax) {
+    if (!frame->expandedStack && vm->stackSoftMax != vm->stackHardMax && frame->sp >= vm->stackSoftMax - 1 && frame->sp < vm->stackHardMax) {
         frame->expandedStack = true;
         printf("Expanding current frame stack from %ld to %ld\n", vm->stackSoftMax, vm->stackHardMax);
         frame = expandStack(frame, vm->stackHardMax);
@@ -253,6 +253,8 @@ ExitCode run(VM* vm, bool verbose) {
     while (1) {
         if (vm->state != success)
             return vm->state;
+        if (verbose)
+            display(vm);
         opcode = getNext(vm);
         currentFrame = vm->callStack[vm->fp];
         for (int i = 0; i < currentFrame->jc; i++) {
@@ -753,8 +755,6 @@ ExitCode run(VM* vm, bool verbose) {
             fprintf(stderr, "Unknown bytecode: '%s'\n", opcode);
             return unknown_bytecode;
         }
-        if (verbose)
-            display(vm);
     }
     return success;
 }
