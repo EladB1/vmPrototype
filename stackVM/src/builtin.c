@@ -60,7 +60,7 @@ bool isBuiltinFunction(char* name) {
     return false;
 }
 
-DataConstant callBuiltinFunction(char* name, int argc, DataConstant* params, int* lp, DataConstant** locals, ExitCode* vmState) {
+DataConstant callBuiltinFunction(char* name, int argc, DataConstant* params, VM* vm, Frame* frame, bool* globalsExpanded, bool verbose) {
     if (strcmp(name, "print") == 0)
         print(params[0], false);
     if (strcmp(name, "println") == 0)
@@ -90,43 +90,43 @@ DataConstant callBuiltinFunction(char* name, int argc, DataConstant* params, int
     if (strcmp(name, "_slice_s") == 0) {
         char* string = params[0].value.strVal;
         int end = argc == 2 ? (int) strlen(string) : params[2].value.intVal;
-        return createString(slice(string, params[1].value.intVal, end, vmState));
+        return createString(slice(string, params[1].value.intVal, end, &vm->state));
     }
     if (strcmp(name, "_slice_a") == 0) {
         DataConstant array = params[0];
         int end = argc == 2 ? array.length : params[2].value.intVal;
-        return sliceArr(array, params[1].value.intVal, end, lp, locals, vmState);
+        return sliceArr(array, params[1].value.intVal, end, vm, frame, globalsExpanded, verbose);
     }
     if (strcmp(name, "append") == 0) {
         DataConstant array = params[0];
-        append(&array, params[1], vmState);
+        append(&array, params[1], &vm->state);
         return array;
     }
     if (strcmp(name, "prepend") == 0) {
         DataConstant array = params[0];
-        prepend(&array, params[1], vmState);
+        prepend(&array, params[1], &vm->state);
         return array;
     }
     if (strcmp(name, "insert") == 0) {
         DataConstant array = params[0];
-        insert(&array, params[1], params[2].value.intVal, vmState);
+        insert(&array, params[1], params[2].value.intVal, &vm->state);
         return array;
     }
     if (strcmp(name, "_remove_indx_a") == 0) {
         int index = params[1].value.intVal;
-        removeByIndex(&params[0], index, vmState);
+        removeByIndex(&params[0], index, &vm->state);
         return params[0];
     }
     if (strcmp(name, "_remove_val_a") == 0) {
         int index = indexOf(params[0], params[1]);
         if (index != -1)
-            removeByIndex(&params[0], index, vmState);
+            removeByIndex(&params[0], index, &vm->state);
         return params[0];
     }
     if (strcmp(name, "_remove_all_val_a") == 0) {
         int index = indexOf(params[0], params[1]);
         while (index != -1) {
-            removeByIndex(&params[0], index, vmState);
+            removeByIndex(&params[0], index, &vm->state);
             index = indexOf(params[0], params[1]);
         }
         return params[0];
@@ -148,7 +148,7 @@ DataConstant callBuiltinFunction(char* name, int argc, DataConstant* params, int
     if (strcmp(name, "_toDouble_i") == 0)
         return createDouble((double) params[0].value.intVal);
     if (strcmp(name, "at") == 0)
-        return createString(at(params[0].value.strVal, params[1].value.intVal, vmState));
+        return createString(at(params[0].value.strVal, params[1].value.intVal, &vm->state));
     if (strcmp(name, "join") == 0) {
         char* delim = argc == 1 ? "" : params[1].value.strVal;
         return createString(join(params[0], delim));
@@ -171,17 +171,17 @@ DataConstant callBuiltinFunction(char* name, int argc, DataConstant* params, int
     if (strcmp(name, "fileExists") == 0)
         return createBoolean(fileExists(params[0].value.strVal));
     if (strcmp(name, "createFile") == 0)
-        createFile(params[0].value.strVal, vmState);
+        createFile(params[0].value.strVal, &vm->state);
     if (strcmp(name, "readFile") == 0)
-        return readFile(params[0].value.strVal, lp, locals, vmState);
+        return readFile(params[0].value.strVal, vm, frame, globalsExpanded, verbose);
     if (strcmp(name, "writeToFile") == 0)
-        writeToFile(params[0].value.strVal, params[1].value.strVal, "w", vmState);
+        writeToFile(params[0].value.strVal, params[1].value.strVal, "w", &vm->state);
     if (strcmp(name, "appendToFile") == 0)
-        writeToFile(params[0].value.strVal, params[1].value.strVal, "a", vmState);
+        writeToFile(params[0].value.strVal, params[1].value.strVal, "a", &vm->state);
     if (strcmp(name, "renameFile") == 0)
-        renameFile(params[0].value.strVal, params[1].value.strVal, vmState);
+        renameFile(params[0].value.strVal, params[1].value.strVal, &vm->state);
     if (strcmp(name, "deleteFile") == 0)
-        deleteFile(params[0].value.strVal, vmState);
+        deleteFile(params[0].value.strVal, &vm->state);
     if (strcmp(name, "getEnv") == 0)
         return createString(getenv(params[0].value.strVal));
     if (strcmp(name, "setEnv") == 0) {
@@ -190,7 +190,7 @@ DataConstant callBuiltinFunction(char* name, int argc, DataConstant* params, int
         int set = putenv(envStr);
         if (set != 0) {
             fprintf(stderr, "Failed to set environment variable\n");
-            *vmState = (ExitCode) set;
+            *&vm->state = (ExitCode) set;
         }
     }
     return createNone();

@@ -31,6 +31,7 @@ typedef struct {
 } ArrayTarget;
 
 VM* init(SourceCode* src, VMConfig conf);
+ArrayTarget checkAndRetrieveArrayValuesTarget(VM* vm, Frame* frame, int arraySize, bool* globalsExpanded, bool verbose);
 ExitCode run(VM* vm, bool verbose);
 void destroy(VM* vm);
 

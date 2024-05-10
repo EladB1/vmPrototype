@@ -73,11 +73,22 @@ test_locals_large_array:
     LOAD_CONST NONE
     RET
 
+test_builtin_function:
+    LOAD_CONST 1
+    LOAD_CONST 3
+    LOAD_CONST 2
+    LOAD_CONST 1
+    BUILDARR 4 3
+    CALL _slice_a 2
+    LOAD_CONST NONE
+    RET
+
 _entry:
     ; uncomment function calls as needed
     ;CALL test_frames 0
     ;CALL test_globals 0
     ;CALL test_stack 0
     ;CALL test_locals 0
-    CALL test_locals_large_array 0
+    ;CALL test_locals_large_array 0
+    CALL test_builtin_function 0
     HALT

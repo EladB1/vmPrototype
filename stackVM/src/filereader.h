@@ -1,6 +1,8 @@
 #ifndef FILEREADER_H
 #define FILEREADER_H
 
+#include <stdbool.h>
+
 #include "stringvector.h"
 
 typedef struct {

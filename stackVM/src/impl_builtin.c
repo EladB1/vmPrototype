@@ -206,29 +206,45 @@ void createFile(char* filePath, ExitCode* vmState) {
     fclose(fp);
 }
 
-DataConstant readFile(char* filePath, int* lp, DataConstant** locals, ExitCode* vmState) {
+DataConstant readFile(char* filePath, VM* vm, Frame* frame, bool* globalsExpanded, bool verbose) {
     if (!fileExists(filePath)) {
         fprintf(stderr, "FileError: Cannot read file '%s' because it does not exist\n", filePath);
-        *vmState = file_err;
+        vm->state = file_err;
         return createNone();
     }
     FILE* fp = fopen(filePath, "r");
     if (fp == NULL || ferror(fp)) {
         perror("FileError");
         fprintf(stderr, "Cause: '%s'\n", filePath);
-        *vmState = file_err;
+        vm->state = file_err;
         return createNone();
     }
     DataConstant lines;
     lines.type = Addr;
-    lines.value.intVal = *lp + 1;
+    //lines.value.intVal = *lp + 1;
     lines.length = 0;
     lines.size = 0;
+    int max_file_length = (1 << 20) - 1;
+    DataConstant content[max_file_length];
     char line[DEFAULT_LINES];
     while (fgets(line, DEFAULT_LINES, fp)) {
-        (*locals)[++(*lp)] = createString(strdup(line));
+        content[lines.length] = createString(strdup(line));
+        if (lines.length > max_file_length) {
+            fprintf(stderr, "File is too large to read\n");
+            vm->state = file_err;
+            return createNone();
+        }
         lines.length++;
         lines.size++;
+    }
+    ArrayTarget arrayTarget = checkAndRetrieveArrayValuesTarget(vm, frame, lines.size, globalsExpanded, verbose);
+    if (vm->state != success)
+        return createNone();
+    *frame = *(arrayTarget.frame);
+    lines.value.address = arrayTarget.target;
+    lines.offset = *arrayTarget.targetp + 1;
+    for (int i = 0; i < lines.length; i++) {
+        arrayTarget.target[++(*arrayTarget.targetp)] = content[i];
     }
     fclose(fp);
     return lines;
@@ -299,14 +315,16 @@ void reverseArr(DataConstant array) {
     }
 }
 
-DataConstant sliceArr(DataConstant array, int start, int end, int* lp, DataConstant** locals, ExitCode* vmState) {
+DataConstant sliceArr(DataConstant array, int start, int end, VM* vm, Frame* frame, bool* globalsExpanded, bool verbose) {
     if (start < 0 || start > end || start >= array.length || end > array.length) {
         fprintf(stderr, "Array index out of bounds in call to slice. start: %d, end: %d\n", start, end);
-        *vmState = memory_err;
+        vm->state = memory_err;
         return createNone();
     }
     int len = end - start;
-    return partialCopyAddr(array, start, len, lp, locals);
+    ArrayTarget arrayTarget = checkAndRetrieveArrayValuesTarget(vm, frame, array.size, globalsExpanded, verbose);
+    *frame = *(arrayTarget.frame);
+    return partialCopyAddr(array, start, len, arrayTarget.targetp, &arrayTarget.target);
 }
 
 bool arrayContains(DataConstant array, DataConstant element) {
