@@ -1,0 +1,65 @@
+---
+### WARNING: Do not change the structure of this file, only change the values
+
+# Whether or not you default to the soft maxes and expand to hard maxes during runtime
+# DynamicResourceExpansion allows you have a smaller memory footprint in general and expand as needed
+# Expansion requires memory reallocation during runtime which could be costly
+# If this is disabled, soft maxes will be ignored; if you want to disable the soft max for one memory type, set the soft and hard max to the same value
+## Values: enabled or disabled
+## Recommendation: enabled
+- DynamicResourceExpansion: enabled
+
+# Use globals (heap) to store arrays that would be too large to store in frame locals (default array storage strategy)
+## Values: enabled or disabled
+## Recommendation: enabled
+- HeapStorageBackup: disabled
+
+## Numeric Values guidelines:
+# No decimal points or negative numbers allowed
+# Values under 1,024, can just be numbers
+# Values over 1,024 and under 1,048,576, can be abbreviated with K
+# Values over 1,048,576 and under 1,073,741,824, can be abbreviated with M
+# Values over 1,073,741,824, can be abbreviated with G
+# sizeof(DataConstant) is 32 Bytes on 64-bit systems (maybe smaller on other systems)
+# soft maxes must be less than hard maxes
+
+
+
+# Number of frames (executing functions)
+# when a function is called, both the caller and callee are "active" frames
+# Recursive functions can potentially create a lot of frames
+## Values: Numeric
+## Range: 1 - 16K
+## Units: Number of Frames
+## Recommendation: 128 - 4K
+- frames_soft_max: 512
+- frames_hard_max: 1K
+
+# Stack size is the number of elements that can be held in memory in a frame
+## Values: Numeric
+## Range: sizeof(DataConstant) - 64K
+## Units: Bytes
+## Recommentdation: 512 - 16K
+- stack_size_soft_max: 2K
+- stack_size_hard_max: 16K
+
+# The local storage of a frame
+# Used for storing local variables and is the default location where array values are placed
+## Values: Numeric
+## Range: sizeof(DataConstant) - 1M
+## Units: Bytes
+## Recommendation: 1K - 256K
+- locals_soft_max: 256K
+- locals_hard_max: 1M
+
+# The size of global VM storage (heap equivalent)
+## Values: Numeric
+## Range: sizeof(DataConstant) - 32G
+## Units: Bytes
+## Recommendation: 128K - 4G (or you can allocate 20-25% of available memory)
+- globals_soft_max: 1G
+- globals_hard_max: 2G
+
+### Total Memory Footprint:
+## Best case: globals_soft_max + (frames_soft_max * (stack_size_soft_max + locals_soft_max))
+## Worst case: globals_hard_max + (frames_hard_max * (stack_size_hard_max + locals_hard_max))

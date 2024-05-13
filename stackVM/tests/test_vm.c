@@ -15,7 +15,7 @@ void testRuntimeError(char* body, char* errorMessage, ExitCode vmState, bool ver
     if (verbose)
         displayCode(src);
 
-    VM* vm = init(src);
+    VM* vm = init(src, getDefaultConfig());
     ExitCode status = run(vm, verbose);
     
     cr_expect_stderr_eq_str(errorMessage);
@@ -37,7 +37,7 @@ Test(VM, initAndDestroy) {
     JumpPoint* jumps[2] = {(JumpPoint[]) {}, (JumpPoint[]) {{".end", 14, 15}}};
     SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 2);
     
-    VM* vm = init(src);
+    VM* vm = init(src, getDefaultConfig());
 
     cr_expect_not_null(vm);
     cr_expect_eq(vm->fp, 0);
@@ -64,7 +64,7 @@ Test(VM, noEntryPoint, .init = cr_redirect_stderr) {
     JumpPoint* jumps[1] = {(JumpPoint[]) {}};
     SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 1);
 
-    VM* vm = init(src);
+    VM* vm = init(src, getDefaultConfig());
     
     cr_expect_null(vm);
     cr_expect_stderr_eq_str("Error: Could not find entry point function label: '_entry'\n");
@@ -87,7 +87,7 @@ Test(VM, runPop) {
     JumpPoint* jumps[1] = {(JumpPoint[]) {}};
     SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 1);
 
-    VM* vm = init(src);
+    VM* vm = init(src, getDefaultConfig());
     bool verbose = false;
     if (verbose)
         displayCode(src);
@@ -115,7 +115,7 @@ Test(VM, runLoadBasicConsts) {
     JumpPoint* jumps[1] = {(JumpPoint[]) {}};
     SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 1);
 
-    VM* vm = init(src);
+    VM* vm = init(src, getDefaultConfig());
     bool verbose = false;
     if (verbose)
         displayCode(src);
@@ -148,7 +148,7 @@ Test(VM, runStringOps) {
     JumpPoint* jumps[1] = {(JumpPoint[]) {}};
     SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 1);
 
-    VM* vm = init(src);
+    VM* vm = init(src, getDefaultConfig());
     bool verbose = false;
     if (verbose)
         displayCode(src);
@@ -192,7 +192,7 @@ ParameterizedTest(DataCompare* comparisons, VM, runDUPAndCompare) {
     JumpPoint* jumps[1] = {(JumpPoint[]) {}};
     SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 1);
 
-    VM* vm = init(src);
+    VM* vm = init(src, getDefaultConfig());
     bool verbose = false;
     if (verbose)
         displayCode(src);
@@ -221,7 +221,7 @@ Test(VM, runNOT) {
     JumpPoint* jumps[1] = {(JumpPoint[]) {}};
     SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 1);
 
-    VM* vm = init(src);
+    VM* vm = init(src, getDefaultConfig());
     bool verbose = false;
     if (verbose)
         displayCode(src);
@@ -273,7 +273,7 @@ ParameterizedTest(BooleanOperation* operation, VM, runBinaryBooleanOperations) {
     JumpPoint* jumps[1] = {(JumpPoint[]) {}};
     SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 1);
 
-    VM* vm = init(src);
+    VM* vm = init(src, getDefaultConfig());
     bool verbose = false;
     if (verbose)
         displayCode(src);
@@ -327,7 +327,7 @@ ParameterizedTest(BitwiseOperation* operation, VM, runBinaryBitwiseOperations) {
     JumpPoint* jumps[1] = {(JumpPoint[]) {}};
     SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 1);
 
-    VM* vm = init(src);
+    VM* vm = init(src, getDefaultConfig());
     bool verbose = false;
     if (verbose)
         displayCode(src);
@@ -356,7 +356,7 @@ Test(VM, runLoadAndStore) {
     JumpPoint* jumps[1] = {(JumpPoint[]) {}};
     SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 1);
 
-    VM* vm = init(src);
+    VM* vm = init(src, getDefaultConfig());
     bool verbose = false;
     if (verbose)
         displayCode(src);
@@ -388,7 +388,7 @@ Test(VM, runWithNoJump) {
     JumpPoint* jumps[1] = {(JumpPoint[]) {{".end", 18, 19}}};
     SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 1);
 
-    VM* vm = init(src);
+    VM* vm = init(src, getDefaultConfig());
     bool verbose = false;
     if (verbose)
         displayCode(src);
@@ -414,7 +414,7 @@ Test(VM, runWithSimpleJump) {
     JumpPoint* jumps[1] = {(JumpPoint[]) {{".end", 15, 16}}};
     SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 1);
 
-    VM* vm = init(src);
+    VM* vm = init(src, getDefaultConfig());
     bool verbose = false;
     if (verbose)
         displayCode(src);
@@ -440,7 +440,7 @@ Test(VM, runWithShortCircuitJump) {
     JumpPoint* jumps[1] = {(JumpPoint[]) {{".end", 15, 16}}};
     SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 1);
 
-    VM* vm = init(src);
+    VM* vm = init(src, getDefaultConfig());
     bool verbose = false;
     if (verbose)
         displayCode(src);
@@ -468,7 +468,7 @@ Test(VM, runSelect) {
     JumpPoint* jumps[1] = {(JumpPoint[]) {}};
     SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 1);
 
-    VM* vm = init(src);
+    VM* vm = init(src, getDefaultConfig());
     bool verbose = false;
     if (verbose)
         displayCode(src);
@@ -497,7 +497,7 @@ Test(VM, runWithBuiltinFunctionCall, .init = cr_redirect_stdout) {
     JumpPoint* jumps[1] = {(JumpPoint[]) {}};
     SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 1);
 
-    VM* vm = init(src);
+    VM* vm = init(src, getDefaultConfig());
     bool verbose = false;
     if (verbose)
         displayCode(src);
@@ -527,7 +527,7 @@ Test(VM, runWithFunctionCall_no_params_stop) {
     JumpPoint* jumps[2] = {(JumpPoint[]) {}, (JumpPoint[]) {}};
     SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 2);
 
-    VM* vm = init(src);
+    VM* vm = init(src, getDefaultConfig());
     bool verbose = false;
     if (verbose)
         displayCode(src);
@@ -554,7 +554,7 @@ Test(VM, runWithFunctionCall_withParams_stop) {
     JumpPoint* jumps[2] = {(JumpPoint[]) {}, (JumpPoint[]) {}};
     SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 2);
 
-    VM* vm = init(src);
+    VM* vm = init(src, getDefaultConfig());
     bool verbose = false;
     if (verbose)
         displayCode(src);
@@ -584,7 +584,7 @@ Test(VM, runWithFunctionCall_addWithReturn) {
     JumpPoint* jumps[2] = {(JumpPoint[]) {}, (JumpPoint[]) {}};
     SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 2);
 
-    VM* vm = init(src);
+    VM* vm = init(src, getDefaultConfig());
     bool verbose = false;
     if (verbose)
         displayCode(src);
@@ -614,7 +614,7 @@ Test(VM, runWithFunctionCall_arrayReturn) {
     JumpPoint* jumps[2] = {(JumpPoint[]) {}, (JumpPoint[]) {}};
     SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 2);
 
-    VM* vm = init(src);
+    VM* vm = init(src, getDefaultConfig());
     bool verbose = false;
     if (verbose)
         displayCode(src);
@@ -651,7 +651,7 @@ Test(VM, runWithFunctionCall_nestedArrayReturn) {
     JumpPoint* jumps[2] = {(JumpPoint[]) {}, (JumpPoint[]) {}};
     SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 2);
 
-    VM* vm = init(src);
+    VM* vm = init(src, getDefaultConfig());
     bool verbose = false;
     if (verbose)
         displayCode(src);
@@ -697,7 +697,7 @@ Test(VM, runArrayGet) {
     JumpPoint* jumps[1] = {(JumpPoint[]) {}};
     SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 1);
 
-    VM* vm = init(src);
+    VM* vm = init(src, getDefaultConfig());
     bool verbose = false;
     if (verbose)
         displayCode(src);
@@ -732,7 +732,7 @@ Test(VM, buildArrayOneParam) {
     JumpPoint* jumps[1] = {(JumpPoint[]) {}};
     SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 1);
 
-    VM* vm = init(src);
+    VM* vm = init(src, getDefaultConfig());
     bool verbose = false;
     if (verbose)
         displayCode(src);
@@ -768,7 +768,7 @@ Test(VM, runArrayWrite) {
     JumpPoint* jumps[1] = {(JumpPoint[]) {}};
     SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 1);
 
-    VM* vm = init(src);
+    VM* vm = init(src, getDefaultConfig());
     bool verbose = false;
     if (verbose)
         displayCode(src);
@@ -809,7 +809,7 @@ Test(VM, runArrayConcat) {
     JumpPoint* jumps[1] = {(JumpPoint[]) {}};
     SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 1);
 
-    VM* vm = init(src);
+    VM* vm = init(src, getDefaultConfig());
     bool verbose = false;
     if (verbose)
         displayCode(src);
@@ -853,7 +853,7 @@ Test(VM, runArrayCopy) {
     JumpPoint* jumps[1] = {(JumpPoint[]) {}};
     SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 1);
 
-    VM* vm = init(src);
+    VM* vm = init(src, getDefaultConfig());
     bool verbose = false;
     if (verbose)
         displayCode(src);
@@ -895,7 +895,7 @@ Test(VM, runArrayGlobalStore) {
     JumpPoint* jumps[1] = {(JumpPoint[]) {}};
     SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 1);
 
-    VM* vm = init(src);
+    VM* vm = init(src, getDefaultConfig());
     bool verbose = false;
     if (verbose)
         displayCode(src);
@@ -941,7 +941,7 @@ Test(VM, runArrayGlobalStoreNested) {
     JumpPoint* jumps[1] = {(JumpPoint[]) {}};
     SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 1);
 
-    VM* vm = init(src);
+    VM* vm = init(src, getDefaultConfig());
     bool verbose = false;
     if (verbose)
         displayCode(src);

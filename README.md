@@ -21,10 +21,26 @@ The VM is made up of the following parts:
         - **Stack Pointer (sp):** Index of the top of the stack; `-1` if empty
 - **Frame pointer (fp):** Index of top of the call stack
 - **Globals:** Array containing global variables
-  - It also is treated as heap memory to store array literals
-    - Arrays are pointers to first element in array literal
-    - There isn't a memory management strategy for the heap yet but will work on that
 - **Globals Pointer (gp):** Index of the last element stored in globals; `-1` if empty
+
+### Arrays and memory managment
+
+Arrays are references to a list of values (either some frame's locals or VM globals). When an array is created, the destination for the values is stored, as well as the offset ( value of `lp`) to the destination with the array size (total amount of memory allocated) and length (number of actual elements in the array).
+
+By default, arrays are stored in the local frame. When the frame returns, all values in the locals are deallocated anyway, so the array memory gets cleaned up. Frames that return arrays, copy the memory to the caller frame then get deallocated. When you store an array reference globally, its values get copied to the VM globals, the pointer gets changed to point to the globals, and the offset changes to the value of `gp`. 
+
+There is a configuration file `.bolt_vm_config.yml` that lets you adjust the behavior of arrays. There is a setting `DynamicResourceExpansion` which gives you the option of using less memory upfront and expanding as needed; this is on by default. If `DynamicResourceExpansion` is off, the soft maximums will be ignored. The `HeapStorageBackup` setting gives you the option of storing the array values in globals if the array is too big for locals; on by default. You can adjust the number of frames, size of the VM globals, frame locals, and frame stack in this file.
+
+Going over the configured hard limits, will result in the program crashing with an out of memory error. Setting the amount of allocated too high or too low, will also result in a memory error.
+
+| Memory Region | Minimum | Maximum |
+|---------------|---------|---------|
+| frames        |    1    | 16,384  |      
+| stack         | `sizeof(DataContant)` | 64 KB |
+| locals        | `sizeof(DataContant)` | 1 MB |
+| globals       | `sizeof(DataContant)` | 32 GB |
+
+>`sizeof(DataConstant)` is 32 B on a 64-bit machine, so the minimum value would be 32. May vary on other instruction sizes.
 
 ### Funtion calls and returns
 
