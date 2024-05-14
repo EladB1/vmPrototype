@@ -5,6 +5,8 @@
 #include "utils.h"
 #include "../src/vm.h"
 
+#define BASE_BYTES sizeof(DataConstant)
+
 void testRuntimeError(char* body, char* errorMessage, ExitCode vmState, bool verbose) {
     char* labels[1] = {"_entry"};
     char* bodies[1] = { body };
@@ -76,6 +78,166 @@ Test(VM, runUknownBytecode, .init = cr_redirect_stderr) {
 
 Test(VM, runJumpPointNotFound, .init = cr_redirect_stderr) {
     testRuntimeError( "JMP .next HALT", "Error: Could not find jump point '.next'\n", unknown_bytecode, false);
+}
+
+Test(VM, checkAndRetrieveArrayValuesTarget_normal) {
+    char* labels[1] = {"_entry"};
+    char* bodies[1] = {
+        "HALT"
+    };
+    int jumpCounts[1] = {0};
+    JumpPoint* jumps[1] = {(JumpPoint[]) {}};
+    SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 1);
+
+    bool globalsExpanded = false;
+    VM* vm = init(src, getDefaultConfig());
+    Frame* frame = loadFrame(createStringVector(), jumps[0], 0, 320, 320, 0, 0, NULL);
+
+    ArrayTarget arrayTarget = checkAndRetrieveArrayValuesTarget(vm, frame, 9, &globalsExpanded, false);
+    Frame* changedFrame = arrayTarget.frame;
+
+    cr_expect_eq(arrayTarget.target, frame->locals);
+    cr_expect_eq(*arrayTarget.targetp, frame->lp);
+    cr_expect_not(changedFrame->expandedLocals);
+    cr_expect_not(globalsExpanded);
+}
+
+Test(VM, checkAndRetrieveArrayValuesTarget_expandLocals) {
+    char* labels[1] = {"_entry"};
+    char* bodies[1] = {
+        "HALT"
+    };
+    int jumpCounts[1] = {0};
+    JumpPoint* jumps[1] = {(JumpPoint[]) {}};
+    SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 1);
+
+    bool globalsExpanded = false;
+    VMConfig conf = getDefaultConfig();
+    conf.localsSoftMax = BASE_BYTES * 10;
+    conf.localsHardMax = BASE_BYTES * 20;
+    VM* vm = init(src, conf);
+    Frame* frame = loadFrame(createStringVector(), jumps[0], 0, 320, conf.localsSoftMax, 0, 0, NULL);
+
+    ArrayTarget arrayTarget = checkAndRetrieveArrayValuesTarget(vm, frame, 10, &globalsExpanded, false);
+    Frame* changedFrame = arrayTarget.frame;
+
+    cr_expect_eq(arrayTarget.target, frame->locals);
+    cr_expect_eq(*arrayTarget.targetp, frame->lp);
+    cr_expect(changedFrame->expandedLocals);
+    cr_expect_not(globalsExpanded);
+}
+
+Test(VM, checkAndRetrieveArrayValuesTarget_useGlobals) {
+    char* labels[1] = {"_entry"};
+    char* bodies[1] = {
+        "HALT"
+    };
+    int jumpCounts[1] = {0};
+    JumpPoint* jumps[1] = {(JumpPoint[]) {}};
+    SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 1);
+
+    bool globalsExpanded = false;
+    VMConfig conf = getDefaultConfig();
+    conf.localsSoftMax = BASE_BYTES * 10;
+    conf.localsHardMax = BASE_BYTES * 10;
+    VM* vm = init(src, conf);
+    Frame* frame = loadFrame(createStringVector(), jumps[0], 0, 320, conf.localsSoftMax, 0, 0, NULL);
+
+    ArrayTarget arrayTarget = checkAndRetrieveArrayValuesTarget(vm, frame, 12, &globalsExpanded, false);
+    Frame* changedFrame = arrayTarget.frame;
+
+    cr_expect_eq(arrayTarget.target, vm->globals);
+    cr_expect_eq(*arrayTarget.targetp, vm->gp);
+    cr_expect_not(changedFrame->expandedLocals);
+    cr_expect_not(globalsExpanded);
+}
+
+Test(VM, checkAndRetrieveArrayValuesTarget_expandGlobals) {
+    char* labels[1] = {"_entry"};
+    char* bodies[1] = {
+        "HALT"
+    };
+    int jumpCounts[1] = {0};
+    JumpPoint* jumps[1] = {(JumpPoint[]) {}};
+    SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 1);
+
+    bool globalsExpanded = false;
+    VMConfig conf = getDefaultConfig();
+    conf.localsSoftMax = BASE_BYTES * 5;
+    conf.localsHardMax = BASE_BYTES * 5;
+    conf.globalsSoftMax = BASE_BYTES * 10;
+    //displayVMConfig(conf);
+    VM* vm = init(src, conf);
+    Frame* frame = loadFrame(createStringVector(), jumps[0], 0, 320, conf.localsSoftMax, 0, 0, NULL);
+
+    ArrayTarget arrayTarget = checkAndRetrieveArrayValuesTarget(vm, frame, 15, &globalsExpanded, false);
+    Frame* changedFrame = arrayTarget.frame;
+
+    cr_expect_eq(arrayTarget.target, vm->globals);
+    cr_expect_eq(*arrayTarget.targetp, vm->gp);
+    cr_expect_not(changedFrame->expandedLocals);
+    cr_expect(globalsExpanded);
+}
+
+Test(VM, checkAndRetrieveArrayValuesTarget_localsError, .init = cr_redirect_stderr) {
+    char* labels[1] = {"_entry"};
+    char* bodies[1] = {
+        "HALT"
+    };
+    int jumpCounts[1] = {0};
+    JumpPoint* jumps[1] = {(JumpPoint[]) {}};
+    SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 1);
+
+    bool globalsExpanded = false;
+    VMConfig conf = getDefaultConfig();
+    conf.useHeapStorageBackup = false;
+    conf.dynamicResourceExpansionEnabled = false;
+    conf.localsHardMax = BASE_BYTES * 20;
+    //displayVMConfig(conf);
+    VM* vm = init(src, conf);
+    Frame* frame = loadFrame(createStringVector(), jumps[0], 0, 320, conf.localsHardMax, 0, 0, NULL);
+
+    ArrayTarget arrayTarget = checkAndRetrieveArrayValuesTarget(vm, frame, 21, &globalsExpanded, false);
+    Frame* changedFrame = arrayTarget.frame;
+
+    cr_expect_eq(arrayTarget.target, frame->locals);
+    cr_expect_eq(*arrayTarget.targetp, frame->lp);
+    cr_expect_not(changedFrame->expandedLocals);
+    cr_expect_not(globalsExpanded);
+    cr_expect_eq(vm->state, memory_err);
+
+    //logStderr(cr_get_redirected_stderr());
+
+    cr_expect_stderr_eq_str("StackOverflow: Exceeded local storage maximum of 20\n");
+}
+
+Test(VM, checkAndRetrieveArrayValuesTarget_globalsError, .init = cr_redirect_stderr) {
+    char* labels[1] = {"_entry"};
+    char* bodies[1] = {
+        "HALT"
+    };
+    int jumpCounts[1] = {0};
+    JumpPoint* jumps[1] = {(JumpPoint[]) {}};
+    SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 1);
+
+    bool globalsExpanded = false;
+    VMConfig conf = getDefaultConfig();
+    conf.dynamicResourceExpansionEnabled = false;
+    conf.localsHardMax = BASE_BYTES * 20;
+    conf.globalsHardMax = BASE_BYTES * 100;
+    VM* vm = init(src, conf);
+    Frame* frame = loadFrame(createStringVector(), jumps[0], 0, 320, conf.localsHardMax, 0, 0, NULL);
+
+    ArrayTarget arrayTarget = checkAndRetrieveArrayValuesTarget(vm, frame, 101, &globalsExpanded, false);
+    Frame* changedFrame = arrayTarget.frame;
+
+    cr_expect_eq(arrayTarget.target, vm->globals);
+    cr_expect_eq(*arrayTarget.targetp, vm->gp);
+    cr_expect_not(changedFrame->expandedLocals);
+    cr_expect_not(globalsExpanded);
+    cr_expect_eq(vm->state, memory_err);
+
+    cr_expect_stderr_eq_str("HeapOverflow: Exceeded local storage maximum of 20 and global storage maximum of 100\n");
 }
 
 Test(VM, runPop) {
@@ -641,6 +803,202 @@ Test(VM, runWithFunctionCall_arrayReturn) {
     cr_free(src);
 }
 
+Test(VM, runWithFunctionCall_arrayReturn_expandLocals) {
+    char* labels[2] = {"test", "_entry"};
+    char* bodies[2] = {
+        "LOAD_CONST 2 LOAD_CONST 1 BUILDARR 2 2 RET",
+        "LOAD_CONST true STORE CALL test 0 HALT"
+    };
+    int jumpCounts[2] = {0, 0};
+    JumpPoint* jumps[2] = {(JumpPoint[]) {}, (JumpPoint[]) {}};
+    SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 2);
+
+    VMConfig conf = getDefaultConfig();
+    conf.localsSoftMax = BASE_BYTES;
+    VM* vm = init(src, conf);
+    bool verbose = false;
+    if (verbose)
+        displayCode(src);
+    ExitCode status = run(vm, verbose);
+
+    cr_expect_eq(status, success);
+    cr_expect_eq(vm->fp, 0);
+    Frame* frame = vm->callStack[0];
+    cr_expect_eq(frame->instructions->length, 7);
+    cr_expect_eq(frame->pc, 7);
+    cr_expect_eq(frame->sp, 0);
+    cr_expect_eq(frame->lp, 2);
+
+    cr_expect_eq(frame->stack[0].type, Addr);
+    cr_expect_eq(frame->stack[0].value.address, frame->locals);
+    cr_expect_eq(frame->stack[0].offset, 1);
+    cr_expect_eq(frame->stack[0].size, 2);
+    cr_expect_eq(frame->stack[0].length, 2);
+    cr_expect(frame->expandedLocals);
+
+    cr_expect_eq(frame->locals[1].value.intVal, 1);
+    cr_expect_eq(frame->locals[2].value.intVal, 2);
+
+    destroy(vm);
+    cr_free(src);
+}
+
+Test(VM, runWithFunctionCall_arrayReturn_useGlobals) {
+    char* labels[2] = {"test", "_entry"};
+    char* bodies[2] = {
+        "LOAD_CONST 2 LOAD_CONST 1 BUILDARR 2 2 RET",
+        "LOAD_CONST true STORE CALL test 0 HALT"
+    };
+    int jumpCounts[2] = {0, 0};
+    JumpPoint* jumps[2] = {(JumpPoint[]) {}, (JumpPoint[]) {}};
+    SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 2);
+
+    VMConfig conf = getDefaultConfig();
+    conf.dynamicResourceExpansionEnabled = false;
+    conf.localsHardMax = BASE_BYTES * 2;
+    VM* vm = init(src, conf);
+    bool verbose = false;
+    if (verbose)
+        displayCode(src);
+    ExitCode status = run(vm, verbose);
+
+    cr_expect_eq(status, success);
+    cr_expect_eq(vm->fp, 0);
+    Frame* frame = vm->callStack[0];
+    cr_expect_eq(frame->instructions->length, 7);
+    cr_expect_eq(frame->pc, 7);
+    cr_expect_eq(frame->sp, 0);
+    cr_expect_eq(frame->lp, 0);
+    cr_expect_eq(vm->gp, 1);
+
+    cr_expect_eq(frame->stack[0].type, Addr);
+    cr_expect_eq(frame->stack[0].value.address, vm->globals);
+    cr_expect_eq(frame->stack[0].offset, 0);
+    cr_expect_eq(frame->stack[0].size, 2);
+    cr_expect_eq(frame->stack[0].length, 2);
+    cr_expect_not(frame->expandedLocals);
+
+    cr_expect_eq(vm->globals[0].value.intVal, 1);
+    cr_expect_eq(vm->globals[1].value.intVal, 2);
+
+    destroy(vm);
+    cr_free(src);
+}
+
+Test(VM, runWithFunctionCall_arrayReturn_expandGlobals) {
+    char* labels[2] = {"test", "_entry"};
+    char* bodies[2] = {
+        "LOAD_CONST 2 LOAD_CONST 1 BUILDARR 2 2 RET",
+        "LOAD_CONST true STORE CALL test 0 HALT"
+    };
+    int jumpCounts[2] = {0, 0};
+    JumpPoint* jumps[2] = {(JumpPoint[]) {}, (JumpPoint[]) {}};
+    SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 2);
+
+    VMConfig conf = getDefaultConfig();
+    conf.localsHardMax = BASE_BYTES * 2;
+    conf.globalsSoftMax = BASE_BYTES * 2;
+    VM* vm = init(src, conf);
+    bool verbose = false;
+    if (verbose)
+        displayCode(src);
+    ExitCode status = run(vm, verbose);
+
+    cr_expect_eq(status, success);
+    cr_expect_eq(vm->fp, 0);
+    Frame* frame = vm->callStack[0];
+    cr_expect_eq(frame->instructions->length, 7);
+    cr_expect_eq(frame->pc, 7);
+    cr_expect_eq(frame->sp, 0);
+    cr_expect_eq(frame->lp, 0);
+    cr_expect_eq(vm->gp, 1);
+
+    cr_expect_eq(frame->stack[0].type, Addr);
+    cr_expect_eq(frame->stack[0].value.address, vm->globals);
+    cr_expect_eq(frame->stack[0].offset, 0);
+    cr_expect_eq(frame->stack[0].size, 2);
+    cr_expect_eq(frame->stack[0].length, 2);
+    cr_expect_not(frame->expandedLocals);
+
+    cr_expect_eq(vm->globals[0].value.intVal, 1);
+    cr_expect_eq(vm->globals[1].value.intVal, 2);
+
+    destroy(vm);
+    cr_free(src);
+}
+
+Test(VM, runWithFunctionCall_arrayReturn_localsError, .init = cr_redirect_stderr) {
+    char* labels[2] = {"test", "_entry"};
+    char* bodies[2] = {
+        "LOAD_CONST 2 LOAD_CONST 1 BUILDARR 2 2 RET",
+        "LOAD_CONST true STORE CALL test 0 HALT"
+    };
+    int jumpCounts[2] = {0, 0};
+    JumpPoint* jumps[2] = {(JumpPoint[]) {}, (JumpPoint[]) {}};
+    SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 2);
+
+    VMConfig conf = getDefaultConfig();
+    conf.dynamicResourceExpansionEnabled = false;
+    conf.useHeapStorageBackup = false;
+    conf.localsHardMax = BASE_BYTES * 2;
+    VM* vm = init(src, conf);
+    bool verbose = false;
+    if (verbose)
+        displayCode(src);
+    ExitCode status = run(vm, verbose);
+
+    cr_expect_eq(status, memory_err);
+    cr_expect_eq(vm->fp, 0);
+    Frame* frame = vm->callStack[0];
+    cr_expect_eq(frame->instructions->length, 7);
+    cr_expect_eq(frame->pc, 6);
+    cr_expect_eq(frame->sp, -1);
+    cr_expect_eq(frame->lp, 0);
+    cr_expect_eq(vm->gp, -1);
+
+    cr_expect_not(frame->expandedLocals);
+    cr_expect_stderr_eq_str("StackOverflow: Exceeded local storage maximum of 2\n");
+
+    destroy(vm);
+    cr_free(src);
+}
+
+Test(VM, runWithFunctionCall_arrayReturn_globalsError, .init = cr_redirect_stderr) {
+    char* labels[2] = {"test", "_entry"};
+    char* bodies[2] = {
+        "LOAD_CONST 2 LOAD_CONST 1 BUILDARR 2 2 RET",
+        "LOAD_CONST true STORE CALL test 0 HALT"
+    };
+    int jumpCounts[2] = {0, 0};
+    JumpPoint* jumps[2] = {(JumpPoint[]) {}, (JumpPoint[]) {}};
+    SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 2);
+
+    VMConfig conf = getDefaultConfig();
+    conf.dynamicResourceExpansionEnabled = false;
+    conf.localsHardMax = BASE_BYTES * 2;
+    conf.globalsHardMax = BASE_BYTES;
+    VM* vm = init(src, conf);
+    bool verbose = false;
+    if (verbose)
+        displayCode(src);
+    ExitCode status = run(vm, verbose);
+
+    cr_expect_eq(status, memory_err);
+    cr_expect_eq(vm->fp, 0);
+    Frame* frame = vm->callStack[0];
+    cr_expect_eq(frame->instructions->length, 7);
+    cr_expect_eq(frame->pc, 6);
+    cr_expect_eq(frame->sp, -1);
+    cr_expect_eq(frame->lp, 0);
+    cr_expect_eq(vm->gp, -1);
+
+    cr_expect_not(frame->expandedLocals);
+    cr_expect_stderr_eq_str("HeapOverflow: Exceeded local storage maximum of 2 and global storage maximum of 1\n");
+
+    destroy(vm);
+    cr_free(src);
+}
+
 Test(VM, runWithFunctionCall_nestedArrayReturn) {
     char* labels[2] = {"test", "_entry"};
     char* bodies[2] = {
@@ -759,6 +1117,202 @@ Test(VM, buildArrayOneParam) {
     cr_free(src);
 }
 
+Test(VM, buildArray_expandLocals) {
+    char* labels[1] = {"_entry"};
+    char* bodies[1] = {
+        "LOAD_CONST 2 BUILDARR 3 1 HALT"
+    };
+    int jumpCounts[1] = {0};
+    JumpPoint* jumps[1] = {(JumpPoint[]) {}};
+    SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 1);
+
+    VMConfig conf = getDefaultConfig();
+    conf.localsSoftMax = BASE_BYTES * 2;
+    VM* vm = init(src, conf);
+    bool verbose = false;
+    if (verbose)
+        displayCode(src);
+    ExitCode status = run(vm, verbose);
+
+    cr_expect_eq(status, success);
+    cr_expect_eq(vm->fp, 0);
+    Frame* frame = vm->callStack[0];
+    cr_expect_eq(frame->instructions->length, 6);
+    cr_expect_eq(frame->pc, 6);
+    cr_expect_eq(frame->sp, 0);
+    cr_expect_eq(vm->gp, -1);
+    cr_expect_eq(frame->lp, 2);
+
+    cr_expect_eq(frame->stack[0].type, Addr);
+    cr_expect_eq(frame->stack[0].length, 1);
+    cr_expect_eq(frame->stack[0].size, 3);
+    cr_expect_eq(frame->stack[0].value.address, frame->locals);
+    cr_expect_eq(frame->stack[0].offset, 0);
+    cr_expect_eq(frame->locals[0].value.intVal, 2);
+    cr_expect_eq(frame->locals[1].type, None);
+    cr_expect_eq(frame->locals[2].type, None);
+
+    cr_expect(frame->expandedLocals);
+
+    destroy(vm);
+    cr_free(src);
+}
+
+Test(VM, buildArray_useGlobals) {
+    char* labels[1] = {"_entry"};
+    char* bodies[1] = {
+        "LOAD_CONST 2 BUILDARR 3 1 HALT"
+    };
+    int jumpCounts[1] = {0};
+    JumpPoint* jumps[1] = {(JumpPoint[]) {}};
+    SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 1);
+
+    VMConfig conf = getDefaultConfig();
+    conf.dynamicResourceExpansionEnabled = false;
+    conf.localsHardMax = BASE_BYTES;
+    VM* vm = init(src, conf);
+    bool verbose = false;
+    if (verbose)
+        displayCode(src);
+    ExitCode status = run(vm, verbose);
+
+    cr_expect_eq(status, success);
+    cr_expect_eq(vm->fp, 0);
+    Frame* frame = vm->callStack[0];
+    cr_expect_eq(frame->instructions->length, 6);
+    cr_expect_eq(frame->pc, 6);
+    cr_expect_eq(frame->sp, 0);
+    cr_expect_eq(vm->gp, 2);
+    cr_expect_eq(frame->lp, -1);
+
+    cr_expect_eq(frame->stack[0].type, Addr);
+    cr_expect_eq(frame->stack[0].length, 1);
+    cr_expect_eq(frame->stack[0].size, 3);
+    cr_expect_eq(frame->stack[0].value.address, vm->globals);
+    cr_expect_eq(frame->stack[0].offset, 0);
+    cr_expect_eq(vm->globals[0].value.intVal, 2);
+    cr_expect_eq(vm->globals[1].type, None);
+    cr_expect_eq(vm->globals[2].type, None);
+
+    cr_expect_not(frame->expandedLocals);
+
+    destroy(vm);
+    cr_free(src);
+}
+
+Test(VM, buildArray_expandGlobals) {
+    char* labels[1] = {"_entry"};
+    char* bodies[1] = {
+        "LOAD_CONST 2 BUILDARR 3 1 HALT"
+    };
+    int jumpCounts[1] = {0};
+    JumpPoint* jumps[1] = {(JumpPoint[]) {}};
+    SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 1);
+
+    VMConfig conf = getDefaultConfig();
+    conf.dynamicResourceExpansionEnabled = false;
+    conf.localsHardMax = BASE_BYTES;
+    conf.globalsSoftMax = BASE_BYTES;
+    VM* vm = init(src, conf);
+    bool verbose = false;
+    if (verbose)
+        displayCode(src);
+    ExitCode status = run(vm, verbose);
+
+    cr_expect_eq(status, success);
+    cr_expect_eq(vm->fp, 0);
+    Frame* frame = vm->callStack[0];
+    cr_expect_eq(frame->instructions->length, 6);
+    cr_expect_eq(frame->pc, 6);
+    cr_expect_eq(frame->sp, 0);
+    cr_expect_eq(vm->gp, 2);
+    cr_expect_eq(frame->lp, -1);
+
+    cr_expect_eq(frame->stack[0].type, Addr);
+    cr_expect_eq(frame->stack[0].length, 1);
+    cr_expect_eq(frame->stack[0].size, 3);
+    cr_expect_eq(frame->stack[0].value.address, vm->globals);
+    cr_expect_eq(frame->stack[0].offset, 0);
+    cr_expect_eq(vm->globals[0].value.intVal, 2);
+    cr_expect_eq(vm->globals[1].type, None);
+    cr_expect_eq(vm->globals[2].type, None);
+
+    cr_expect_not(frame->expandedLocals);
+
+    destroy(vm);
+    cr_free(src);
+}
+
+Test(VM, buildArray_localsError, .init = cr_redirect_stderr) {
+    char* labels[1] = {"_entry"};
+    char* bodies[1] = {
+        "LOAD_CONST 2 BUILDARR 3 1 HALT"
+    };
+    int jumpCounts[1] = {0};
+    JumpPoint* jumps[1] = {(JumpPoint[]) {}};
+    SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 1);
+
+    VMConfig conf = getDefaultConfig();
+    conf.dynamicResourceExpansionEnabled = false;
+    conf.useHeapStorageBackup = false;
+    conf.localsHardMax = BASE_BYTES * 2;
+    VM* vm = init(src, conf);
+    bool verbose = false;
+    if (verbose)
+        displayCode(src);
+    ExitCode status = run(vm, verbose);
+
+    cr_expect_eq(status, memory_err);
+    cr_expect_eq(vm->fp, 0);
+    Frame* frame = vm->callStack[0];
+    cr_expect_eq(frame->instructions->length, 6);
+    cr_expect_eq(frame->pc, 5);
+    cr_expect_eq(frame->sp, 0);
+    cr_expect_eq(vm->gp, -1);
+    cr_expect_eq(frame->lp, -1);
+
+    cr_expect_not(frame->expandedLocals);
+    cr_expect_stderr_eq_str("StackOverflow: Exceeded local storage maximum of 2\n");
+
+    destroy(vm);
+    cr_free(src);
+}
+
+Test(VM, buildArray_globalsError, .init = cr_redirect_stderr) {
+    char* labels[1] = {"_entry"};
+    char* bodies[1] = {
+        "LOAD_CONST 2 BUILDARR 3 1 HALT"
+    };
+    int jumpCounts[1] = {0};
+    JumpPoint* jumps[1] = {(JumpPoint[]) {}};
+    SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 1);
+
+    VMConfig conf = getDefaultConfig();
+    conf.dynamicResourceExpansionEnabled = false;
+    conf.localsHardMax = BASE_BYTES;
+    conf.globalsHardMax = BASE_BYTES;
+    VM* vm = init(src, conf);
+    bool verbose = false;
+    if (verbose)
+        displayCode(src);
+    ExitCode status = run(vm, verbose);
+
+    cr_expect_eq(status, memory_err);
+    cr_expect_eq(vm->fp, 0);
+    Frame* frame = vm->callStack[0];
+    cr_expect_eq(frame->instructions->length, 6);
+    cr_expect_eq(frame->pc, 5);
+    cr_expect_eq(frame->sp, 0);
+    cr_expect_eq(vm->gp, -1);
+    cr_expect_eq(frame->lp, -1);
+
+    cr_expect_not(frame->expandedLocals);
+    cr_expect_stderr_eq_str("HeapOverflow: Exceeded local storage maximum of 1 and global storage maximum of 1\n");
+
+    destroy(vm);
+    cr_free(src);
+}
+
 Test(VM, runArrayWrite) {
     char* labels[1] = {"_entry"};
     char* bodies[1] = {
@@ -778,7 +1332,7 @@ Test(VM, runArrayWrite) {
     cr_expect_eq(vm->fp, 0);
     Frame* frame = vm->callStack[0];
     cr_expect_eq(frame->instructions->length, 27);
- 
+
     cr_expect_eq(frame->pc, 27);
     cr_expect_eq(frame->sp, -1);
     cr_expect_eq(vm->gp, -1);
@@ -819,7 +1373,7 @@ Test(VM, runArrayConcat) {
     cr_expect_eq(vm->fp, 0);
     Frame* frame = vm->callStack[0];
     cr_expect_eq(frame->instructions->length, 16);
- 
+
     cr_expect_eq(frame->pc, 16);
     cr_expect_eq(frame->sp, 0);
     cr_expect_eq(vm->gp, -1);
@@ -828,17 +1382,247 @@ Test(VM, runArrayConcat) {
     cr_expect_eq(frame->stack[0].type, Addr);
     cr_expect_eq(frame->stack[0].length, 4);
     cr_expect_eq(frame->stack[0].size, 5);
+    cr_expect_eq(frame->stack[0].offset, 5);
+    cr_expect_eq(frame->stack[0].value.address, frame->locals);
 
     cr_expect(isEqual(frame->locals[0], createInt(1)));
     cr_expect(isEqual(frame->locals[1], createInt(2)));
     cr_expect_eq(frame->locals[2].type, None);
     cr_expect(isEqual(frame->locals[3], createInt(0)));
     cr_expect(isEqual(frame->locals[4], createInt(1)));
+
     cr_expect(isEqual(frame->locals[5], createInt(1)));
     cr_expect(isEqual(frame->locals[6], createInt(2)));
     cr_expect(isEqual(frame->locals[7], createInt(0)));
     cr_expect(isEqual(frame->locals[8], createInt(1)));
     cr_expect_eq(frame->locals[9].type, None);
+    cr_expect_not(frame->expandedLocals);
+
+    destroy(vm);
+    cr_free(src);
+}
+
+Test(VM, runArrayConcat_expandLocals, .disabled = true) {
+    // TODO: fix test - There is a bug with expanded locals that causes values not to be copied properly
+    char* labels[1] = {"_entry"};
+    char* bodies[1] = {
+        "LOAD_CONST 2 LOAD_CONST 1 BUILDARR 3 2 LOAD_CONST 1 LOAD_CONST 0 BUILDARR 2 2 CONCAT HALT"
+    };
+    int jumpCounts[1] = {0};
+    JumpPoint* jumps[1] = {(JumpPoint[]) {}};
+    SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 1);
+
+    VMConfig conf = getDefaultConfig();
+    conf.localsSoftMax = BASE_BYTES * 8;
+    VM* vm = init(src, conf);
+    bool verbose = true;
+    if (verbose)
+        displayCode(src);
+    ExitCode status = run(vm, verbose);
+
+    cr_expect_eq(status, success);
+    cr_expect_eq(vm->fp, 0);
+    Frame* frame = vm->callStack[0];
+    cr_expect_eq(frame->instructions->length, 16);
+
+    cr_expect_eq(frame->pc, 16);
+    cr_expect_eq(frame->sp, 0);
+    cr_expect_eq(vm->gp, -1);
+    cr_expect_eq(frame->lp, 9);
+
+    cr_expect_eq(frame->stack[0].type, Addr);
+    cr_expect_eq(frame->stack[0].length, 4);
+    cr_expect_eq(frame->stack[0].size, 5);
+    cr_expect_eq(frame->stack[0].offset, 4);
+    cr_expect_eq(frame->stack[0].value.address, frame->locals);
+
+    cr_expect(isEqual(frame->locals[0], createInt(1)));
+    cr_expect(isEqual(frame->locals[1], createInt(2)));
+    cr_expect_eq(frame->locals[2].type, None);
+    cr_expect(isEqual(frame->locals[3], createInt(0)));
+    cr_expect(isEqual(frame->locals[4], createInt(1)));
+
+    cr_expect(isEqual(frame->locals[5], createInt(1)));
+    cr_expect(isEqual(frame->locals[6], createInt(2)));
+    cr_expect(isEqual(frame->locals[7], createInt(0)));
+    cr_expect(isEqual(frame->locals[8], createInt(1)));
+    cr_expect_eq(frame->locals[9].type, None);
+    cr_expect(frame->expandedLocals);
+
+    destroy(vm);
+    cr_free(src);
+}
+
+Test(VM, runArrayConcat_useGlobals) {
+    char* labels[1] = {"_entry"};
+    char* bodies[1] = {
+        "LOAD_CONST 2 LOAD_CONST 1 BUILDARR 3 2 LOAD_CONST 1 LOAD_CONST 0 BUILDARR 2 2 CONCAT HALT"
+    };
+    int jumpCounts[1] = {0};
+    JumpPoint* jumps[1] = {(JumpPoint[]) {}};
+    SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 1);
+
+    VMConfig conf = getDefaultConfig();
+    conf.dynamicResourceExpansionEnabled = false;
+    conf.localsHardMax = BASE_BYTES * 8;
+    VM* vm = init(src, conf);
+    bool verbose = false;
+    if (verbose)
+        displayCode(src);
+    ExitCode status = run(vm, verbose);
+
+    cr_expect_eq(status, success);
+    cr_expect_eq(vm->fp, 0);
+    Frame* frame = vm->callStack[0];
+    cr_expect_eq(frame->instructions->length, 16);
+
+    cr_expect_eq(frame->pc, 16);
+    cr_expect_eq(frame->sp, 0);
+    cr_expect_eq(vm->gp, 4);
+    cr_expect_eq(frame->lp, 4);
+
+    cr_expect_eq(frame->stack[0].type, Addr);
+    cr_expect_eq(frame->stack[0].length, 4);
+    cr_expect_eq(frame->stack[0].size, 5);
+    cr_expect_eq(frame->stack[0].offset, 0);
+    cr_expect_eq(frame->stack[0].value.address, vm->globals);
+
+    cr_expect(isEqual(frame->locals[0], createInt(1)));
+    cr_expect(isEqual(frame->locals[1], createInt(2)));
+    cr_expect_eq(frame->locals[2].type, None);
+    cr_expect(isEqual(frame->locals[3], createInt(0)));
+    cr_expect(isEqual(frame->locals[4], createInt(1)));
+
+    cr_expect(isEqual(vm->globals[0], createInt(1)));
+    cr_expect(isEqual(vm->globals[1], createInt(2)));
+    cr_expect(isEqual(vm->globals[2], createInt(0)));
+    cr_expect(isEqual(vm->globals[3], createInt(1)));
+    cr_expect_eq(vm->globals[4].type, None);
+    cr_expect_not(frame->expandedLocals);
+
+    destroy(vm);
+    cr_free(src);
+}
+
+Test(VM, runArrayConcat_expandGlobals) {
+    char* labels[1] = {"_entry"};
+    char* bodies[1] = {
+        "LOAD_CONST 2 LOAD_CONST 1 BUILDARR 3 2 LOAD_CONST 1 LOAD_CONST 0 BUILDARR 2 2 CONCAT HALT"
+    };
+    int jumpCounts[1] = {0};
+    JumpPoint* jumps[1] = {(JumpPoint[]) {}};
+    SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 1);
+
+    VMConfig conf = getDefaultConfig();
+    conf.localsSoftMax = BASE_BYTES * 8;
+    conf.localsHardMax = BASE_BYTES * 8;
+    conf.globalsSoftMax = BASE_BYTES * 2;
+    VM* vm = init(src, conf);
+    bool verbose = false;
+    if (verbose)
+        displayCode(src);
+    ExitCode status = run(vm, verbose);
+
+    cr_expect_eq(status, success);
+    cr_expect_eq(vm->fp, 0);
+    Frame* frame = vm->callStack[0];
+    cr_expect_eq(frame->instructions->length, 16);
+
+    cr_expect_eq(frame->pc, 16);
+    cr_expect_eq(frame->sp, 0);
+    cr_expect_eq(vm->gp, 4);
+    cr_expect_eq(frame->lp, 4);
+
+    cr_expect_eq(frame->stack[0].type, Addr);
+    cr_expect_eq(frame->stack[0].length, 4);
+    cr_expect_eq(frame->stack[0].size, 5);
+    cr_expect_eq(frame->stack[0].offset, 0);
+    cr_expect_eq(frame->stack[0].value.address, vm->globals);
+
+    cr_expect(isEqual(frame->locals[0], createInt(1)));
+    cr_expect(isEqual(frame->locals[1], createInt(2)));
+    cr_expect_eq(frame->locals[2].type, None);
+    cr_expect(isEqual(frame->locals[3], createInt(0)));
+    cr_expect(isEqual(frame->locals[4], createInt(1)));
+
+    cr_expect(isEqual(vm->globals[0], createInt(1)));
+    cr_expect(isEqual(vm->globals[1], createInt(2)));
+    cr_expect(isEqual(vm->globals[2], createInt(0)));
+    cr_expect(isEqual(vm->globals[3], createInt(1)));
+    cr_expect_eq(vm->globals[4].type, None);
+    cr_expect_not(frame->expandedLocals);
+
+    destroy(vm);
+    cr_free(src);
+}
+
+Test(VM, runArrayConcat_localsError, .init = cr_redirect_stderr) {
+    char* labels[1] = {"_entry"};
+    char* bodies[1] = {
+        "LOAD_CONST 2 LOAD_CONST 1 BUILDARR 3 2 LOAD_CONST 1 LOAD_CONST 0 BUILDARR 2 2 CONCAT HALT"
+    };
+    int jumpCounts[1] = {0};
+    JumpPoint* jumps[1] = {(JumpPoint[]) {}};
+    SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 1);
+
+    VMConfig conf = getDefaultConfig();
+    conf.dynamicResourceExpansionEnabled = false;
+    conf.useHeapStorageBackup = false;
+    conf.localsHardMax = BASE_BYTES * 8;
+    VM* vm = init(src, conf);
+    bool verbose = false;
+    if (verbose)
+        displayCode(src);
+    ExitCode status = run(vm, verbose);
+
+    cr_expect_eq(status, memory_err);
+    cr_expect_eq(vm->fp, 0);
+    Frame* frame = vm->callStack[0];
+    cr_expect_eq(frame->instructions->length, 16);
+
+    cr_expect_eq(frame->pc, 15);
+    cr_expect_eq(frame->sp, -1);
+    cr_expect_eq(vm->gp, -1);
+    cr_expect_eq(frame->lp, 4);
+
+    cr_expect_not(frame->expandedLocals);
+    cr_expect_stderr_eq_str("StackOverflow: Exceeded local storage maximum of 8\n");
+
+    destroy(vm);
+    cr_free(src);
+}
+
+Test(VM, runArrayConcat_globalsError, .init = cr_redirect_stderr) {
+    char* labels[1] = {"_entry"};
+    char* bodies[1] = {
+        "LOAD_CONST 2 LOAD_CONST 1 BUILDARR 3 2 LOAD_CONST 1 LOAD_CONST 0 BUILDARR 2 2 CONCAT HALT"
+    };
+    int jumpCounts[1] = {0};
+    JumpPoint* jumps[1] = {(JumpPoint[]) {}};
+    SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 1);
+
+    VMConfig conf = getDefaultConfig();
+    conf.dynamicResourceExpansionEnabled = false;
+    conf.localsHardMax = BASE_BYTES * 8;
+    conf.globalsHardMax = BASE_BYTES * 3;
+    VM* vm = init(src, conf);
+    bool verbose = false;
+    if (verbose)
+        displayCode(src);
+    ExitCode status = run(vm, verbose);
+
+    cr_expect_eq(status, memory_err);
+    cr_expect_eq(vm->fp, 0);
+    Frame* frame = vm->callStack[0];
+    cr_expect_eq(frame->instructions->length, 16);
+
+    cr_expect_eq(frame->pc, 15);
+    cr_expect_eq(frame->sp, -1);
+    cr_expect_eq(vm->gp, -1);
+    cr_expect_eq(frame->lp, 4);
+
+    cr_expect_not(frame->expandedLocals);
+    cr_expect_stderr_eq_str("HeapOverflow: Exceeded local storage maximum of 8 and global storage maximum of 3\n");
 
     destroy(vm);
     cr_free(src);
@@ -863,7 +1647,7 @@ Test(VM, runArrayCopy) {
     cr_expect_eq(vm->fp, 0);
     Frame* frame = vm->callStack[0];
     cr_expect_eq(frame->instructions->length, 10);
- 
+
     cr_expect_eq(frame->pc, 10);
     cr_expect_eq(frame->sp, 1);
     cr_expect_eq(vm->gp, -1);
@@ -881,6 +1665,231 @@ Test(VM, runArrayCopy) {
     cr_expect(isEqual(frame->locals[1], createInt(2)));
     cr_expect(isEqual(frame->locals[2], createInt(1)));
     cr_expect(isEqual(frame->locals[3], createInt(2)));
+    cr_expect_not(frame->expandedLocals);
+
+    destroy(vm);
+    cr_free(src);
+}
+
+Test(VM, runArrayCopy_expandLocals) {
+    char* labels[1] = {"_entry"};
+    char* bodies[1] = {
+        "LOAD_CONST 2 LOAD_CONST 1 BUILDARR 2 2 DUP COPYARR HALT"
+    };
+    int jumpCounts[1] = {0};
+    JumpPoint* jumps[1] = {(JumpPoint[]) {}};
+    SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 1);
+
+    VMConfig conf = getDefaultConfig();
+    conf.localsSoftMax = BASE_BYTES * 3;
+    VM* vm = init(src, conf);
+    bool verbose = false;
+    if (verbose)
+        displayCode(src);
+    ExitCode status = run(vm, verbose);
+
+    cr_expect_eq(status, success);
+    cr_expect_eq(vm->fp, 0);
+    Frame* frame = vm->callStack[0];
+    cr_expect_eq(frame->instructions->length, 10);
+
+    cr_expect_eq(frame->pc, 10);
+    cr_expect_eq(frame->sp, 1);
+    cr_expect_eq(vm->gp, -1);
+    cr_expect_eq(frame->lp, 3);
+
+    cr_expect_eq(frame->stack[0].type, Addr);
+    cr_expect_eq(frame->stack[0].offset, 0);
+    cr_expect_eq(frame->stack[0].length, 2);
+    cr_expect_eq(frame->stack[0].size, 2);
+    cr_expect_eq(frame->stack[1].type, Addr);
+    cr_expect_eq(frame->stack[1].offset, 2);
+    cr_expect_eq(frame->stack[1].length, 2);
+    cr_expect_eq(frame->stack[1].size, 2);
+    cr_expect(isEqual(frame->locals[0], createInt(1)));
+    cr_expect(isEqual(frame->locals[1], createInt(2)));
+    cr_expect(isEqual(frame->locals[2], createInt(1)));
+    cr_expect(isEqual(frame->locals[3], createInt(2)));
+    cr_expect(frame->expandedLocals);
+
+    destroy(vm);
+    cr_free(src);
+}
+
+Test(VM, runArrayCopy_useGlobals) {
+    char* labels[1] = {"_entry"};
+    char* bodies[1] = {
+        "LOAD_CONST 2 LOAD_CONST 1 BUILDARR 2 2 DUP COPYARR HALT"
+    };
+    int jumpCounts[1] = {0};
+    JumpPoint* jumps[1] = {(JumpPoint[]) {}};
+    SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 1);
+
+    VMConfig conf = getDefaultConfig();
+    conf.dynamicResourceExpansionEnabled = false;
+    conf.localsHardMax = BASE_BYTES * 3;
+    VM* vm = init(src, conf);
+    bool verbose = false;
+    if (verbose)
+        displayCode(src);
+    ExitCode status = run(vm, verbose);
+
+    cr_expect_eq(status, success);
+    cr_expect_eq(vm->fp, 0);
+    Frame* frame = vm->callStack[0];
+    cr_expect_eq(frame->instructions->length, 10);
+
+    cr_expect_eq(frame->pc, 10);
+    cr_expect_eq(frame->sp, 1);
+    cr_expect_eq(vm->gp, 1);
+    cr_expect_eq(frame->lp, 1);
+
+    cr_expect_eq(frame->stack[0].type, Addr);
+    cr_expect_eq(frame->stack[0].offset, 0);
+    cr_expect_eq(frame->stack[0].length, 2);
+    cr_expect_eq(frame->stack[0].size, 2);
+    cr_expect_eq(frame->stack[1].type, Addr);
+    cr_expect_eq(frame->stack[1].offset, 0);
+    cr_expect_eq(frame->stack[1].length, 2);
+    cr_expect_eq(frame->stack[1].size, 2);
+    cr_expect(isEqual(frame->locals[0], createInt(1)));
+    cr_expect(isEqual(frame->locals[1], createInt(2)));
+    cr_expect(isEqual(vm->globals[0], createInt(1)));
+    cr_expect(isEqual(vm->globals[1], createInt(2)));
+    cr_expect_not(frame->expandedLocals);
+
+    destroy(vm);
+    cr_free(src);
+}
+
+Test(VM, runArrayCopy_expandGlobals) {
+    char* labels[1] = {"_entry"};
+    char* bodies[1] = {
+        "LOAD_CONST 2 LOAD_CONST 1 BUILDARR 2 2 DUP COPYARR HALT"
+    };
+    int jumpCounts[1] = {0};
+    JumpPoint* jumps[1] = {(JumpPoint[]) {}};
+    SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 1);
+
+    VMConfig conf = getDefaultConfig();
+    conf.dynamicResourceExpansionEnabled = false;
+    conf.localsHardMax = BASE_BYTES * 3;
+    conf.globalsSoftMax = BASE_BYTES * 3;
+    VM* vm = init(src, conf);
+    bool verbose = false;
+    if (verbose)
+        displayCode(src);
+    ExitCode status = run(vm, verbose);
+
+    cr_expect_eq(status, success);
+    cr_expect_eq(vm->fp, 0);
+    Frame* frame = vm->callStack[0];
+    cr_expect_eq(frame->instructions->length, 10);
+
+    cr_expect_eq(frame->pc, 10);
+    cr_expect_eq(frame->sp, 1);
+    cr_expect_eq(vm->gp, 1);
+    cr_expect_eq(frame->lp, 1);
+
+    cr_expect_eq(frame->stack[0].type, Addr);
+    cr_expect_eq(frame->stack[0].offset, 0);
+    cr_expect_eq(frame->stack[0].length, 2);
+    cr_expect_eq(frame->stack[0].size, 2);
+    cr_expect_eq(frame->stack[1].type, Addr);
+    cr_expect_eq(frame->stack[1].offset, 0);
+    cr_expect_eq(frame->stack[1].length, 2);
+    cr_expect_eq(frame->stack[1].size, 2);
+    cr_expect(isEqual(frame->locals[0], createInt(1)));
+    cr_expect(isEqual(frame->locals[1], createInt(2)));
+    cr_expect(isEqual(vm->globals[0], createInt(1)));
+    cr_expect(isEqual(vm->globals[1], createInt(2)));
+    cr_expect_not(frame->expandedLocals);
+
+    destroy(vm);
+    cr_free(src);
+}
+
+Test(VM, runArrayCopy_localsError, .init = cr_redirect_stderr) {
+    char* labels[1] = {"_entry"};
+    char* bodies[1] = {
+        "LOAD_CONST 2 LOAD_CONST 1 BUILDARR 2 2 DUP COPYARR HALT"
+    };
+    int jumpCounts[1] = {0};
+    JumpPoint* jumps[1] = {(JumpPoint[]) {}};
+    SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 1);
+
+    VMConfig conf = getDefaultConfig();
+    conf.dynamicResourceExpansionEnabled = false;
+    conf.useHeapStorageBackup = false;
+    conf.localsHardMax = BASE_BYTES * 3;
+    VM* vm = init(src, conf);
+    bool verbose = false;
+    if (verbose)
+        displayCode(src);
+    ExitCode status = run(vm, verbose);
+
+    cr_expect_eq(status, memory_err);
+    cr_expect_eq(vm->fp, 0);
+    Frame* frame = vm->callStack[0];
+    cr_expect_eq(frame->instructions->length, 10);
+
+    cr_expect_eq(frame->pc, 9);
+    cr_expect_eq(frame->sp, 0);
+    cr_expect_eq(vm->gp, -1);
+    cr_expect_eq(frame->lp, 1);
+
+    cr_expect_eq(frame->stack[0].type, Addr);
+    cr_expect_eq(frame->stack[0].offset, 0);
+    cr_expect_eq(frame->stack[0].length, 2);
+    cr_expect_eq(frame->stack[0].size, 2);
+    cr_expect(isEqual(frame->locals[0], createInt(1)));
+    cr_expect(isEqual(frame->locals[1], createInt(2)));
+    cr_expect_not(frame->expandedLocals);
+
+    cr_expect_stderr_eq_str("StackOverflow: Exceeded local storage maximum of 3\n");
+
+    destroy(vm);
+    cr_free(src);
+}
+
+Test(VM, runArrayCopy_globalsError, .init = cr_redirect_stderr) {
+    char* labels[1] = {"_entry"};
+    char* bodies[1] = {
+        "LOAD_CONST 2 LOAD_CONST 1 BUILDARR 2 2 DUP COPYARR HALT"
+    };
+    int jumpCounts[1] = {0};
+    JumpPoint* jumps[1] = {(JumpPoint[]) {}};
+    SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 1);
+
+    VMConfig conf = getDefaultConfig();
+    conf.dynamicResourceExpansionEnabled = false;
+    conf.localsHardMax = BASE_BYTES * 3;
+    conf.globalsHardMax = BASE_BYTES * 1;
+    VM* vm = init(src, conf);
+    bool verbose = false;
+    if (verbose)
+        displayCode(src);
+    ExitCode status = run(vm, verbose);
+
+    cr_expect_eq(status, memory_err);
+    cr_expect_eq(vm->fp, 0);
+    Frame* frame = vm->callStack[0];
+    cr_expect_eq(frame->instructions->length, 10);
+
+    cr_expect_eq(frame->pc, 9);
+    cr_expect_eq(frame->sp, 0);
+    cr_expect_eq(vm->gp, -1);
+    cr_expect_eq(frame->lp, 1);
+
+    cr_expect_eq(frame->stack[0].type, Addr);
+    cr_expect_eq(frame->stack[0].offset, 0);
+    cr_expect_eq(frame->stack[0].length, 2);
+    cr_expect_eq(frame->stack[0].size, 2);
+    cr_expect(isEqual(frame->locals[0], createInt(1)));
+    cr_expect(isEqual(frame->locals[1], createInt(2)));
+    cr_expect_not(frame->expandedLocals);
+
+    cr_expect_stderr_eq_str("HeapOverflow: Exceeded local storage maximum of 3 and global storage maximum of 1\n");
 
     destroy(vm);
     cr_free(src);

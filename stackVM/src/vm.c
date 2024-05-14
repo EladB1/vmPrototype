@@ -198,7 +198,7 @@ ArrayTarget checkAndRetrieveArrayValuesTarget(VM* vm, Frame* frame, int arraySiz
     arrayTarget.target = frame->locals;
     arrayTarget.targetp = &frame->lp;
     arrayTarget.frame = frame;
-    int total = frame->lp + arraySize;
+    int total = frame->lp + arraySize + 1;
     if (!frame->expandedLocals && vm->localsSoftMax != vm->localsHardMax && total >= vm->localsSoftMax - 1 && total < vm->localsHardMax) {
         if (verbose)
             printf("INFO: Expanding local storage from %ld to %ld\n", vm->localsSoftMax, vm->localsHardMax);
@@ -211,15 +211,16 @@ ArrayTarget checkAndRetrieveArrayValuesTarget(VM* vm, Frame* frame, int arraySiz
         if (vm->useHeapStorageBackup) {
             arrayTarget.target = vm->globals;
             arrayTarget.targetp = &vm->gp;
-            total = vm->gp + arraySize;
-            if (!globalsExpanded && vm->globalsSoftMax != vm->globalsHardMax && total >= vm->globalsSoftMax - 1 && total < vm->globalsSoftMax) {
+            total = vm->gp + arraySize + 1;
+            if (!(*globalsExpanded) && vm->globalsSoftMax != vm->globalsHardMax && total >= vm->globalsSoftMax - 1 && total < vm->globalsHardMax) {
                 if (verbose)
                     printf("INFO: Expanding size of globals from %ld to %ld\n", vm->globalsSoftMax, vm->globalsHardMax);
                 *globalsExpanded = true;
-                vm->globals = realloc(vm->globals, vm->globalsHardMax);
+                vm->globals = realloc(vm->globals, sizeof(DataConstant) * vm->globalsHardMax);
+                arrayTarget.target = vm->globals;
             }
             if (total > vm->globalsHardMax) {
-                fprintf(stderr, "StackOverflow: Exceeded local storage maximum of %ld and global storage maximum of %ld\n", vm->localsHardMax, vm->globalsHardMax);
+                fprintf(stderr, "HeapOverflow: Exceeded local storage maximum of %ld and global storage maximum of %ld\n", vm->localsHardMax, vm->globalsHardMax);
                 vm->state = memory_err;
                 return arrayTarget;
             }

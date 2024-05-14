@@ -221,7 +221,6 @@ DataConstant readFile(char* filePath, VM* vm, Frame* frame, bool* globalsExpande
     }
     DataConstant lines;
     lines.type = Addr;
-    //lines.value.intVal = *lp + 1;
     lines.length = 0;
     lines.size = 0;
     int max_file_length = (1 << 20) - 1;
@@ -324,6 +323,8 @@ DataConstant sliceArr(DataConstant array, int start, int end, VM* vm, Frame* fra
     int len = end - start;
     ArrayTarget arrayTarget = checkAndRetrieveArrayValuesTarget(vm, frame, array.size, globalsExpanded, verbose);
     *frame = *(arrayTarget.frame);
+    if (vm->state != success)
+        return createNone();
     return partialCopyAddr(array, start, len, arrayTarget.targetp, &arrayTarget.target);
 }
 
