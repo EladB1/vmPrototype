@@ -1,0 +1,41 @@
+int globI;
+Array<int> globs;
+
+fn total(int num): int {
+    if (num - 1 == 0)
+        return num;
+    return num + total(num - 1);
+}
+
+fn test_frames() {
+    print(total(100));
+}
+
+fn test_globals() {
+    globI = -1;
+    Array<int> values[10000];
+    globs = values;
+}
+
+fn test_stack() {
+    true
+    false
+    false
+    // false
+}
+
+fn test_locals() {
+    Array<int> arr[3];
+    const int i = 3;
+    const int j = 4;
+    const int k = 5;
+}
+
+fn main(): int {
+    test_frames();
+    test_globals();
+    test_stack();
+    test_locals();
+    return 0;
+}
+

@@ -1,9 +1,13 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
 
 #include "filereader.h"
+#include "config.h"
 #include "vm.h"
+
+#define CONFIG_FILE "build/.bolt_vm_config.yml"
 
 char* getUsage(char* prog_name) {
     char* verbose = "\t-v, --verbose:\tDisplay the internal VM state at each execution cycle\n";
@@ -30,12 +34,18 @@ int main(int argc, char** argv) {
         return -1;
     }
 
+    VMConfig conf = readConfigFile(CONFIG_FILE);
+    if (!validateVMConfig(conf, CONFIG_FILE))
+        return -1;
+
     SourceCode* src = read_file(filename);
     if (src == NULL)
         return -1;
-    if (verbose)
+    if (verbose) {
+        displayVMConfig(conf);
         displayCode(src);
-    VM* vm = init(src);
+    }
+    VM* vm = init(src, conf);
     if (vm == NULL)
         return -1;
     ExitCode runStatus = run(vm, verbose);

@@ -19,7 +19,7 @@ void setup() {
         {"add", 0, 3},
         {"_entry", 5, 9}
     };
-    frame = loadFrame(srcCode, jumpPoints, 2, 3, 0, NULL);
+    frame = loadFrame(srcCode, jumpPoints, 2, 320, 640, 3, 0, NULL);
 }
 
 void teardown() {
@@ -39,7 +39,7 @@ Test(Frame, loadFrame_noParams, .init = setup, .fini = teardown) {
 
 Test(Frame, loadFrame_withParams, .init = setup, .fini = teardown) {
     DataConstant params[2] = {createInt(5), createBoolean(false)};
-    frame = loadFrame(srcCode, jumpPoints, 2, 3, 2, params);
+    frame = loadFrame(srcCode, jumpPoints, 2, 640, 640, 3, 2, params);
     cr_expect_eq(frame->instructions, srcCode);
     cr_expect_eq(frame->returnAddr, 3);
     cr_expect_arr_eq(frame->jumps, jumpPoints, 2);
@@ -103,7 +103,7 @@ Test(Frame, frameWithJumps, .init = setup, .fini = teardown) {
 Test(Frame, framePrintArray_empty, .init = cr_redirect_stdout) {
     srcCode = createStringVector();
     jumpPoints = NULL;
-    frame = loadFrame(srcCode, jumpPoints, 0, 0, 0, NULL);
+    frame = loadFrame(srcCode, jumpPoints, 0, 32, 32, 0, 0, NULL);
 
     print_array("stack", frame->stack, -1);
     fflush(stdout);
@@ -116,7 +116,7 @@ Test(Frame, framePrintArray_empty, .init = cr_redirect_stdout) {
 Test(Frame, framePrintArray_nonEmpty, .init = cr_redirect_stdout) {
     srcCode = createStringVector();
     jumpPoints = NULL;
-    frame = loadFrame(srcCode, jumpPoints, 0, 0, 0, NULL);
+    frame = loadFrame(srcCode, jumpPoints, 0, 64, 64, 0, 0, NULL);
 
     framePush(frame, createInt(5));
     framePush(frame, createInt(21));

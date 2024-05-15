@@ -6,6 +6,7 @@
 #include "../src/impl_builtin.h"
 
 #define TESTFILE ".temporary_testing_file.txt"
+#define BASE_BYTES sizeof(DataConstant)
 
 TestSuite(impl_builtin);
 
@@ -267,54 +268,290 @@ Test(impl_builtin, renameFile_nonExistant, .init = cr_redirect_stderr) {
 }
 
 Test(impl_builtin, readFile_nonExistant, .init = cr_redirect_stderr) {
-    ExitCode vmState = success;
+    JumpPoint** jumps = {(JumpPoint* [0]) {}};
+    SourceCode* src = createSource((char* [1]) {"_entry"}, (char* [1]) {"HALT"}, (int[1]) {0}, jumps, 1);
+    VM* vm = init(src, getDefaultConfig());
+    Frame* frame = loadFrame(createStringVector(), *jumps, 0, 320, 640, 0, 0, NULL);
+    bool globalsExpanded = false;
+
     cr_expect_not(fileExists(TESTFILE));
-    int lp = 0;
-    DataConstant* locals = (DataConstant[]) {};
-    DataConstant read = readFile(TESTFILE, &lp, &locals, &vmState);
+    DataConstant read = readFile(TESTFILE, vm, frame, &globalsExpanded, false);
     cr_expect_eq(read.type, None);
     cr_expect_stderr_eq_str("FileError: Cannot read file '.temporary_testing_file.txt' because it does not exist\n");
-    cr_expect_eq(vmState, file_err);
+    cr_expect_eq(vm->state, file_err);
 }
 
 Test(impl_builtin, writeAppendReadDeleteFile) {
+    JumpPoint** jumps = {(JumpPoint* [0]) {}};
+    SourceCode* src = createSource((char* [1]) {"_entry"}, (char* [1]) {"HALT"}, (int[1]) {0}, jumps, 1);
+    VM* vm = init(src, getDefaultConfig());
+    Frame* frame = loadFrame(createStringVector(), *jumps, 0, 320, 640, 0, 0, NULL);
+    bool globalsExpanded = false;
+
     ExitCode vmState = success;
     cr_expect_not(fileExists(TESTFILE));
-    int lp = -1;
-    DataConstant* locals = (DataConstant[]) {createNone(), createNone(), createNone(), createNone()}; // need to have a none value in there for test to pass
     
     writeToFile(TESTFILE, "hello", "w", &vmState);
     cr_expect_eq(vmState, success);
     cr_expect(fileExists(TESTFILE));
-    DataConstant read1 = readFile(TESTFILE, &lp, &locals, &vmState);
-    cr_expect_eq(vmState, success);
+    DataConstant read1 = readFile(TESTFILE, vm, frame, &globalsExpanded, false);
+    cr_expect_eq(vm->state, success);
     cr_expect_eq(read1.length, 1);
-    cr_expect_eq(read1.value.intVal, 0);
-    cr_expect_eq(lp, 0);
-    cr_expect_str_eq(locals[0].value.strVal, "hello\n");
+    cr_expect_eq(read1.value.address, frame->locals);
+    cr_expect_eq(read1.offset, 0);
+    cr_expect_eq(frame->lp, 0);
+    cr_expect_str_eq(frame->locals[0].value.strVal, "hello\n");
     
     writeToFile(TESTFILE, "hello", "w", &vmState); // should overwrite file contents
     cr_expect_eq(vmState, success);
-    DataConstant read2 = readFile(TESTFILE, &lp, &locals, &vmState);
-    cr_expect_eq(vmState, success);
+    DataConstant read2 = readFile(TESTFILE, vm, frame, &globalsExpanded, false);
+    cr_expect_eq(vm->state, success);
     cr_expect_eq(read2.length, 1);
-    cr_expect_eq(read2.value.intVal, 1);
-    cr_expect_eq(lp, 1);
-    cr_expect_str_eq(locals[1].value.strVal, "hello\n");
+    cr_expect_eq(read2.value.address, frame->locals);
+    cr_expect_eq(read2.offset, 1);
+    cr_expect_eq(frame->lp, 1);
+    cr_expect_str_eq(frame->locals[1].value.strVal, "hello\n");
     
     writeToFile(TESTFILE, "world", "a", &vmState); // should not overwrite file contents
     cr_expect_eq(vmState, success);
-    DataConstant read3 = readFile(TESTFILE, &lp, &locals, &vmState);
-    cr_expect_eq(vmState, success);
+    DataConstant read3 = readFile(TESTFILE, vm, frame, &globalsExpanded, false);
+    cr_expect_eq(vm->state, success);
     cr_expect_eq(read3.length, 2);
-    cr_expect_eq(read3.value.intVal, 2);
-    cr_expect_eq(lp, 3);
-    cr_expect_str_eq(locals[2].value.strVal, "hello\n");
-    cr_expect_str_eq(locals[3].value.strVal, "world\n");
+    cr_expect_eq(read3.value.address, frame->locals);
+    cr_expect_eq(read3.offset, 2);
+    cr_expect_eq(frame->lp, 3);
+    cr_expect_str_eq(frame->locals[2].value.strVal, "hello\n");
+    cr_expect_str_eq(frame->locals[3].value.strVal, "world\n");
     
     deleteFile(TESTFILE, &vmState);
     cr_expect_eq(vmState, success);
     cr_expect_not(fileExists(TESTFILE));
+}
+
+Test(impl_builtin, writeAppendReadDeleteFile_expandLocals) {
+    JumpPoint** jumps = {(JumpPoint* [0]) {}};
+    SourceCode* src = createSource((char* [1]) {"_entry"}, (char* [1]) {"HALT"}, (int[1]) {0}, jumps, 1);
+    VMConfig conf = getDefaultConfig();
+    conf.localsSoftMax = BASE_BYTES * 3;
+    VM* vm = init(src, conf);
+    Frame* frame = loadFrame(createStringVector(), *jumps, 0, 320, conf.localsSoftMax, 0, 0, NULL);
+    bool globalsExpanded = false;
+
+    char* filename = ".tempfile_le.txt";
+
+    ExitCode vmState = success;
+    cr_expect_not(fileExists(filename));
+
+    writeToFile(filename, "hello", "w", &vmState);
+    cr_expect_eq(vmState, success);
+    cr_expect(fileExists(filename));
+    DataConstant read1 = readFile(filename, vm, frame, &globalsExpanded, false);
+    cr_expect_eq(vm->state, success);
+    cr_expect_eq(read1.length, 1);
+    cr_expect_eq(read1.value.address, frame->locals);
+    cr_expect_eq(read1.offset, 0);
+    cr_expect_eq(frame->lp, 0);
+    cr_expect_str_eq(frame->locals[0].value.strVal, "hello\n");
+    cr_expect_not(frame->expandedLocals);
+
+    writeToFile(filename, "world", "a", &vmState); // should not overwrite file contents
+    cr_expect_eq(vmState, success);
+    DataConstant read2 = readFile(filename, vm, frame, &globalsExpanded, false);
+    cr_expect_eq(vm->state, success);
+    cr_expect_eq(read2.length, 2);
+    cr_expect_eq(read2.value.address, frame->locals);
+    cr_expect_eq(read2.offset, 1);
+    cr_expect_eq(frame->lp, 2);
+    cr_expect_str_eq(frame->locals[1].value.strVal, "hello\n");
+    cr_expect_str_eq(frame->locals[2].value.strVal, "world\n");
+    cr_expect(frame->expandedLocals);
+
+    deleteFile(filename, &vmState);
+    cr_expect_eq(vmState, success);
+    cr_expect_not(fileExists(filename));
+}
+
+Test(impl_builtin, writeAppendReadDeleteFile_useGlobals) {
+    JumpPoint** jumps = {(JumpPoint* [0]) {}};
+    SourceCode* src = createSource((char* [1]) {"_entry"}, (char* [1]) {"HALT"}, (int[1]) {0}, jumps, 1);
+    VMConfig conf = getDefaultConfig();
+    conf.dynamicResourceExpansionEnabled = false;
+    conf.localsHardMax = BASE_BYTES;
+    VM* vm = init(src, conf);
+    Frame* frame = loadFrame(createStringVector(), *jumps, 0, 320, conf.localsHardMax, 0, 0, NULL);
+    bool globalsExpanded = false;
+
+    char* filename = ".tempfile_g.txt";
+
+    ExitCode vmState = success;
+    cr_expect_not(fileExists(filename));
+
+    writeToFile(filename, "hello", "w", &vmState);
+    cr_expect_eq(vmState, success);
+    cr_expect(fileExists(filename));
+    DataConstant read1 = readFile(filename, vm, frame, &globalsExpanded, false);
+    cr_expect_eq(vm->state, success);
+    cr_expect_eq(read1.length, 1);
+    cr_expect_eq(read1.value.address, frame->locals);
+    cr_expect_eq(read1.offset, 0);
+    cr_expect_eq(frame->lp, 0);
+    cr_expect_str_eq(frame->locals[0].value.strVal, "hello\n");
+    cr_expect_not(frame->expandedLocals);
+    cr_expect_not(globalsExpanded);
+
+    writeToFile(filename, "world", "a", &vmState); // should not overwrite file contents
+    cr_expect_eq(vmState, success);
+    DataConstant read2 = readFile(filename, vm, frame, &globalsExpanded, false);
+    cr_expect_eq(vm->state, success);
+    cr_expect_eq(read2.length, 2);
+    cr_expect_eq(read2.value.address, vm->globals);
+    cr_expect_eq(read2.offset, 0);
+    cr_expect_eq(frame->lp, 0);
+    cr_expect_eq(vm->gp, 1);
+    cr_expect_str_eq(vm->globals[0].value.strVal, "hello\n");
+    cr_expect_str_eq(vm->globals[1].value.strVal, "world\n");
+    cr_expect_not(frame->expandedLocals);
+    cr_expect_not(globalsExpanded);
+
+    deleteFile(filename, &vmState);
+    cr_expect_eq(vmState, success);
+    cr_expect_not(fileExists(filename));
+}
+
+Test(impl_builtin, writeAppendReadDeleteFile_expandGlobals) {
+    JumpPoint** jumps = {(JumpPoint* [0]) {}};
+    SourceCode* src = createSource((char* [1]) {"_entry"}, (char* [1]) {"HALT"}, (int[1]) {0}, jumps, 1);
+    VMConfig conf = getDefaultConfig();
+    conf.localsSoftMax = BASE_BYTES;
+    conf.localsHardMax = BASE_BYTES;
+    conf.globalsSoftMax = BASE_BYTES;
+    VM* vm = init(src, conf);
+    Frame* frame = loadFrame(createStringVector(), *jumps, 0, 320, conf.localsSoftMax, 0, 0, NULL);
+    bool globalsExpanded = false;
+
+    char* filename = ".tempfile_ge.txt";
+
+    ExitCode vmState = success;
+    cr_expect_not(fileExists(filename));
+
+    writeToFile(filename, "hello", "w", &vmState);
+    cr_expect_eq(vmState, success);
+    cr_expect(fileExists(filename));
+    DataConstant read1 = readFile(filename, vm, frame, &globalsExpanded, false);
+    cr_expect_eq(vm->state, success);
+    cr_expect_eq(read1.length, 1);
+    cr_expect_eq(read1.value.address, frame->locals);
+    cr_expect_eq(read1.offset, 0);
+    cr_expect_eq(frame->lp, 0);
+    cr_expect_str_eq(frame->locals[0].value.strVal, "hello\n");
+    cr_expect_not(frame->expandedLocals);
+    cr_expect_not(globalsExpanded);
+
+    writeToFile(filename, "world", "a", &vmState); // should not overwrite file contents
+    writeToFile(filename, "from file", "a", &vmState); // should not overwrite file contents
+    cr_expect_eq(vmState, success);
+    DataConstant read2 = readFile(filename, vm, frame, &globalsExpanded, false);
+    cr_expect_eq(vm->state, success);
+    cr_expect_eq(read2.length, 3);
+    cr_expect_eq(read2.value.address, vm->globals);
+    cr_expect_eq(read2.offset, 0);
+    cr_expect_eq(frame->lp, 0);
+    cr_expect_eq(vm->gp, 2);
+    cr_expect_str_eq(vm->globals[0].value.strVal, "hello\n");
+    cr_expect_str_eq(vm->globals[1].value.strVal, "world\n");
+    cr_expect_str_eq(vm->globals[2].value.strVal, "from file\n");
+    cr_expect_not(frame->expandedLocals);
+    cr_expect(globalsExpanded);
+
+    deleteFile(filename, &vmState);
+    cr_expect_eq(vmState, success);
+    cr_expect_not(fileExists(filename));
+}
+
+Test(impl_builtin, writeAppendReadDeleteFile_localsError, .init = cr_redirect_stderr) {
+    JumpPoint** jumps = {(JumpPoint* [0]) {}};
+    SourceCode* src = createSource((char* [1]) {"_entry"}, (char* [1]) {"HALT"}, (int[1]) {0}, jumps, 1);
+    VMConfig conf = getDefaultConfig();
+    conf.dynamicResourceExpansionEnabled = false;
+    conf.useHeapStorageBackup = false;
+    conf.localsHardMax = BASE_BYTES;
+    VM* vm = init(src, conf);
+    Frame* frame = loadFrame(createStringVector(), *jumps, 0, 320, conf.localsHardMax, 0, 0, NULL);
+    bool globalsExpanded = false;
+
+    char* filename = ".tempfile_error_l.txt";
+
+    ExitCode vmState = success;
+    cr_expect_not(fileExists(filename));
+
+    writeToFile(filename, "hello", "w", &vmState);
+    cr_expect_eq(vmState, success);
+    cr_expect(fileExists(filename));
+    DataConstant read1 = readFile(filename, vm, frame, &globalsExpanded, false);
+    cr_expect_eq(vm->state, success);
+    cr_expect_eq(read1.length, 1);
+    cr_expect_eq(read1.value.address, frame->locals);
+    cr_expect_eq(read1.offset, 0);
+    cr_expect_eq(frame->lp, 0);
+    cr_expect_str_eq(frame->locals[0].value.strVal, "hello\n");
+    cr_expect_not(frame->expandedLocals);
+    cr_expect_not(globalsExpanded);
+
+    writeToFile(filename, "world", "a", &vmState); // should not overwrite file contents
+    cr_expect_eq(vmState, success);
+    DataConstant read2 = readFile(filename, vm, frame, &globalsExpanded, false);
+    cr_expect_eq(vm->state, memory_err);
+    cr_expect_eq(read2.type, None);
+    cr_expect_stderr_eq_str("StackOverflow: Exceeded local storage maximum of 1\n");
+    cr_expect_not(frame->expandedLocals);
+    cr_expect_not(globalsExpanded);
+
+    deleteFile(filename, &vmState);
+    cr_expect_eq(vmState, success);
+    cr_expect_not(fileExists(filename));
+}
+
+Test(impl_builtin, writeAppendReadDeleteFile_globalsError, .init = cr_redirect_stderr) {
+    JumpPoint** jumps = {(JumpPoint* [0]) {}};
+    SourceCode* src = createSource((char* [1]) {"_entry"}, (char* [1]) {"HALT"}, (int[1]) {0}, jumps, 1);
+    VMConfig conf = getDefaultConfig();
+    conf.dynamicResourceExpansionEnabled = false;
+    conf.localsHardMax = BASE_BYTES;
+    conf.globalsHardMax = BASE_BYTES;
+    VM* vm = init(src, conf);
+    Frame* frame = loadFrame(createStringVector(), *jumps, 0, 320, conf.localsHardMax, 0, 0, NULL);
+    bool globalsExpanded = false;
+
+    char* filename = ".tempfile_error_g.txt";
+
+    ExitCode vmState = success;
+    cr_expect_not(fileExists(filename));
+
+    writeToFile(filename, "hello", "w", &vmState);
+    cr_expect_eq(vmState, success);
+    cr_expect(fileExists(filename));
+    DataConstant read1 = readFile(filename, vm, frame, &globalsExpanded, false);
+    cr_expect_eq(vm->state, success);
+    cr_expect_eq(read1.length, 1);
+    cr_expect_eq(read1.value.address, frame->locals);
+    cr_expect_eq(read1.offset, 0);
+    cr_expect_eq(frame->lp, 0);
+    cr_expect_str_eq(frame->locals[0].value.strVal, "hello\n");
+    cr_expect_not(frame->expandedLocals);
+    cr_expect_not(globalsExpanded);
+
+    writeToFile(filename, "world", "a", &vmState); // should not overwrite file contents
+    cr_expect_eq(vmState, success);
+    DataConstant read2 = readFile(filename, vm, frame, &globalsExpanded, false);
+    cr_expect_eq(vm->state, memory_err);
+    cr_expect_eq(read2.type, None);
+    cr_expect_stderr_eq_str("HeapOverflow: Exceeded local storage maximum of 1 and global storage maximum of 1\n");
+    cr_expect_not(frame->expandedLocals);
+    cr_expect_not(globalsExpanded);
+
+    deleteFile(filename, &vmState);
+    cr_expect_eq(vmState, success);
+    cr_expect_not(fileExists(filename));
 }
 
 Test(impl_builtin, createRenameDeleteFile) {
@@ -347,29 +584,181 @@ Test(impl_builtin, reverseArr) {
 }
 
 Test(impl_builtin, sliceArr_valid) {
-    ExitCode vmState = success;
-    int lp = 3;
-    DataConstant* locals = (DataConstant[]) {createInt(2), createInt(0), createInt(-1)};
-    DataConstant array = createAddr(locals, 0, lp, lp);
-    DataConstant result = sliceArr(array, 1, 3, &lp, &locals, &vmState);
+    JumpPoint** jumps = {(JumpPoint* [0]) {}};
+    SourceCode* src = createSource((char* [1]) {"_entry"}, (char* [1]) {"HALT"}, (int[1]) {0}, jumps, 1);
+    VM* vm = init(src, getDefaultConfig());
+    Frame* frame = loadFrame(createStringVector(), *jumps, 0, 320, 640, 0, 0, NULL);
+    bool globalsExpanded = false;
+
+    frame->lp = 2;
+    frame->locals[0] = createInt(2);
+    frame->locals[1] = createInt(0);
+    frame->locals[2] = createInt(-1);
+    DataConstant array = createAddr(frame->locals, 0, 3, 3);
+    DataConstant result = sliceArr(array, 1, 3, vm, frame, &globalsExpanded, false);
     cr_expect_neq(result.type, None);
     cr_expect_eq(result.length, 2);
     cr_expect_eq(result.size, array.size);
-    cr_expect_eq((DataConstant *) result.value.address, locals);
-    cr_expect_eq(result.offset, 4);
-    cr_expect_eq(locals[4].value.intVal, 0);
-    cr_expect_eq(locals[5].value.intVal, -1);
+    cr_expect_eq((DataConstant *) result.value.address, frame->locals);
+    cr_expect_eq(result.offset, 3);
+    cr_expect_eq(frame->locals[3].value.intVal, 0);
+    cr_expect_eq(frame->locals[4].value.intVal, -1);
 }
 
 Test(impl_builtin, sliceArr_invalid, .init = cr_redirect_stderr) {
-    ExitCode vmState = success;
-    int lp = 3;
-    DataConstant* locals = (DataConstant[]) {createInt(2), createInt(0), createInt(-1)};
-    DataConstant array = createAddr(locals, 0, lp, lp);
-    DataConstant sliced = sliceArr(array, 4, 3, &lp, &locals, &vmState);
+    JumpPoint** jumps = {(JumpPoint* [0]) {}};
+    SourceCode* src = createSource((char* [1]) {"_entry"}, (char* [1]) {"HALT"}, (int[1]) {0}, jumps, 1);
+    VM* vm = init(src, getDefaultConfig());
+    Frame* frame = loadFrame(createStringVector(), *jumps, 0, 32000, 64000, 0, 0, NULL);
+    bool globalsExpanded = false;
+
+    frame->lp = 2;
+    frame->locals[0] = createInt(2);
+    frame->locals[1] = createInt(0);
+    frame->locals[2] = createInt(-1);
+    DataConstant array = createAddr(frame->locals, 0, 3, 3);
+    DataConstant sliced = sliceArr(array, 4, 3, vm, frame, &globalsExpanded, false);
     cr_expect_eq(sliced.type, None);
     cr_expect_stderr_eq_str("Array index out of bounds in call to slice. start: 4, end: 3\n");
-    cr_expect_eq(vmState, memory_err);
+    cr_expect_eq(vm->state, memory_err);
+}
+
+Test(impl_builtin, sliceArr_expandLocals) {
+    JumpPoint** jumps = {(JumpPoint* [0]) {}};
+    SourceCode* src = createSource((char* [1]) {"_entry"}, (char* [1]) {"HALT"}, (int[1]) {0}, jumps, 1);
+    VMConfig conf = getDefaultConfig();
+    conf.localsSoftMax = BASE_BYTES * 4;
+    VM* vm = init(src, conf);
+    Frame* frame = loadFrame(createStringVector(), *jumps, 0, 320, conf.localsSoftMax, 0, 0, NULL);
+    bool globalsExpanded = false;
+
+    frame->lp = 2;
+    frame->locals[0] = createInt(2);
+    frame->locals[1] = createInt(0);
+    frame->locals[2] = createInt(-1);
+    DataConstant array = createAddr(frame->locals, 0, 3, 3);
+    DataConstant result = sliceArr(array, 1, 3, vm, frame, &globalsExpanded, false);
+    cr_expect_neq(result.type, None);
+    cr_expect_eq(result.length, 2);
+    cr_expect_eq(result.size, array.size);
+    cr_expect_eq((DataConstant *) result.value.address, frame->locals);
+    cr_expect_eq(result.offset, 3);
+    cr_expect_eq(frame->lp, 5);
+    cr_expect_eq(frame->locals[3].value.intVal, 0);
+    cr_expect_eq(frame->locals[4].value.intVal, -1);
+    cr_expect_eq(frame->locals[5].type, None);
+    cr_expect(frame->expandedLocals);
+    cr_expect_not(globalsExpanded);
+    cr_expect_eq(vm->state, success);
+}
+
+Test(impl_builtin, sliceArr_useGlobals) {
+    JumpPoint** jumps = {(JumpPoint* [0]) {}};
+    SourceCode* src = createSource((char* [1]) {"_entry"}, (char* [1]) {"HALT"}, (int[1]) {0}, jumps, 1);
+    VMConfig conf = getDefaultConfig();
+    conf.dynamicResourceExpansionEnabled = false;
+    conf.localsHardMax = BASE_BYTES * 4;
+    VM* vm = init(src, conf);
+    Frame* frame = loadFrame(createStringVector(), *jumps, 0, 320, conf.localsHardMax, 0, 0, NULL);
+    bool globalsExpanded = false;
+
+    frame->lp = 2;
+    frame->locals[0] = createInt(2);
+    frame->locals[1] = createInt(0);
+    frame->locals[2] = createInt(-1);
+    DataConstant array = createAddr(frame->locals, 0, 3, 3);
+    DataConstant result = sliceArr(array, 1, 3, vm, frame, &globalsExpanded, false);
+    cr_expect_neq(result.type, None);
+    cr_expect_eq(result.length, 2);
+    cr_expect_eq(result.size, array.size);
+    cr_expect_eq((DataConstant *) result.value.address, vm->globals);
+    cr_expect_eq(result.offset, 0);
+    cr_expect_eq(frame->lp, 2);
+    cr_expect_eq(vm->gp, 2);
+    cr_expect_eq(vm->globals[0].value.intVal, 0);
+    cr_expect_eq(vm->globals[1].value.intVal, -1);
+    cr_expect_eq(vm->globals[2].type, None);
+    cr_expect_not(frame->expandedLocals);
+    cr_expect_not(globalsExpanded);
+    cr_expect_eq(vm->state, success);
+}
+
+Test(impl_builtin, sliceArr_expandGlobals) {
+    JumpPoint** jumps = {(JumpPoint* [0]) {}};
+    SourceCode* src = createSource((char* [1]) {"_entry"}, (char* [1]) {"HALT"}, (int[1]) {0}, jumps, 1);
+    VMConfig conf = getDefaultConfig();
+    conf.localsSoftMax = BASE_BYTES * 3;
+    conf.localsHardMax = BASE_BYTES * 3;
+    conf.globalsSoftMax = BASE_BYTES * 4;
+    conf.globalsHardMax = BASE_BYTES * 10;
+    VM* vm = init(src, conf);
+    Frame* frame = loadFrame(createStringVector(), *jumps, 0, 320, conf.localsSoftMax, 0, 0, NULL);
+    bool globalsExpanded = false;
+
+    frame->lp = 2;
+    frame->locals[0] = createInt(2);
+    frame->locals[1] = createInt(0);
+    frame->locals[2] = createInt(-1);
+    DataConstant array = createAddr(frame->locals, 0, 3, 3);
+    DataConstant result = sliceArr(array, 1, 3, vm, frame, &globalsExpanded, false);
+    cr_expect_neq(result.type, None);
+    cr_expect_eq(result.length, 2);
+    cr_expect_eq(result.size, array.size);
+    cr_expect_eq((DataConstant *) result.value.address, vm->globals);
+    cr_expect_eq(result.offset, 0);
+    cr_expect_eq(frame->lp, 2);
+    cr_expect_eq(vm->gp, 2);
+    cr_expect_eq(vm->globals[0].value.intVal, 0);
+    cr_expect_eq(vm->globals[1].value.intVal, -1);
+    cr_expect_eq(vm->globals[2].type, None);
+    cr_expect_not(frame->expandedLocals);
+    cr_expect(globalsExpanded);
+    cr_expect_eq(vm->state, success);
+}
+
+Test(impl_builtin, sliceArr_localsError, .init = cr_redirect_stderr) {
+    JumpPoint** jumps = {(JumpPoint* [0]) {}};
+    SourceCode* src = createSource((char* [1]) {"_entry"}, (char* [1]) {"HALT"}, (int[1]) {0}, jumps, 1);
+    VMConfig conf = getDefaultConfig();
+    conf.dynamicResourceExpansionEnabled = false;
+    conf.useHeapStorageBackup = false;
+    conf.localsHardMax = BASE_BYTES * 4;
+    VM* vm = init(src, conf);
+    Frame* frame = loadFrame(createStringVector(), *jumps, 0, 320, conf.localsHardMax, 0, 0, NULL);
+    bool globalsExpanded = false;
+
+    frame->lp = 2;
+    frame->locals[0] = createInt(2);
+    frame->locals[1] = createInt(0);
+    frame->locals[2] = createInt(-1);
+    DataConstant array = createAddr(frame->locals, 0, 3, 3);
+    DataConstant result = sliceArr(array, 1, 3, vm, frame, &globalsExpanded, false);
+    cr_expect_eq(result.type, None);
+    cr_expect_eq(vm->state, memory_err);
+    cr_expect_stderr_eq_str("StackOverflow: Exceeded local storage maximum of 4\n");
+}
+
+Test(impl_builtin, sliceArr_globalsError, .init = cr_redirect_stderr) {
+    JumpPoint** jumps = {(JumpPoint* [0]) {}};
+    SourceCode* src = createSource((char* [1]) {"_entry"}, (char* [1]) {"HALT"}, (int[1]) {0}, jumps, 1);
+    VMConfig conf = getDefaultConfig();
+    conf.dynamicResourceExpansionEnabled = false;
+    conf.useHeapStorageBackup = true;
+    conf.localsHardMax = BASE_BYTES * 3;
+    conf.globalsHardMax = BASE_BYTES * 2;
+    VM* vm = init(src, conf);
+    Frame* frame = loadFrame(createStringVector(), *jumps, 0, 320, conf.localsHardMax, 0, 0, NULL);
+    bool globalsExpanded = false;
+
+    frame->lp = 2;
+    frame->locals[0] = createInt(2);
+    frame->locals[1] = createInt(0);
+    frame->locals[2] = createInt(-1);
+    DataConstant array = createAddr(frame->locals, 0, 3, 3);
+    DataConstant result = sliceArr(array, 1, 3, vm, frame, &globalsExpanded, false);
+    cr_expect_eq(result.type, None);
+    cr_expect_eq(vm->state, memory_err);
+    cr_expect_stderr_eq_str("HeapOverflow: Exceeded local storage maximum of 3 and global storage maximum of 2\n");
 }
 
 Test(impl_builtin, arrayContains_true) {

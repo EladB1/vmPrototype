@@ -1,3 +1,3 @@
 .vscode
-stackVM/bolt
+stackVM/build/**
 **/.DS_Store

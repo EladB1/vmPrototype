@@ -1,6 +1,8 @@
 #ifndef IMPL_BUILTIN_H
 #define IMPL_BUILTIN_H
 
+#include "vm.h"
+#include "frame.h"
 #include "dataconstant.h"
 #include "exitcode.h"
 
@@ -19,13 +21,13 @@ char* slice(char* string, int start, int end, ExitCode* vmState);
 
 bool fileExists(char* filePath);
 void createFile(char* filePath, ExitCode* vmState);
-DataConstant readFile(char* filePath, int* lp, DataConstant** locals, ExitCode* vmState);
+DataConstant readFile(char* filePath, VM* vm, Frame* frame, bool* globalsExpanded, bool verbose);
 void writeToFile(char* filePath, char* content, char* mode, ExitCode* vmState);
 void renameFile(char* filePath, char* newFilePath, ExitCode* vmState);
 void deleteFile(char* filePath, ExitCode* vmState);
 
 void reverseArr(DataConstant array);
-DataConstant sliceArr(DataConstant array, int start, int end, int* lp, DataConstant** locals, ExitCode* vmState);
+DataConstant sliceArr(DataConstant array, int start, int end, VM* vm, Frame* frame, bool* globalsExpanded, bool verbose);
 bool arrayContains(DataConstant array, DataConstant element);
 int indexOf(DataConstant array, DataConstant element);
 char* join(DataConstant array, char* delim);
