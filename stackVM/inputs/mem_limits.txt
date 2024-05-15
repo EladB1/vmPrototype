@@ -62,6 +62,31 @@ test_return_array:
     CONCAT
     RET
 
+test_expansion:
+    LOAD_CONST 3
+    LOAD_CONST 2
+    LOAD_CONST 1
+    BUILDARR 5 3
+    STORE
+    LOAD_CONST 1
+    STORE
+    LOAD 5
+    CALL println 1
+    LOAD_CONST NONE
+    RET
+
+test_concat:
+    LOAD_CONST 1
+    LOAD_CONST 0
+    BUILDARR 2 2
+    LOAD_CONST 3
+    LOAD_CONST 2
+    LOAD_CONST 1
+    BUILDARR 5 3
+    CONCAT
+    LOAD_CONST NONE
+    RET
+
 test_locals_large_array:
     LOAD_CONST 1
     STORE
@@ -89,6 +114,8 @@ _entry:
     ;CALL test_globals 0
     ;CALL test_stack 0
     ;CALL test_locals 0
+    ;CALL test_expansion 0
+    CALL test_concat 0
     ;CALL test_locals_large_array 0
-    CALL test_builtin_function 0
+    ;CALL test_builtin_function 0
     HALT

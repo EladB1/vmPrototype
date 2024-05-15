@@ -1629,8 +1629,7 @@ Test(VM, runArrayConcat) {
     cr_free(src);
 }
 
-Test(VM, runArrayConcat_expandLocals, .disabled = true) {
-    // TODO: fix test - There is a bug with expanded locals that causes values not to be copied properly
+Test(VM, runArrayConcat_expandLocals) {
     char* labels[1] = {"_entry"};
     char* bodies[1] = {
         "LOAD_CONST 2 LOAD_CONST 1 BUILDARR 3 2 LOAD_CONST 1 LOAD_CONST 0 BUILDARR 2 2 CONCAT HALT"
@@ -1660,7 +1659,7 @@ Test(VM, runArrayConcat_expandLocals, .disabled = true) {
     cr_expect_eq(frame->stack[0].type, Addr);
     cr_expect_eq(frame->stack[0].length, 4);
     cr_expect_eq(frame->stack[0].size, 5);
-    cr_expect_eq(frame->stack[0].offset, 4);
+    cr_expect_eq(frame->stack[0].offset, 5);
     cr_expect_eq(frame->stack[0].value.address, frame->locals);
 
     cr_expect(isEqual(frame->locals[0], createInt(1)));

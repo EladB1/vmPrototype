@@ -186,7 +186,7 @@ void storeValue(VM* vm, bool verbose) {
         if (!frame->expandedLocals && vm->localsSoftMax != vm->localsHardMax && total >= vm->localsSoftMax - 1 && total < vm->localsHardMax) {
             if (verbose)
                 printf("INFO: Expanding local storage from %ld to %ld\n", vm->localsSoftMax, vm->localsHardMax);
-            expandLocals(frame, vm->localsHardMax);
+            *frame = *(expandLocals(frame, vm->localsHardMax));
             frame->expandedLocals = true;
         }
         if (total > vm->localsHardMax) {
@@ -340,7 +340,11 @@ ExitCode run(VM* vm, bool verbose) {
                 arrayTarget = checkAndRetrieveArrayValuesTarget(vm, currentFrame, lhs.size + rhs.size, &globalsExpanded, verbose);
                 if (vm->state != success)
                     return vm->state;
-                currentFrame = arrayTarget.frame;
+                *currentFrame = *arrayTarget.frame;
+                if (lhs.value.address != vm->globals)
+                    lhs.value.address = currentFrame->locals;
+                if (rhs.value.address != vm->globals)
+                    rhs.value.address = currentFrame->locals;
                 rval = createAddr(arrayTarget.target, *(arrayTarget.targetp) + 1, lhs.size + rhs.size, lhs.length + rhs.length);
                 DataConstant* start = getArrayStart(lhs);
                 DataConstant* stop = start + lhs.length;
