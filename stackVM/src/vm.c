@@ -56,16 +56,19 @@ void destroy(VM* vm) {
     free(vm);
 }
 
-void push(VM* vm, DataConstant value) {
+void push(VM* vm, DataConstant value, bool verbose) {
     Frame* frame = vm->callStack[vm->fp];
-    if (!frame->expandedStack && vm->stackSoftMax != vm->stackHardMax && frame->sp >= vm->stackSoftMax - 1 && frame->sp < vm->stackHardMax) {
+    int end = frame->sp + 1;
+    if (!frame->expandedStack && vm->stackSoftMax != vm->stackHardMax && end >= vm->stackSoftMax - 1 && end < vm->stackHardMax) {
         frame->expandedStack = true;
-        printf("INFO: Expanding current frame stack from %ld to %ld\n", vm->stackSoftMax, vm->stackHardMax);
+        if (verbose)
+            printf("INFO: Expanding current frame stack from %ld to %ld\n", vm->stackSoftMax, vm->stackHardMax);
         frame = expandStack(frame, vm->stackHardMax);
     }
-    if (frame->sp > vm->stackHardMax) {
+    if (end > vm->stackHardMax) {
         fprintf(stderr, "StackOverflow: Exceeded stack space of %ld\n", vm->stackHardMax);
         vm->state = memory_err;
+        return;
     }
     framePush(frame, value);
 }
@@ -179,15 +182,17 @@ void storeValue(VM* vm, bool verbose) {
         stepOver(vm);
     }
     else {
-        if (!frame->expandedLocals && vm->localsSoftMax != vm->localsHardMax && frame->lp >= vm->localsSoftMax - 1 && frame->lp < vm->localsHardMax) {
+        int total = frame->lp + value.size + 1;
+        if (!frame->expandedLocals && vm->localsSoftMax != vm->localsHardMax && total >= vm->localsSoftMax - 1 && total < vm->localsHardMax) {
             if (verbose)
                 printf("INFO: Expanding local storage from %ld to %ld\n", vm->localsSoftMax, vm->localsHardMax);
             expandLocals(frame, vm->localsHardMax);
             frame->expandedLocals = true;
         }
-        if (frame->lp > vm->localsHardMax) {
+        if (total > vm->localsHardMax) {
             fprintf(stderr, "StackOverflow: Exceeded local storage maximum of %ld\n", vm->localsHardMax);
             vm->state = memory_err;
+            return;
         }
         storeLocal(frame, value);
     }
@@ -306,7 +311,7 @@ ExitCode run(VM* vm, bool verbose) {
                 value = createNull();
             else if (strcmp(next, "NONE") == 0)
                 value = createNone();
-            push(vm, value);
+            push(vm, value, verbose);
         }
         else if (strcmp(opcode, "DUP") == 0) {
             if (stackIsEmpty(currentFrame)) {
@@ -314,7 +319,7 @@ ExitCode run(VM* vm, bool verbose) {
                 return operation_err;
             }
             value = top(vm);
-            push(vm, value);
+            push(vm, value, verbose);
         }
         else if (strcmp(opcode, "POP") == 0) {
             if (stackIsEmpty(currentFrame)) {
@@ -353,40 +358,40 @@ ExitCode run(VM* vm, bool verbose) {
                     }
                 }
             }
-            push(vm, rval);
+            push(vm, rval, verbose);
         }
         else if (strcmp(opcode, "REPEATSTR") == 0) {
             rhs = pop(vm);
             argc = atoi(getNext(vm));
             if (argc <= 0)
-                push(vm, createString(""));
+                push(vm, createString(""), verbose);
             else if (argc == 1)
-                push(vm, rhs);
+                push(vm, rhs, verbose);
             else {
                 strcpy(next, rhs.value.strVal);
                 for (int i = 1; i < argc; i++) {
                     next = strncat(next, rhs.value.strVal, strlen(rhs.value.strVal));
                 }
-                push(vm, createString(next));
+                push(vm, createString(next), verbose);
             }
         }
         else if (strcmp(opcode, "ADD") == 0) {
             rhs = pop(vm);
             lhs = pop(vm);
             rval = binaryArithmeticOperation(lhs, rhs, "+");
-            push(vm, rval);
+            push(vm, rval, verbose);
         }
         else if (strcmp(opcode, "SUB") == 0) {
             rhs = pop(vm);
             lhs = pop(vm);
             rval = binaryArithmeticOperation(lhs, rhs, "-");
-            push(vm, rval);
+            push(vm, rval, verbose);
         }
         else if (strcmp(opcode, "MUL") == 0) {
             rhs = pop(vm);
             lhs = pop(vm);
             rval = binaryArithmeticOperation(lhs, rhs, "*");
-            push(vm, rval);
+            push(vm, rval, verbose);
         }
         else if (strcmp(opcode, "DIV") == 0) {
             rhs = pop(vm);
@@ -394,7 +399,7 @@ ExitCode run(VM* vm, bool verbose) {
             rval = binaryArithmeticOperation(lhs, rhs, "/");
             if (rval.type == None)
                 return operation_err;
-            push(vm, rval);
+            push(vm, rval, verbose);
         }
         else if (strcmp(opcode, "REM") == 0) {
             rhs = pop(vm);
@@ -402,7 +407,7 @@ ExitCode run(VM* vm, bool verbose) {
             rval = binaryArithmeticOperation(lhs, rhs, "mod");
             if (rval.type == None)
                 return operation_err;
-            push(vm, rval);
+            push(vm, rval, verbose);
         }
         else if (strcmp(opcode, "POW") == 0) {
             rhs = pop(vm);
@@ -410,50 +415,50 @@ ExitCode run(VM* vm, bool verbose) {
             rval = binaryArithmeticOperation(lhs, rhs, "exp");
             if (rval.type == None)
                 return operation_err;
-            push(vm, rval);
+            push(vm, rval, verbose);
         }
         else if (strcmp(opcode, "EQ") == 0) {
             rhs = pop(vm);
             lhs = pop(vm);
             rval = compareData(lhs, rhs, "==");
-            push(vm, rval);
+            push(vm, rval, verbose);
         }
         else if (strcmp(opcode, "NE") == 0) {
             rhs = pop(vm);
             lhs = pop(vm);
             rval = compareData(lhs, rhs, "!=");
-            push(vm, rval);
+            push(vm, rval, verbose);
         }
         else if (strcmp(opcode, "LT") == 0) {
             rhs = pop(vm);
             lhs = pop(vm);
             rval = compareData(lhs, rhs, "<");
-            push(vm, rval);
+            push(vm, rval, verbose);
         }
         else if (strcmp(opcode, "LE") == 0) {
             rhs = pop(vm);
             lhs = pop(vm);
             rval = compareData(lhs, rhs, "<=");
-            push(vm, rval);
+            push(vm, rval, verbose);
         }
         else if (strcmp(opcode, "GT") == 0) {
             rhs = pop(vm);
             lhs = pop(vm);
             rval = compareData(lhs, rhs, ">");
-            push(vm, rval);
+            push(vm, rval, verbose);
         }
         else if (strcmp(opcode, "GE") == 0) {
             rhs = pop(vm);
             lhs = pop(vm);
             rval = compareData(lhs, rhs, ">=");
-            push(vm, rval);
+            push(vm, rval, verbose);
         }
         else if (strcmp(opcode, "NOT") == 0) {
             rhs = pop(vm);
             rval.type = Bool;
             rval.size = 1;
             rval.value.boolVal = !rhs.value.boolVal;
-            push(vm, rval);
+            push(vm, rval, verbose);
         }
         else if (strcmp(opcode, "OR") == 0) {
             rhs = pop(vm);
@@ -461,7 +466,7 @@ ExitCode run(VM* vm, bool verbose) {
             rval.type = Bool;
             rval.size = 1;
             rval.value.boolVal = lhs.value.boolVal || rhs.value.boolVal;
-            push(vm, rval);
+            push(vm, rval, verbose);
         }
         else if (strcmp(opcode, "AND") == 0) {
             rhs = pop(vm);
@@ -469,7 +474,7 @@ ExitCode run(VM* vm, bool verbose) {
             rval.type = Bool;
             rval.size = 1;
             rval.value.boolVal = lhs.value.boolVal && rhs.value.boolVal;
-            push(vm, rval);
+            push(vm, rval, verbose);
         }
         else if (strcmp(opcode, "XOR") == 0) {
             rhs = pop(vm);
@@ -480,7 +485,7 @@ ExitCode run(VM* vm, bool verbose) {
                 rval.value.intVal = rhs.type == Int ? lhs.value.intVal ^ rhs.value.intVal : lhs.value.intVal ^ rhs.value.boolVal;
             if (lhs.type == Bool)
                 rval.value.intVal = rhs.type == Bool ? lhs.value.boolVal ^ rhs.value.boolVal : lhs.value.boolVal ^ rhs.value.intVal;
-            push(vm, rval);
+            push(vm, rval, verbose);
         }
         else if (strcmp(opcode, "B_AND") == 0) {
             rhs = pop(vm);
@@ -491,7 +496,7 @@ ExitCode run(VM* vm, bool verbose) {
                 rval.value.intVal = rhs.type == Int ? lhs.value.intVal & rhs.value.intVal : lhs.value.intVal & rhs.value.boolVal;
             if (lhs.type == Bool)
                 rval.value.intVal = rhs.type == Bool ? lhs.value.boolVal & rhs.value.boolVal : lhs.value.boolVal & rhs.value.intVal;
-            push(vm, rval);
+            push(vm, rval, verbose);
         }
         else if (strcmp(opcode, "STORE") == 0) {
             if (stackIsEmpty(currentFrame)) {
@@ -502,7 +507,7 @@ ExitCode run(VM* vm, bool verbose) {
         }
         else if (strcmp(opcode, "LOAD") == 0) {
             value = load(vm);
-            push(vm, value);
+            push(vm, value, verbose);
         }
         else if (strcmp(opcode, "GSTORE") == 0) {
             if (stackIsEmpty(currentFrame)) {
@@ -510,9 +515,9 @@ ExitCode run(VM* vm, bool verbose) {
                 return operation_err;
             }
             value = pop(vm);
+            total = vm->gp + value.size + 1;
             if (value.type == Addr) {
                 //printf("%ld\n", vm->globalsHardMax);
-                total = vm->gp + value.size;
                 if (!globalsExpanded && vm->globalsSoftMax != vm->globalsHardMax && total >= vm->globalsSoftMax - 1 && total < vm->globalsHardMax) {
                     if (verbose)
                         printf("INFO: Expanding size of globals from %ld to %ld\n", vm->globalsSoftMax, vm->globalsHardMax);
@@ -531,13 +536,13 @@ ExitCode run(VM* vm, bool verbose) {
                 stepOver(vm);
             }
             else {
-                if (!globalsExpanded && vm->globalsSoftMax != vm->globalsHardMax && vm->gp >= vm->globalsSoftMax - 1 && vm->gp < vm->globalsHardMax) {
+                if (!globalsExpanded && vm->globalsSoftMax != vm->globalsHardMax && total >= vm->globalsSoftMax - 1 && total < vm->globalsHardMax) {
                     if (verbose)
                         printf("INFO: Expanding size of globals from %ld to %ld\n", vm->globalsSoftMax, vm->globalsHardMax);
                     globalsExpanded = true;
                     vm->globals = realloc(vm->globals, sizeof(DataConstant) * vm->globalsHardMax);
                 }
-                if (vm->gp > vm->globalsHardMax) {
+                if (total > vm->globalsHardMax) {
                     fprintf(stderr, "HeapOverflow: Global storage hard maximum of %ld reached\n", vm->globalsHardMax);
                     return memory_err;
                 }
@@ -547,7 +552,7 @@ ExitCode run(VM* vm, bool verbose) {
         else if (strcmp(opcode, "GLOAD") == 0) {
             addr = atoi(getNext(vm));
             value = vm->globals[addr];
-            push(vm, value);
+            push(vm, value, verbose);
         }
         else if (strcmp(opcode, "JMP") == 0) {
             next = getNext(vm);
@@ -627,7 +632,7 @@ ExitCode run(VM* vm, bool verbose) {
                 value = createNull();
             else if (strcmp(next, "NONE") == 0)
                 value = createNone();
-            push(vm, value);
+            push(vm, value, verbose);
         }
         else if (strcmp(opcode, "CALL") == 0) {
             next = getNext(vm);
@@ -641,7 +646,7 @@ ExitCode run(VM* vm, bool verbose) {
                 if (vm->state != success)
                     return vm->state;
                 if (rval.type != None) {
-                    push(vm, rval);
+                    push(vm, rval, verbose);
                 }
             }
             else {
@@ -650,13 +655,13 @@ ExitCode run(VM* vm, bool verbose) {
                     fprintf(stderr, "Error: could not find function '%s'\n", next);
                     return unknown_bytecode;
                 }
-                if (!framesExpanded && vm->framesSoftMax != vm->framesHardMax && vm->fp >= vm->framesSoftMax - 1 && vm->fp < vm->framesHardMax) {
+                if (!framesExpanded && vm->framesSoftMax != vm->framesHardMax && vm->fp + 1 >= vm->framesSoftMax - 2 && vm->fp + 1 < vm->framesHardMax - 1) {
                     if (verbose)
                         printf("INFO: Expanding number of frames from %hd to %hd\n", vm->framesSoftMax, vm->framesHardMax);
                     framesExpanded = true;
                     vm->callStack = realloc(vm->callStack, sizeof(Frame) * vm->framesHardMax);
                 }
-                if (vm->fp > vm->framesHardMax) {
+                if (vm->fp + 1 > vm->framesHardMax - 1) {
                     fprintf(stderr, "StackOverflow: Number of frames exceeded frame hard maximum of %hd\n", vm->framesHardMax);
                     return  memory_err;
                 }
@@ -678,7 +683,7 @@ ExitCode run(VM* vm, bool verbose) {
                     caller = arrayTarget.frame;
                     rval = copyAddr(rval, arrayTarget.targetp, &arrayTarget.target);
                 }
-                push(vm, rval);
+                push(vm, rval, verbose);
             }
             deleteFrame(currentFrame);
         }
@@ -707,7 +712,7 @@ ExitCode run(VM* vm, bool verbose) {
                     arrayTarget.target[++(*arrayTarget.targetp)] = createNone();
                 }
             }
-            push(vm, rval);
+            push(vm, rval, verbose);
         }
         else if (strcmp(opcode, "COPYARR") == 0) {
             rhs = pop(vm);
@@ -716,7 +721,7 @@ ExitCode run(VM* vm, bool verbose) {
                 return vm->state;
             currentFrame = arrayTarget.frame;
             rval = copyAddr(rhs, arrayTarget.targetp, &arrayTarget.target);
-            push(vm, rval);
+            push(vm, rval, verbose);
         }
         else if (strcmp(opcode, "AGET") == 0) {
             offset = pop(vm).value.intVal;
@@ -727,7 +732,7 @@ ExitCode run(VM* vm, bool verbose) {
                 return memory_err;
             }
             rval = *(start + offset);
-            push(vm, rval);
+            push(vm, rval, verbose);
         }
         else if (strcmp(opcode, "ASTORE") == 0) {
             offset = pop(vm).value.intVal;
@@ -747,7 +752,7 @@ ExitCode run(VM* vm, bool verbose) {
                 lhs.length++;
             }
             *(start + offset) = rhs;
-            push(vm, lhs);
+            push(vm, lhs, verbose);
         }
         else {
             fprintf(stderr, "Unknown bytecode: '%s'\n", opcode);

@@ -31,6 +31,8 @@ By default, arrays are stored in the local frame. When the frame returns, all va
 
 There is a configuration file `.bolt_vm_config.yml` that lets you adjust the behavior of arrays. There is a setting `DynamicResourceExpansion` which gives you the option of using less memory upfront and expanding as needed; this is on by default. If `DynamicResourceExpansion` is off, the soft maximums will be ignored. The `HeapStorageBackup` setting gives you the option of storing the array values in globals if the array is too big for locals; on by default. You can adjust the number of frames, size of the VM globals, frame locals, and frame stack in this file.
 
+> The `HeapStorageBackup` setting is only for array values, local variables cannot be backed up by the heap
+
 Going over the configured hard limits, will result in the program crashing with an out of memory error. Setting the amount of allocated too high or too low, will also result in a memory error.
 
 | Memory Region | Minimum | Maximum |

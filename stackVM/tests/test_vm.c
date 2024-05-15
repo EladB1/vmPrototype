@@ -266,8 +266,6 @@ Test(VM, runPop) {
     cr_free(src);
 }
 
-
-
 Test(VM, runLoadBasicConsts) {
     char* labels[1] = {"_entry"};
     char* bodies[1] = {
@@ -296,6 +294,81 @@ Test(VM, runLoadBasicConsts) {
     cr_expect(isEqual(frame->stack[3], createString("HI")));
     cr_expect(isEqual(frame->stack[4], createNull()));
     cr_expect_eq(frame->stack[5].type, None);
+    cr_expect_not(frame->expandedStack);
+
+    destroy(vm);
+    cr_free(src);
+}
+
+Test(VM, runLoadBasicConsts_expandStack) {
+    char* labels[1] = {"_entry"};
+    char* bodies[1] = {
+        "LOAD_CONST 1 LOAD_CONST 5.5 LOAD_CONST false  LOAD_CONST \"HI\" LOAD_CONST NULL LOAD_CONST NONE HALT"
+    };
+    int jumpCounts[1] = {0};
+    JumpPoint* jumps[1] = {(JumpPoint[]) {}};
+    SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 1);
+
+    VMConfig conf = getDefaultConfig();
+    conf.stackSizeSoftMax = BASE_BYTES * 2;
+    VM* vm = init(src, conf);
+    bool verbose = false;
+    if (verbose)
+        displayCode(src);
+    ExitCode status = run(vm, verbose);
+
+    cr_expect_eq(status, success);
+    cr_expect_eq(vm->fp, 0);
+    Frame* frame = vm->callStack[0];
+    cr_expect_eq(frame->instructions->length, 13);
+    cr_expect_eq(frame->pc, 13);
+    cr_expect_eq(frame->sp, 5);
+
+    cr_expect(isEqual(frame->stack[0], createInt(1)));
+    cr_expect(isEqual(frame->stack[1], createDouble(5.5)));
+    cr_expect(isEqual(frame->stack[2], createBoolean(false)));
+    cr_expect(isEqual(frame->stack[3], createString("HI")));
+    cr_expect(isEqual(frame->stack[4], createNull()));
+    cr_expect_eq(frame->stack[5].type, None);
+    cr_expect(frame->expandedStack);
+
+    destroy(vm);
+    cr_free(src);
+}
+
+Test(VM, runLoadBasicConsts_stackError, .init = cr_redirect_stderr) {
+    char* labels[1] = {"_entry"};
+    char* bodies[1] = {
+        "LOAD_CONST 1 LOAD_CONST 5.5 LOAD_CONST false  LOAD_CONST \"HI\" LOAD_CONST NULL LOAD_CONST NONE HALT"
+    };
+    int jumpCounts[1] = {0};
+    JumpPoint* jumps[1] = {(JumpPoint[]) {}};
+    SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 1);
+
+    VMConfig conf = getDefaultConfig();
+    conf.dynamicResourceExpansionEnabled = false;
+    conf.stackSizeHardMax = BASE_BYTES * 4;
+    VM* vm = init(src, conf);
+    bool verbose = false;
+    if (verbose)
+        displayCode(src);
+    ExitCode status = run(vm, verbose);
+
+    cr_expect_eq(status, memory_err);
+    cr_expect_eq(vm->fp, 0);
+    Frame* frame = vm->callStack[0];
+    cr_expect_eq(frame->instructions->length, 13);
+    cr_expect_eq(frame->pc, 12);
+    cr_expect_eq(frame->sp, 4);
+
+    cr_expect(isEqual(frame->stack[0], createInt(1)));
+    cr_expect(isEqual(frame->stack[1], createDouble(5.5)));
+    cr_expect(isEqual(frame->stack[2], createBoolean(false)));
+    //cr_expect(isEqual(frame->stack[3], createString("HI")));
+    //cr_expect(isEqual(frame->stack[4], createNull()));
+    cr_expect_not(frame->expandedStack);
+
+    cr_expect_stderr_eq_str("StackOverflow: Exceeded stack space of 4\n");
 
     destroy(vm);
     cr_free(src);
@@ -537,6 +610,119 @@ Test(VM, runLoadAndStore) {
     cr_expect(isEqual(frame->locals[0], createBoolean(false)));
     cr_expect(isEqual(vm->globals[0], createInt(2)));
 
+    cr_expect_not(frame->expandedLocals);
+
+    destroy(vm);
+    cr_free(src);
+}
+
+Test(VM, runLoadAndStore_expandLocalsAndGlobals) {
+    char* labels[1] = {"_entry"};
+    char* bodies[1] = {
+        "LOAD_CONST true STORE LOAD 0 NOT STORE 0 LOAD_CONST 3 GSTORE GLOAD 0 LOAD_CONST 1 SUB GSTORE 0 LOAD 0 HALT"
+    };
+    int jumpCounts[1] = {0};
+    JumpPoint* jumps[1] = {(JumpPoint[]) {}};
+    SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 1);
+
+    VMConfig conf = getDefaultConfig();
+    conf.localsSoftMax = BASE_BYTES;
+    conf.globalsSoftMax = BASE_BYTES;
+    VM* vm = init(src, conf);
+    bool verbose = false;
+    if (verbose)
+        displayCode(src);
+    ExitCode status = run(vm, verbose);
+
+    cr_expect_eq(status, success);
+    cr_expect_eq(vm->fp, 0);
+    Frame* frame = vm->callStack[0];
+    cr_expect_eq(frame->instructions->length, 21);
+    cr_expect_eq(frame->pc, 21);
+    cr_expect_eq(frame->sp, 0);
+    cr_expect_eq(frame->lp, 0);
+    cr_expect_eq(vm->gp, 0);
+
+    cr_expect(isEqual(frame->stack[0], createBoolean(false)));
+    cr_expect(isEqual(frame->locals[0], createBoolean(false)));
+    cr_expect(isEqual(vm->globals[0], createInt(2)));
+
+    cr_expect(frame->expandedLocals);
+
+    destroy(vm);
+    cr_free(src);
+}
+
+Test(VM, runLoadAndStore_localsError, .init = cr_redirect_stderr) {
+    char* labels[1] = {"_entry"};
+    char* bodies[1] = {
+        "LOAD_CONST true STORE LOAD 0 NOT STORE 0 LOAD_CONST 1 STORE HALT"
+    };
+    int jumpCounts[1] = {0};
+    JumpPoint* jumps[1] = {(JumpPoint[]) {}};
+    SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 1);
+
+    VMConfig conf = getDefaultConfig();
+    conf.dynamicResourceExpansionEnabled = false;
+    conf.localsHardMax = BASE_BYTES;
+    VM* vm = init(src, conf);
+    bool verbose = false;
+    if (verbose)
+        displayCode(src);
+    ExitCode status = run(vm, verbose);
+
+    cr_expect_eq(status, memory_err);
+    cr_expect_eq(vm->fp, 0);
+    Frame* frame = vm->callStack[0];
+    cr_expect_eq(frame->instructions->length, 12);
+    cr_expect_eq(frame->pc, 11);
+    cr_expect_eq(frame->sp, -1);
+    cr_expect_eq(frame->lp, 0);
+    cr_expect_eq(vm->gp, -1);
+
+    cr_expect(isEqual(frame->locals[0], createBoolean(false)));
+
+    cr_expect_not(frame->expandedLocals);
+
+    cr_expect_stderr_eq_str("StackOverflow: Exceeded local storage maximum of 1\n");
+
+    destroy(vm);
+    cr_free(src);
+}
+
+Test(VM, runLoadAndStore_globalsError, .init = cr_redirect_stderr) {
+    char* labels[1] = {"_entry"};
+    char* bodies[1] = {
+        "LOAD_CONST true GSTORE GLOAD 0 NOT GSTORE 0 LOAD_CONST 1 GSTORE HALT"
+    };
+    int jumpCounts[1] = {0};
+    JumpPoint* jumps[1] = {(JumpPoint[]) {}};
+    SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 1);
+
+    VMConfig conf = getDefaultConfig();
+    conf.dynamicResourceExpansionEnabled = false;
+    conf.globalsHardMax = BASE_BYTES;
+    VM* vm = init(src, conf);
+    bool verbose = false;
+    if (verbose)
+        displayCode(src);
+    ExitCode status = run(vm, verbose);
+
+    cr_expect_eq(status, memory_err);
+    cr_expect_eq(vm->fp, 0);
+    Frame* frame = vm->callStack[0];
+    cr_expect_eq(frame->instructions->length, 12);
+    cr_expect_eq(frame->pc, 11);
+    cr_expect_eq(frame->sp, -1);
+    cr_expect_eq(frame->lp, -1);
+    cr_expect_eq(vm->gp, 0);
+
+    cr_expect(isEqual(vm->globals[0], createBoolean(false)));
+
+    cr_expect_not(frame->expandedLocals);
+
+    cr_expect_stderr_eq_str("HeapOverflow: Global storage hard maximum of 1 reached\n");
+
     destroy(vm);
     cr_free(src);
 }
@@ -659,7 +845,10 @@ Test(VM, runWithBuiltinFunctionCall, .init = cr_redirect_stdout) {
     JumpPoint* jumps[1] = {(JumpPoint[]) {}};
     SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 1);
 
-    VM* vm = init(src, getDefaultConfig());
+    VMConfig conf = getDefaultConfig();
+    conf.framesSoftMax = 1;
+    conf.framesHardMax = 1;
+    VM* vm = init(src, conf);
     bool verbose = false;
     if (verbose)
         displayCode(src);
@@ -761,6 +950,44 @@ Test(VM, runWithFunctionCall_addWithReturn) {
     cr_expect_eq(frame->lp, -1);
     cr_expect_eq(frame->stack[0].type, Dbl);
     cr_expect_eq(frame->stack[0].value.dblVal, 3.718);
+
+    destroy(vm);
+    cr_free(src);
+}
+
+Test(VM, runWithFunctionCall_framesError, .init = cr_redirect_stderr) {
+    char* labels[3] = {"custom_print", "add", "_entry"};
+    char* bodies[3] = {
+        "LOAD 0 CALL println 1 LOAD_CONST NONE RET",
+        "LOAD 0 LOAD 1 ADD DUP CALL custom_print 1 RET",
+        "LOAD_CONST 1 LOAD_CONST 2.718 CALL add 2 HALT"
+    };
+    int jumpCounts[3] = {0, 0, 0};
+    JumpPoint* jumps[3] = {(JumpPoint[]) {}, (JumpPoint[]) {}, (JumpPoint[]) {}};
+    SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 3);
+
+    VMConfig conf = getDefaultConfig();
+    conf.dynamicResourceExpansionEnabled = false;
+    conf.framesHardMax = 2;
+    VM* vm = init(src, conf);
+    bool verbose = false;
+    if (verbose)
+        displayCode(src);
+    ExitCode status = run(vm, verbose);
+
+    cr_expect_eq(status, memory_err);
+    cr_expect_eq(vm->fp, 1);
+    Frame* frame = vm->callStack[1];
+    cr_expect_eq(frame->instructions->length, 10);
+    cr_expect_eq(frame->pc, 9);
+    cr_expect_eq(frame->sp, 0);
+    cr_expect_eq(frame->lp, 1);
+    cr_expect_eq(frame->stack[0].type, Dbl);
+    cr_expect_eq(frame->stack[0].value.dblVal, 3.718);
+    cr_expect_eq(frame->stack[1].type, Dbl);
+    cr_expect_eq(frame->stack[1].value.dblVal, 3.718);
+
+    cr_expect_stderr_eq_str("StackOverflow: Number of frames exceeded frame hard maximum of 2\n");
 
     destroy(vm);
     cr_free(src);
@@ -1415,7 +1642,7 @@ Test(VM, runArrayConcat_expandLocals, .disabled = true) {
     VMConfig conf = getDefaultConfig();
     conf.localsSoftMax = BASE_BYTES * 8;
     VM* vm = init(src, conf);
-    bool verbose = true;
+    bool verbose = false;
     if (verbose)
         displayCode(src);
     ExitCode status = run(vm, verbose);
