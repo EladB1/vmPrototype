@@ -235,6 +235,172 @@ Test(impl_builtin, slice_str_valid) {
     cr_expect_str_eq(sliced, "time");
 }
 
+Test(impl_builtin, splitString_doesNotContainDelim) {
+    JumpPoint** jumps = {(JumpPoint* [0]) {}};
+    SourceCode* src = createSource((char* [1]) {"_entry"}, (char* [1]) {"HALT"}, (int[1]) {0}, jumps, 1);
+    VMConfig conf = getDefaultConfig();
+    VM* vm = init(src, conf);
+    Frame* frame = loadFrame(createStringVector(), *jumps, 0, 320, 640, 0, 0, NULL);
+    bool globalsExpanded = false;
+
+    DataConstant result = splitString("a,b,c", ".", vm, frame, &globalsExpanded, false);
+
+    cr_expect_eq(result.type, Addr);
+    cr_expect_eq(result.length, 1);
+    cr_expect_eq(result.size, 1);
+    cr_expect_eq(result.offset, 0);
+    cr_expect_eq(result.value.address, frame->locals);
+
+    cr_expect(isEqual(frame->locals[0], createString("a,b,c")));
+
+    cr_expect_not(globalsExpanded);
+    cr_expect_not(frame->expandedLocals);
+}
+
+Test(impl_builtin, splitString_containsDelim) {
+    JumpPoint** jumps = {(JumpPoint* [0]) {}};
+    SourceCode* src = createSource((char* [1]) {"_entry"}, (char* [1]) {"HALT"}, (int[1]) {0}, jumps, 1);
+    VMConfig conf = getDefaultConfig();
+    VM* vm = init(src, conf);
+    Frame* frame = loadFrame(createStringVector(), *jumps, 0, 320, 640, 0, 0, NULL);
+    bool globalsExpanded = false;
+
+    DataConstant result = splitString("a,b,c", ",", vm, frame, &globalsExpanded, false);
+
+    cr_expect_eq(result.type, Addr);
+    cr_expect_eq(result.length, 3);
+    cr_expect_eq(result.size, 3);
+    cr_expect_eq(result.offset, 0);
+    cr_expect_eq(result.value.address, frame->locals);
+
+    cr_expect(isEqual(frame->locals[0], createString("a")));
+    cr_expect(isEqual(frame->locals[1], createString("b")));
+    cr_expect(isEqual(frame->locals[2], createString("c")));
+
+    cr_expect_not(globalsExpanded);
+    cr_expect_not(frame->expandedLocals);
+}
+
+Test(impl_builtin, splitString_containsDelim_expandLocals) {
+    JumpPoint** jumps = {(JumpPoint* [0]) {}};
+    SourceCode* src = createSource((char* [1]) {"_entry"}, (char* [1]) {"HALT"}, (int[1]) {0}, jumps, 1);
+    VMConfig conf = getDefaultConfig();
+    conf.localsSoftMax = BASE_BYTES * 2;
+    VM* vm = init(src, conf);
+    Frame* frame = loadFrame(createStringVector(), *jumps, 0, 320, conf.localsSoftMax, 0, 0, NULL);
+    bool globalsExpanded = false;
+
+    DataConstant result = splitString("a,b,c", ",", vm, frame, &globalsExpanded, false);
+
+    cr_expect_eq(result.type, Addr);
+    cr_expect_eq(result.length, 3);
+    cr_expect_eq(result.size, 3);
+    cr_expect_eq(result.offset, 0);
+    cr_expect_eq(result.value.address, frame->locals);
+
+    cr_expect(isEqual(frame->locals[0], createString("a")));
+    cr_expect(isEqual(frame->locals[1], createString("b")));
+    cr_expect(isEqual(frame->locals[2], createString("c")));
+
+    cr_expect_not(globalsExpanded);
+    cr_expect(frame->expandedLocals);
+}
+
+Test(impl_builtin, splitString_containsDelim_useGlobals) {
+    JumpPoint** jumps = {(JumpPoint* [0]) {}};
+    SourceCode* src = createSource((char* [1]) {"_entry"}, (char* [1]) {"HALT"}, (int[1]) {0}, jumps, 1);
+    VMConfig conf = getDefaultConfig();
+    conf.dynamicResourceExpansionEnabled = false;
+    conf.localsHardMax = BASE_BYTES * 2;
+    VM* vm = init(src, conf);
+    Frame* frame = loadFrame(createStringVector(), *jumps, 0, 320, conf.localsHardMax, 0, 0, NULL);
+    bool globalsExpanded = false;
+
+    DataConstant result = splitString("a,b,c", ",", vm, frame, &globalsExpanded, false);
+
+    cr_expect_eq(result.type, Addr);
+    cr_expect_eq(result.length, 3);
+    cr_expect_eq(result.size, 3);
+    cr_expect_eq(result.offset, 0);
+    cr_expect_eq(result.value.address, vm->globals);
+
+    cr_expect(isEqual(vm->globals[0], createString("a")));
+    cr_expect(isEqual(vm->globals[1], createString("b")));
+    cr_expect(isEqual(vm->globals[2], createString("c")));
+
+    cr_expect_not(globalsExpanded);
+    cr_expect_not(frame->expandedLocals);
+}
+
+Test(impl_builtin, splitString_containsDelim_expandGlobals) {
+    JumpPoint** jumps = {(JumpPoint* [0]) {}};
+    SourceCode* src = createSource((char* [1]) {"_entry"}, (char* [1]) {"HALT"}, (int[1]) {0}, jumps, 1);
+    VMConfig conf = getDefaultConfig();
+    conf.localsSoftMax = BASE_BYTES * 2;
+    conf.localsHardMax = BASE_BYTES * 2;
+    conf.globalsSoftMax = BASE_BYTES * 2;
+    VM* vm = init(src, conf);
+    Frame* frame = loadFrame(createStringVector(), *jumps, 0, 320, conf.localsHardMax, 0, 0, NULL);
+    bool globalsExpanded = false;
+
+    DataConstant result = splitString("a,b,c", ",", vm, frame, &globalsExpanded, false);
+
+    cr_expect_eq(result.type, Addr);
+    cr_expect_eq(result.length, 3);
+    cr_expect_eq(result.size, 3);
+    cr_expect_eq(result.offset, 0);
+    cr_expect_eq(result.value.address, vm->globals);
+
+    cr_expect(isEqual(vm->globals[0], createString("a")));
+    cr_expect(isEqual(vm->globals[1], createString("b")));
+    cr_expect(isEqual(vm->globals[2], createString("c")));
+
+    cr_expect(globalsExpanded);
+    cr_expect_not(frame->expandedLocals);
+}
+
+Test(impl_builtin, splitString_containsDelim_localsError, .init = cr_redirect_stderr) {
+    JumpPoint** jumps = {(JumpPoint* [0]) {}};
+    SourceCode* src = createSource((char* [1]) {"_entry"}, (char* [1]) {"HALT"}, (int[1]) {0}, jumps, 1);
+    VMConfig conf = getDefaultConfig();
+    conf.dynamicResourceExpansionEnabled = false;
+    conf.useHeapStorageBackup = false;
+    conf.localsHardMax = BASE_BYTES;
+    VM* vm = init(src, conf);
+    Frame* frame = loadFrame(createStringVector(), *jumps, 0, 320, conf.localsHardMax, 0, 0, NULL);
+    bool globalsExpanded = false;
+
+    DataConstant result = splitString("a,b,c", ",", vm, frame, &globalsExpanded, false);
+
+    cr_expect_eq(result.type, None);
+
+    cr_expect_not(globalsExpanded);
+    cr_expect_not(frame->expandedLocals);
+
+    cr_expect_stderr_eq_str("StackOverflow: Exceeded local storage maximum of 1\n");
+}
+
+Test(impl_builtin, splitString_containsDelim_globalsError, .init = cr_redirect_stderr) {
+    JumpPoint** jumps = {(JumpPoint* [0]) {}};
+    SourceCode* src = createSource((char* [1]) {"_entry"}, (char* [1]) {"HALT"}, (int[1]) {0}, jumps, 1);
+    VMConfig conf = getDefaultConfig();
+    conf.dynamicResourceExpansionEnabled = false;
+    conf.localsHardMax = BASE_BYTES;
+    conf.globalsHardMax = BASE_BYTES * 2;
+    VM* vm = init(src, conf);
+    Frame* frame = loadFrame(createStringVector(), *jumps, 0, 320, conf.localsHardMax, 0, 0, NULL);
+    bool globalsExpanded = false;
+
+    DataConstant result = splitString("a,b,c", ",", vm, frame, &globalsExpanded, false);
+
+    cr_expect_eq(result.type, None);
+
+    cr_expect_not(globalsExpanded);
+    cr_expect_not(frame->expandedLocals);
+
+    cr_expect_stderr_eq_str("HeapOverflow: Exceeded local storage maximum of 1 and global storage maximum of 2\n");
+}
+
 // File System functions
 
 Test(impl_builtin, createAndDeleteFile, .init = cr_redirect_stderr) {

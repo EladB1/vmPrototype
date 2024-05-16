@@ -18,6 +18,7 @@ char* reverse(char* string);
 bool contains(char* str, char* subStr);
 char* replace(char* string, char* old, char* new, bool multiple);
 char* slice(char* string, int start, int end, ExitCode* vmState);
+DataConstant splitString(char* string, char* delim, VM* vm, Frame* frame, bool* globalsExpanded, bool verbose);
 
 bool fileExists(char* filePath);
 void createFile(char* filePath, ExitCode* vmState);

@@ -187,6 +187,26 @@ char* slice(char* string, int start, int end, ExitCode* vmState) {
     return strdup(sliced);
 }
 
+DataConstant splitString(char* string, char* delim, VM* vm, Frame* frame, bool* globalsExpanded, bool verbose) {
+    char** strings = malloc(sizeof(char*) * strlen(string));
+    int i = 0;
+    char* token;
+    char* str = strdup(string);
+    while ((token = strtok_r(str, delim, &str))) {
+        strings[i++] = token;
+    }
+    ArrayTarget arrayTarget = checkAndRetrieveArrayValuesTarget(vm, frame, i, globalsExpanded, verbose);
+    if (vm->state != success)
+        return createNone();
+    *frame = *arrayTarget.frame;
+    DataConstant result = createAddr(arrayTarget.target, *arrayTarget.targetp + 1, i, i);
+    for (int j = 0; j < i; j++) {
+        arrayTarget.target[++(*arrayTarget.targetp)] = createString(strings[j]);
+    }
+    free(strings);
+    return result;
+}
+
 bool fileExists(char* filePath) {
     return access(filePath, F_OK) == 0;
 }

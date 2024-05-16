@@ -19,6 +19,7 @@ bool isBuiltinFunction(char* name) {
         "min",
         "replace",
         "replaceAll",
+        "split",
         "_slice_s",
         "_slice_a",
         "append",
@@ -52,7 +53,7 @@ bool isBuiltinFunction(char* name) {
         "getEnv",
         "setEnv"
     };
-    int end = 42;
+    int end = 43;
     for (int i = 0; i < end; i++) {
         if (strcmp(name, builtins[i]) == 0)
             return true;
@@ -87,6 +88,8 @@ DataConstant callBuiltinFunction(char* name, int argc, DataConstant* params, VM*
         return createString(replace(params[0].value.strVal, params[1].value.strVal, params[2].value.strVal, false));
     if (strcmp(name, "replaceAll") == 0)
         return createString(replace(params[0].value.strVal, params[1].value.strVal, params[2].value.strVal, true));
+    if (strcmp(name, "split") == 0)
+        return splitString(params[0].value.strVal, params[1].value.strVal, vm, frame, globalsExpanded, verbose);
     if (strcmp(name, "_slice_s") == 0) {
         char* string = params[0].value.strVal;
         int end = argc == 2 ? (int) strlen(string) : params[2].value.intVal;
