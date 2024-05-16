@@ -114,3 +114,18 @@ Any line that starts with a dot and ends with a colon will be used as a jump poi
  - make
  - [criterion](https://github.com/Snaipe/Criterion)
     - Only needed if running `make test`
+
+### Running the VM
+
+valid start commands:
+
+ - `bolt`: Display usage and exit
+ - `bolt -h`: Display usage and exit
+ - `bolt -m`: Diplay the amount of memory allocated and exit
+ - `bolt [input_file]`: Run the VM on the bytecode from the file
+ - `bolt [input_file] -v`: Run the VM on the bytecode from the file with verbose output
+ - `bolt [input_file] -c [config_file]`: Use your configuration file and run the VM on the bytecode from the input_file 
+ - `bolt -m -c [config_file]`: Will use your configuration file, diplay the amount of memory allocated and exit
+ - `bolt -c [config_file] -m`: Will use your configuration file, diplay the amount of memory allocated and exit
+ - `bolt [input_file] -c [config_file] -v`: Use your configuration file and run the VM on the bytecode from the input_file with verbose output
+ - `bolt [input_file] -v -c [config_file]`: Use your configuration file and run the VM on the bytecode from the input_file with verbose output

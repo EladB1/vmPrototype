@@ -63,7 +63,7 @@ VMConfig readConfigFile(char* filePath) {
     FILE* fp = fopen(filePath, "r");
     if (fp == NULL || ferror(fp)) {
         perror("Warning");
-        fprintf(stderr, "Cause: '%s'\n", filePath);
+        fprintf(stderr, "Cause: '%s'\nUsing default configuration instead\n", filePath);
         return conf;
     }
     char buff[1024];

@@ -72,7 +72,7 @@ Test(Config, readConfigFile_valid) {
 
 Test(Config, readConfigFile_notFound, .init = cr_redirect_stderr) {
     VMConfig conf = readConfigFile("some-config.yml");
-    cr_expect_stderr_eq_str("Warning: No such file or directory\nCause: 'some-config.yml'\n");
+    cr_expect_stderr_eq_str("Warning: No such file or directory\nCause: 'some-config.yml'\nUsing default configuration instead\n");
     // returns default config
     VMConfig defaultConf = getDefaultConfig();
     cr_expect_eq(conf.dynamicResourceExpansionEnabled, defaultConf.dynamicResourceExpansionEnabled);
