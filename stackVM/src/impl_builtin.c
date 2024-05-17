@@ -190,10 +190,17 @@ char* slice(char* string, int start, int end, ExitCode* vmState) {
 DataConstant splitString(char* string, char* delim, VM* vm, Frame* frame, bool* globalsExpanded, bool verbose) {
     char** strings = malloc(sizeof(char*) * strlen(string));
     int i = 0;
-    char* token;
-    char* str = strdup(string);
-    while ((token = strtok_r(str, delim, &str))) {
-        strings[i++] = token;
+    if (delim == NULL) { // create a charArray
+        for (int j = 0; j < (int) strlen(string); j++) {
+            strings[i++] = strdup((char[2]) {string[j], '\0'});
+        }
+    }
+    else {
+        char* token;
+        char* str = strdup(string);
+        while ((token = strtok_r(str, delim, &str))) {
+            strings[i++] = token;
+        }
     }
     ArrayTarget arrayTarget = checkAndRetrieveArrayValuesTarget(vm, frame, i, globalsExpanded, verbose);
     if (vm->state != success)

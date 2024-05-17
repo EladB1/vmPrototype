@@ -9,6 +9,6 @@ _entry:
     CALL println 1
     LOAD_CONST ","
     LOAD_CONST "a,b,c"
-    CALL split 2
+    CALL split 1
     CALL println 1
     HALT

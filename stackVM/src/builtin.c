@@ -88,8 +88,10 @@ DataConstant callBuiltinFunction(char* name, int argc, DataConstant* params, VM*
         return createString(replace(params[0].value.strVal, params[1].value.strVal, params[2].value.strVal, false));
     if (strcmp(name, "replaceAll") == 0)
         return createString(replace(params[0].value.strVal, params[1].value.strVal, params[2].value.strVal, true));
-    if (strcmp(name, "split") == 0)
-        return splitString(params[0].value.strVal, params[1].value.strVal, vm, frame, globalsExpanded, verbose);
+    if (strcmp(name, "split") == 0) {
+        char* delim = argc == 2 ? params[1].value.strVal : NULL;
+        return splitString(params[0].value.strVal, delim, vm, frame, globalsExpanded, verbose);
+    }
     if (strcmp(name, "_slice_s") == 0) {
         char* string = params[0].value.strVal;
         int end = argc == 2 ? (int) strlen(string) : params[2].value.intVal;

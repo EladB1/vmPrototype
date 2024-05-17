@@ -235,6 +235,32 @@ Test(impl_builtin, slice_str_valid) {
     cr_expect_str_eq(sliced, "time");
 }
 
+Test(impl_builtin, splitString_NullDelim) {
+    JumpPoint** jumps = {(JumpPoint* [0]) {}};
+    SourceCode* src = createSource((char* [1]) {"_entry"}, (char* [1]) {"HALT"}, (int[1]) {0}, jumps, 1);
+    VMConfig conf = getDefaultConfig();
+    VM* vm = init(src, conf);
+    Frame* frame = loadFrame(createStringVector(), *jumps, 0, 320, 640, 0, 0, NULL);
+    bool globalsExpanded = false;
+
+    DataConstant result = splitString("a,b,c", NULL, vm, frame, &globalsExpanded, false);
+
+    cr_expect_eq(result.type, Addr);
+    cr_expect_eq(result.length, 5);
+    cr_expect_eq(result.size, 5);
+    cr_expect_eq(result.offset, 0);
+    cr_expect_eq(result.value.address, frame->locals);
+
+    cr_expect(isEqual(frame->locals[0], createString("a")));
+    cr_expect(isEqual(frame->locals[1], createString(",")));
+    cr_expect(isEqual(frame->locals[2], createString("b")));
+    cr_expect(isEqual(frame->locals[3], createString(",")));
+    cr_expect(isEqual(frame->locals[4], createString("c")));
+
+    cr_expect_not(globalsExpanded);
+    cr_expect_not(frame->expandedLocals);
+}
+
 Test(impl_builtin, splitString_doesNotContainDelim) {
     JumpPoint** jumps = {(JumpPoint* [0]) {}};
     SourceCode* src = createSource((char* [1]) {"_entry"}, (char* [1]) {"HALT"}, (int[1]) {0}, jumps, 1);

@@ -108,6 +108,49 @@ Test(builtin, slice_array_three_params) {
     cr_expect_eq(frame->locals[7].type, None);
 }
 
+// split
+Test(builtin, split_one_param) {
+    JumpPoint** jumps = {(JumpPoint* [0]) {}};
+    SourceCode* src = createSource((char* [1]) {"_entry"}, (char* [1]) {"HALT"}, (int[1]) {0}, jumps, 1);
+    vm = init(src, getDefaultConfig());
+    frame = loadFrame(createStringVector(), *jumps, 0, 320, 640, 0, 0, NULL);
+
+    DataConstant params[1] = {createString("a,b,c")};
+    DataConstant result = callBuiltinFunction("split", 1, params, vm, frame, &globalsExpanded, false);
+
+    cr_expect_eq(result.type, Addr);
+    cr_expect_eq(result.length, 5);
+    cr_expect_eq(result.size, 5);
+    cr_expect_eq(result.value.address, frame->locals);
+    cr_expect_eq(result.offset, 0);
+
+    cr_expect(isEqual(frame->locals[0], createString("a")));
+    cr_expect(isEqual(frame->locals[1], createString(",")));
+    cr_expect(isEqual(frame->locals[2], createString("b")));
+    cr_expect(isEqual(frame->locals[3], createString(",")));
+    cr_expect(isEqual(frame->locals[4], createString("c")));
+}
+
+Test(builtin, split_two_params) {
+    JumpPoint** jumps = {(JumpPoint* [0]) {}};
+    SourceCode* src = createSource((char* [1]) {"_entry"}, (char* [1]) {"HALT"}, (int[1]) {0}, jumps, 1);
+    vm = init(src, getDefaultConfig());
+    frame = loadFrame(createStringVector(), *jumps, 0, 320, 640, 0, 0, NULL);
+
+    DataConstant params[2] = {createString("a,b,c"), createString(",")};
+    DataConstant result = callBuiltinFunction("split", 2, params, vm, frame, &globalsExpanded, false);
+
+    cr_expect_eq(result.type, Addr);
+    cr_expect_eq(result.length, 3);
+    cr_expect_eq(result.size, 3);
+    cr_expect_eq(result.value.address, frame->locals);
+    cr_expect_eq(result.offset, 0);
+
+    cr_expect(isEqual(frame->locals[0], createString("a")));
+    cr_expect(isEqual(frame->locals[1], createString("b")));
+    cr_expect(isEqual(frame->locals[2], createString("c")));
+}
+
 // _remove_val_a
 Test(builtin, remove_value_array_not_found) {
     DataConstant* locals = (DataConstant[]) {createDouble(3.14), createDouble(2.718)};
