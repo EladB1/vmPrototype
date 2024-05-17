@@ -41,6 +41,8 @@ bool isBuiltinFunction(char* name) {
         "_reverse_s",
         "_reverse_a",
         "sort",
+        "startsWith",
+        "endsWith",
         "sleep",
         "exit",
         "fileExists",
@@ -53,7 +55,7 @@ bool isBuiltinFunction(char* name) {
         "getEnv",
         "setEnv"
     };
-    int end = 43;
+    int end = 45;
     for (int i = 0; i < end; i++) {
         if (strcmp(name, builtins[i]) == 0)
             return true;
@@ -166,6 +168,10 @@ DataConstant callBuiltinFunction(char* name, int argc, DataConstant* params, VM*
     }
     if (strcmp(name, "sort") == 0)
         sort(params[0]);
+    if (strcmp(name, "startsWith") == 0)
+        return createBoolean(startsWith_(params[0].value.strVal, params[1].value.strVal));
+    if (strcmp(name, "endsWith") == 0)
+        return createBoolean(endsWith(params[0].value.strVal, params[1].value.strVal));
     if (strcmp(name, "sleep") == 0)
         sleep_(params[0]);
     if (strcmp(name, "exit") == 0) {
