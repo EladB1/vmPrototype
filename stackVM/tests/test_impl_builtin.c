@@ -11,6 +11,22 @@
 TestSuite(impl_builtin);
 
 typedef struct {
+    VM* vm;
+    Frame* frame;
+    bool globalsExpanded;
+} TestArraySetup;
+
+TestArraySetup setupArrayTest(VMConfig conf) { // reduce repetition in test setup
+    TestArraySetup setup;
+    JumpPoint** jumps = {(JumpPoint* [0]) {}};
+    SourceCode* src = createSource((char* [1]) {"_entry"}, (char* [1]) {"HALT"}, (int[1]) {0}, jumps, 1);
+    setup.vm = init(src, conf);
+    setup.frame = loadFrame(createStringVector(), *jumps, 0, conf.dynamicResourceExpansionEnabled ? conf.stackSizeSoftMax : conf.stackSizeHardMax, conf.dynamicResourceExpansionEnabled ? conf.localsHardMax : conf.localsHardMax, 0, 0, NULL);
+    setup.globalsExpanded = false;
+    return setup;
+}
+
+typedef struct {
     DataConstant dc;
     char* result;
 } getTypeInput;
@@ -236,193 +252,163 @@ Test(impl_builtin, slice_str_valid) {
 }
 
 Test(impl_builtin, splitString_NullDelim) {
-    JumpPoint** jumps = {(JumpPoint* [0]) {}};
-    SourceCode* src = createSource((char* [1]) {"_entry"}, (char* [1]) {"HALT"}, (int[1]) {0}, jumps, 1);
-    VMConfig conf = getDefaultConfig();
-    VM* vm = init(src, conf);
-    Frame* frame = loadFrame(createStringVector(), *jumps, 0, 320, 640, 0, 0, NULL);
-    bool globalsExpanded = false;
+    TestArraySetup setup = setupArrayTest(getDefaultConfig());
 
-    DataConstant result = splitString("a,b,c", NULL, vm, frame, &globalsExpanded, false);
+    DataConstant result = splitString("a,b,c", NULL, setup.vm, setup.frame, &setup.globalsExpanded, false);
 
     cr_expect_eq(result.type, Addr);
     cr_expect_eq(result.length, 5);
     cr_expect_eq(result.size, 5);
     cr_expect_eq(result.offset, 0);
-    cr_expect_eq(result.value.address, frame->locals);
+    cr_expect_eq(result.value.address, setup.frame->locals);
 
-    cr_expect(isEqual(frame->locals[0], createString("a")));
-    cr_expect(isEqual(frame->locals[1], createString(",")));
-    cr_expect(isEqual(frame->locals[2], createString("b")));
-    cr_expect(isEqual(frame->locals[3], createString(",")));
-    cr_expect(isEqual(frame->locals[4], createString("c")));
+    cr_expect(isEqual(setup.frame->locals[0], createString("a")));
+    cr_expect(isEqual(setup.frame->locals[1], createString(",")));
+    cr_expect(isEqual(setup.frame->locals[2], createString("b")));
+    cr_expect(isEqual(setup.frame->locals[3], createString(",")));
+    cr_expect(isEqual(setup.frame->locals[4], createString("c")));
 
-    cr_expect_not(globalsExpanded);
-    cr_expect_not(frame->expandedLocals);
+    cr_expect_not(setup.globalsExpanded);
+    cr_expect_not(setup.frame->expandedLocals);
 }
 
 Test(impl_builtin, splitString_doesNotContainDelim) {
-    JumpPoint** jumps = {(JumpPoint* [0]) {}};
-    SourceCode* src = createSource((char* [1]) {"_entry"}, (char* [1]) {"HALT"}, (int[1]) {0}, jumps, 1);
-    VMConfig conf = getDefaultConfig();
-    VM* vm = init(src, conf);
-    Frame* frame = loadFrame(createStringVector(), *jumps, 0, 320, 640, 0, 0, NULL);
-    bool globalsExpanded = false;
+    TestArraySetup setup = setupArrayTest(getDefaultConfig());
 
-    DataConstant result = splitString("a,b,c", ".", vm, frame, &globalsExpanded, false);
+    DataConstant result = splitString("a,b,c", ".", setup.vm, setup.frame, &setup.globalsExpanded, false);
 
     cr_expect_eq(result.type, Addr);
     cr_expect_eq(result.length, 1);
     cr_expect_eq(result.size, 1);
     cr_expect_eq(result.offset, 0);
-    cr_expect_eq(result.value.address, frame->locals);
+    cr_expect_eq(result.value.address, setup.frame->locals);
 
-    cr_expect(isEqual(frame->locals[0], createString("a,b,c")));
+    cr_expect(isEqual(setup.frame->locals[0], createString("a,b,c")));
 
-    cr_expect_not(globalsExpanded);
-    cr_expect_not(frame->expandedLocals);
+    cr_expect_not(setup.globalsExpanded);
+    cr_expect_not(setup.frame->expandedLocals);
 }
 
 Test(impl_builtin, splitString_containsDelim) {
-    JumpPoint** jumps = {(JumpPoint* [0]) {}};
-    SourceCode* src = createSource((char* [1]) {"_entry"}, (char* [1]) {"HALT"}, (int[1]) {0}, jumps, 1);
-    VMConfig conf = getDefaultConfig();
-    VM* vm = init(src, conf);
-    Frame* frame = loadFrame(createStringVector(), *jumps, 0, 320, 640, 0, 0, NULL);
-    bool globalsExpanded = false;
+    TestArraySetup setup = setupArrayTest(getDefaultConfig());
 
-    DataConstant result = splitString("a,b,c", ",", vm, frame, &globalsExpanded, false);
+    DataConstant result = splitString("a,b,c", ",", setup.vm, setup.frame, &setup.globalsExpanded, false);
 
     cr_expect_eq(result.type, Addr);
     cr_expect_eq(result.length, 3);
     cr_expect_eq(result.size, 3);
     cr_expect_eq(result.offset, 0);
-    cr_expect_eq(result.value.address, frame->locals);
+    cr_expect_eq(result.value.address, setup.frame->locals);
 
-    cr_expect(isEqual(frame->locals[0], createString("a")));
-    cr_expect(isEqual(frame->locals[1], createString("b")));
-    cr_expect(isEqual(frame->locals[2], createString("c")));
+    cr_expect(isEqual(setup.frame->locals[0], createString("a")));
+    cr_expect(isEqual(setup.frame->locals[1], createString("b")));
+    cr_expect(isEqual(setup.frame->locals[2], createString("c")));
 
-    cr_expect_not(globalsExpanded);
-    cr_expect_not(frame->expandedLocals);
+    cr_expect_not(setup.globalsExpanded);
+    cr_expect_not(setup.frame->expandedLocals);
 }
 
 Test(impl_builtin, splitString_containsDelim_expandLocals) {
-    JumpPoint** jumps = {(JumpPoint* [0]) {}};
-    SourceCode* src = createSource((char* [1]) {"_entry"}, (char* [1]) {"HALT"}, (int[1]) {0}, jumps, 1);
     VMConfig conf = getDefaultConfig();
     conf.localsSoftMax = BASE_BYTES * 2;
-    VM* vm = init(src, conf);
-    Frame* frame = loadFrame(createStringVector(), *jumps, 0, 320, conf.localsSoftMax, 0, 0, NULL);
-    bool globalsExpanded = false;
 
-    DataConstant result = splitString("a,b,c", ",", vm, frame, &globalsExpanded, false);
+    TestArraySetup setup = setupArrayTest(conf);
+
+    DataConstant result = splitString("a,b,c", ",", setup.vm, setup.frame, &setup.globalsExpanded, false);
 
     cr_expect_eq(result.type, Addr);
     cr_expect_eq(result.length, 3);
     cr_expect_eq(result.size, 3);
     cr_expect_eq(result.offset, 0);
-    cr_expect_eq(result.value.address, frame->locals);
+    cr_expect_eq(result.value.address, setup.frame->locals);
 
-    cr_expect(isEqual(frame->locals[0], createString("a")));
-    cr_expect(isEqual(frame->locals[1], createString("b")));
-    cr_expect(isEqual(frame->locals[2], createString("c")));
+    cr_expect(isEqual(setup.frame->locals[0], createString("a")));
+    cr_expect(isEqual(setup.frame->locals[1], createString("b")));
+    cr_expect(isEqual(setup.frame->locals[2], createString("c")));
 
-    cr_expect_not(globalsExpanded);
-    cr_expect(frame->expandedLocals);
+    cr_expect_not(setup.globalsExpanded);
+    cr_expect(setup.frame->expandedLocals);
 }
 
 Test(impl_builtin, splitString_containsDelim_useGlobals) {
-    JumpPoint** jumps = {(JumpPoint* [0]) {}};
-    SourceCode* src = createSource((char* [1]) {"_entry"}, (char* [1]) {"HALT"}, (int[1]) {0}, jumps, 1);
     VMConfig conf = getDefaultConfig();
     conf.dynamicResourceExpansionEnabled = false;
     conf.localsHardMax = BASE_BYTES * 2;
-    VM* vm = init(src, conf);
-    Frame* frame = loadFrame(createStringVector(), *jumps, 0, 320, conf.localsHardMax, 0, 0, NULL);
-    bool globalsExpanded = false;
 
-    DataConstant result = splitString("a,b,c", ",", vm, frame, &globalsExpanded, false);
+    TestArraySetup setup = setupArrayTest(conf);
+
+    DataConstant result = splitString("a,b,c", ",", setup.vm, setup.frame, &setup.globalsExpanded, false);
 
     cr_expect_eq(result.type, Addr);
     cr_expect_eq(result.length, 3);
     cr_expect_eq(result.size, 3);
     cr_expect_eq(result.offset, 0);
-    cr_expect_eq(result.value.address, vm->globals);
+    cr_expect_eq(result.value.address, setup.vm->globals);
 
-    cr_expect(isEqual(vm->globals[0], createString("a")));
-    cr_expect(isEqual(vm->globals[1], createString("b")));
-    cr_expect(isEqual(vm->globals[2], createString("c")));
+    cr_expect(isEqual(setup.vm->globals[0], createString("a")));
+    cr_expect(isEqual(setup.vm->globals[1], createString("b")));
+    cr_expect(isEqual(setup.vm->globals[2], createString("c")));
 
-    cr_expect_not(globalsExpanded);
-    cr_expect_not(frame->expandedLocals);
+    cr_expect_not(setup.globalsExpanded);
+    cr_expect_not(setup.frame->expandedLocals);
 }
 
 Test(impl_builtin, splitString_containsDelim_expandGlobals) {
-    JumpPoint** jumps = {(JumpPoint* [0]) {}};
-    SourceCode* src = createSource((char* [1]) {"_entry"}, (char* [1]) {"HALT"}, (int[1]) {0}, jumps, 1);
     VMConfig conf = getDefaultConfig();
     conf.localsSoftMax = BASE_BYTES * 2;
     conf.localsHardMax = BASE_BYTES * 2;
     conf.globalsSoftMax = BASE_BYTES * 2;
-    VM* vm = init(src, conf);
-    Frame* frame = loadFrame(createStringVector(), *jumps, 0, 320, conf.localsHardMax, 0, 0, NULL);
-    bool globalsExpanded = false;
 
-    DataConstant result = splitString("a,b,c", ",", vm, frame, &globalsExpanded, false);
+    TestArraySetup setup = setupArrayTest(conf);
+
+    DataConstant result = splitString("a,b,c", ",", setup.vm, setup.frame, &setup.globalsExpanded, false);
 
     cr_expect_eq(result.type, Addr);
     cr_expect_eq(result.length, 3);
     cr_expect_eq(result.size, 3);
     cr_expect_eq(result.offset, 0);
-    cr_expect_eq(result.value.address, vm->globals);
+    cr_expect_eq(result.value.address, setup.vm->globals);
 
-    cr_expect(isEqual(vm->globals[0], createString("a")));
-    cr_expect(isEqual(vm->globals[1], createString("b")));
-    cr_expect(isEqual(vm->globals[2], createString("c")));
+    cr_expect(isEqual(setup.vm->globals[0], createString("a")));
+    cr_expect(isEqual(setup.vm->globals[1], createString("b")));
+    cr_expect(isEqual(setup.vm->globals[2], createString("c")));
 
-    cr_expect(globalsExpanded);
-    cr_expect_not(frame->expandedLocals);
+    cr_expect(setup.globalsExpanded);
+    cr_expect_not(setup.frame->expandedLocals);
 }
 
 Test(impl_builtin, splitString_containsDelim_localsError, .init = cr_redirect_stderr) {
-    JumpPoint** jumps = {(JumpPoint* [0]) {}};
-    SourceCode* src = createSource((char* [1]) {"_entry"}, (char* [1]) {"HALT"}, (int[1]) {0}, jumps, 1);
     VMConfig conf = getDefaultConfig();
     conf.dynamicResourceExpansionEnabled = false;
     conf.useHeapStorageBackup = false;
     conf.localsHardMax = BASE_BYTES;
-    VM* vm = init(src, conf);
-    Frame* frame = loadFrame(createStringVector(), *jumps, 0, 320, conf.localsHardMax, 0, 0, NULL);
-    bool globalsExpanded = false;
+    
+    TestArraySetup setup = setupArrayTest(conf);
 
-    DataConstant result = splitString("a,b,c", ",", vm, frame, &globalsExpanded, false);
+    DataConstant result = splitString("a,b,c", ",", setup.vm, setup.frame, &setup.globalsExpanded, false);
 
     cr_expect_eq(result.type, None);
 
-    cr_expect_not(globalsExpanded);
-    cr_expect_not(frame->expandedLocals);
+    cr_expect_not(setup.globalsExpanded);
+    cr_expect_not(setup.frame->expandedLocals);
 
     cr_expect_stderr_eq_str("StackOverflow: Exceeded local storage maximum of 1\n");
 }
 
 Test(impl_builtin, splitString_containsDelim_globalsError, .init = cr_redirect_stderr) {
-    JumpPoint** jumps = {(JumpPoint* [0]) {}};
-    SourceCode* src = createSource((char* [1]) {"_entry"}, (char* [1]) {"HALT"}, (int[1]) {0}, jumps, 1);
     VMConfig conf = getDefaultConfig();
     conf.dynamicResourceExpansionEnabled = false;
     conf.localsHardMax = BASE_BYTES;
     conf.globalsHardMax = BASE_BYTES * 2;
-    VM* vm = init(src, conf);
-    Frame* frame = loadFrame(createStringVector(), *jumps, 0, 320, conf.localsHardMax, 0, 0, NULL);
-    bool globalsExpanded = false;
 
-    DataConstant result = splitString("a,b,c", ",", vm, frame, &globalsExpanded, false);
+    TestArraySetup setup = setupArrayTest(conf);
+
+    DataConstant result = splitString("a,b,c", ",", setup.vm, setup.frame, &setup.globalsExpanded, false);
 
     cr_expect_eq(result.type, None);
 
-    cr_expect_not(globalsExpanded);
-    cr_expect_not(frame->expandedLocals);
+    cr_expect_not(setup.globalsExpanded);
+    cr_expect_not(setup.frame->expandedLocals);
 
     cr_expect_stderr_eq_str("HeapOverflow: Exceeded local storage maximum of 1 and global storage maximum of 2\n");
 }
@@ -460,25 +446,21 @@ Test(impl_builtin, renameFile_nonExistant, .init = cr_redirect_stderr) {
 }
 
 Test(impl_builtin, readFile_nonExistant, .init = cr_redirect_stderr) {
-    JumpPoint** jumps = {(JumpPoint* [0]) {}};
-    SourceCode* src = createSource((char* [1]) {"_entry"}, (char* [1]) {"HALT"}, (int[1]) {0}, jumps, 1);
-    VM* vm = init(src, getDefaultConfig());
-    Frame* frame = loadFrame(createStringVector(), *jumps, 0, 320, 640, 0, 0, NULL);
-    bool globalsExpanded = false;
+    TestArraySetup setup = setupArrayTest(getDefaultConfig());
 
     cr_expect_not(fileExists(TESTFILE));
-    DataConstant read = readFile(TESTFILE, vm, frame, &globalsExpanded, false);
+    DataConstant read = readFile(TESTFILE, setup.vm, setup.frame, &setup.globalsExpanded, false);
     cr_expect_eq(read.type, None);
     cr_expect_stderr_eq_str("FileError: Cannot read file '.temporary_testing_file.txt' because it does not exist\n");
-    cr_expect_eq(vm->state, file_err);
+    cr_expect_eq(setup.vm->state, file_err);
 }
 
 Test(impl_builtin, writeAppendReadDeleteFile) {
-    JumpPoint** jumps = {(JumpPoint* [0]) {}};
-    SourceCode* src = createSource((char* [1]) {"_entry"}, (char* [1]) {"HALT"}, (int[1]) {0}, jumps, 1);
-    VM* vm = init(src, getDefaultConfig());
-    Frame* frame = loadFrame(createStringVector(), *jumps, 0, 320, 640, 0, 0, NULL);
-    bool globalsExpanded = false;
+    TestArraySetup setup = setupArrayTest(getDefaultConfig());
+
+    VM* vm = setup.vm;
+    Frame* frame = setup.frame;
+    bool globalsExpanded = setup.globalsExpanded;
 
     ExitCode vmState = success;
     cr_expect_not(fileExists(TESTFILE));
@@ -521,13 +503,13 @@ Test(impl_builtin, writeAppendReadDeleteFile) {
 }
 
 Test(impl_builtin, writeAppendReadDeleteFile_expandLocals) {
-    JumpPoint** jumps = {(JumpPoint* [0]) {}};
-    SourceCode* src = createSource((char* [1]) {"_entry"}, (char* [1]) {"HALT"}, (int[1]) {0}, jumps, 1);
     VMConfig conf = getDefaultConfig();
     conf.localsSoftMax = BASE_BYTES * 3;
-    VM* vm = init(src, conf);
-    Frame* frame = loadFrame(createStringVector(), *jumps, 0, 320, conf.localsSoftMax, 0, 0, NULL);
-    bool globalsExpanded = false;
+    
+    TestArraySetup setup = setupArrayTest(conf);
+    VM* vm = setup.vm;
+    Frame* frame = setup.frame;
+    bool globalsExpanded = setup.globalsExpanded;
 
     char* filename = ".tempfile_le.txt";
 
@@ -564,14 +546,15 @@ Test(impl_builtin, writeAppendReadDeleteFile_expandLocals) {
 }
 
 Test(impl_builtin, writeAppendReadDeleteFile_useGlobals) {
-    JumpPoint** jumps = {(JumpPoint* [0]) {}};
-    SourceCode* src = createSource((char* [1]) {"_entry"}, (char* [1]) {"HALT"}, (int[1]) {0}, jumps, 1);
     VMConfig conf = getDefaultConfig();
     conf.dynamicResourceExpansionEnabled = false;
     conf.localsHardMax = BASE_BYTES;
-    VM* vm = init(src, conf);
-    Frame* frame = loadFrame(createStringVector(), *jumps, 0, 320, conf.localsHardMax, 0, 0, NULL);
-    bool globalsExpanded = false;
+
+    TestArraySetup setup = setupArrayTest(conf);
+
+    VM* vm = setup.vm;
+    Frame* frame = setup.frame;
+    bool globalsExpanded = setup.globalsExpanded;
 
     char* filename = ".tempfile_g.txt";
 
@@ -611,15 +594,16 @@ Test(impl_builtin, writeAppendReadDeleteFile_useGlobals) {
 }
 
 Test(impl_builtin, writeAppendReadDeleteFile_expandGlobals) {
-    JumpPoint** jumps = {(JumpPoint* [0]) {}};
-    SourceCode* src = createSource((char* [1]) {"_entry"}, (char* [1]) {"HALT"}, (int[1]) {0}, jumps, 1);
     VMConfig conf = getDefaultConfig();
     conf.localsSoftMax = BASE_BYTES;
     conf.localsHardMax = BASE_BYTES;
     conf.globalsSoftMax = BASE_BYTES;
-    VM* vm = init(src, conf);
-    Frame* frame = loadFrame(createStringVector(), *jumps, 0, 320, conf.localsSoftMax, 0, 0, NULL);
-    bool globalsExpanded = false;
+
+    TestArraySetup setup = setupArrayTest(conf);
+
+    VM* vm = setup.vm;
+    Frame* frame = setup.frame;
+    bool globalsExpanded = setup.globalsExpanded;
 
     char* filename = ".tempfile_ge.txt";
 
@@ -661,15 +645,16 @@ Test(impl_builtin, writeAppendReadDeleteFile_expandGlobals) {
 }
 
 Test(impl_builtin, writeAppendReadDeleteFile_localsError, .init = cr_redirect_stderr) {
-    JumpPoint** jumps = {(JumpPoint* [0]) {}};
-    SourceCode* src = createSource((char* [1]) {"_entry"}, (char* [1]) {"HALT"}, (int[1]) {0}, jumps, 1);
     VMConfig conf = getDefaultConfig();
     conf.dynamicResourceExpansionEnabled = false;
     conf.useHeapStorageBackup = false;
     conf.localsHardMax = BASE_BYTES;
-    VM* vm = init(src, conf);
-    Frame* frame = loadFrame(createStringVector(), *jumps, 0, 320, conf.localsHardMax, 0, 0, NULL);
-    bool globalsExpanded = false;
+    
+    TestArraySetup setup = setupArrayTest(conf);
+
+    VM* vm = setup.vm;
+    Frame* frame = setup.frame;
+    bool globalsExpanded = setup.globalsExpanded;
 
     char* filename = ".tempfile_error_l.txt";
 
@@ -704,15 +689,16 @@ Test(impl_builtin, writeAppendReadDeleteFile_localsError, .init = cr_redirect_st
 }
 
 Test(impl_builtin, writeAppendReadDeleteFile_globalsError, .init = cr_redirect_stderr) {
-    JumpPoint** jumps = {(JumpPoint* [0]) {}};
-    SourceCode* src = createSource((char* [1]) {"_entry"}, (char* [1]) {"HALT"}, (int[1]) {0}, jumps, 1);
     VMConfig conf = getDefaultConfig();
     conf.dynamicResourceExpansionEnabled = false;
     conf.localsHardMax = BASE_BYTES;
     conf.globalsHardMax = BASE_BYTES;
-    VM* vm = init(src, conf);
-    Frame* frame = loadFrame(createStringVector(), *jumps, 0, 320, conf.localsHardMax, 0, 0, NULL);
-    bool globalsExpanded = false;
+
+   TestArraySetup setup = setupArrayTest(conf);
+
+    VM* vm = setup.vm;
+    Frame* frame = setup.frame;
+    bool globalsExpanded = setup.globalsExpanded;
 
     char* filename = ".tempfile_error_g.txt";
 
@@ -776,180 +762,167 @@ Test(impl_builtin, reverseArr) {
 }
 
 Test(impl_builtin, sliceArr_valid) {
-    JumpPoint** jumps = {(JumpPoint* [0]) {}};
-    SourceCode* src = createSource((char* [1]) {"_entry"}, (char* [1]) {"HALT"}, (int[1]) {0}, jumps, 1);
-    VM* vm = init(src, getDefaultConfig());
-    Frame* frame = loadFrame(createStringVector(), *jumps, 0, 320, 640, 0, 0, NULL);
-    bool globalsExpanded = false;
+    TestArraySetup setup = setupArrayTest(getDefaultConfig());
 
-    frame->lp = 2;
-    frame->locals[0] = createInt(2);
-    frame->locals[1] = createInt(0);
-    frame->locals[2] = createInt(-1);
-    DataConstant array = createAddr(frame->locals, 0, 3, 3);
-    DataConstant result = sliceArr(array, 1, 3, vm, frame, &globalsExpanded, false);
+    setup.frame->lp = 2;
+    setup.frame->locals[0] = createInt(2);
+    setup.frame->locals[1] = createInt(0);
+    setup.frame->locals[2] = createInt(-1);
+    DataConstant array = createAddr(setup.frame->locals, 0, 3, 3);
+    DataConstant result = sliceArr(array, 1, 3, setup.vm, setup.frame, &setup.globalsExpanded, false);
+    
     cr_expect_neq(result.type, None);
     cr_expect_eq(result.length, 2);
     cr_expect_eq(result.size, array.size);
-    cr_expect_eq((DataConstant *) result.value.address, frame->locals);
+    cr_expect_eq((DataConstant *) result.value.address, setup.frame->locals);
     cr_expect_eq(result.offset, 3);
-    cr_expect_eq(frame->locals[3].value.intVal, 0);
-    cr_expect_eq(frame->locals[4].value.intVal, -1);
+    
+    cr_expect_eq(setup.frame->locals[3].value.intVal, 0);
+    cr_expect_eq(setup.frame->locals[4].value.intVal, -1);
 }
 
 Test(impl_builtin, sliceArr_invalid, .init = cr_redirect_stderr) {
-    JumpPoint** jumps = {(JumpPoint* [0]) {}};
-    SourceCode* src = createSource((char* [1]) {"_entry"}, (char* [1]) {"HALT"}, (int[1]) {0}, jumps, 1);
-    VM* vm = init(src, getDefaultConfig());
-    Frame* frame = loadFrame(createStringVector(), *jumps, 0, 32000, 64000, 0, 0, NULL);
-    bool globalsExpanded = false;
+    TestArraySetup setup = setupArrayTest(getDefaultConfig());
 
-    frame->lp = 2;
-    frame->locals[0] = createInt(2);
-    frame->locals[1] = createInt(0);
-    frame->locals[2] = createInt(-1);
-    DataConstant array = createAddr(frame->locals, 0, 3, 3);
-    DataConstant sliced = sliceArr(array, 4, 3, vm, frame, &globalsExpanded, false);
+    DataConstant array = createAddr(setup.frame->locals, 0, 3, 3);
+    DataConstant sliced = sliceArr(array, 4, 3, setup.vm, setup.frame, &setup.globalsExpanded, false);
     cr_expect_eq(sliced.type, None);
     cr_expect_stderr_eq_str("Array index out of bounds in call to slice. start: 4, end: 3\n");
-    cr_expect_eq(vm->state, memory_err);
+    cr_expect_eq(setup.vm->state, memory_err);
 }
 
 Test(impl_builtin, sliceArr_expandLocals) {
-    JumpPoint** jumps = {(JumpPoint* [0]) {}};
-    SourceCode* src = createSource((char* [1]) {"_entry"}, (char* [1]) {"HALT"}, (int[1]) {0}, jumps, 1);
     VMConfig conf = getDefaultConfig();
     conf.localsSoftMax = BASE_BYTES * 4;
-    VM* vm = init(src, conf);
-    Frame* frame = loadFrame(createStringVector(), *jumps, 0, 320, conf.localsSoftMax, 0, 0, NULL);
-    bool globalsExpanded = false;
+    
+    TestArraySetup setup = setupArrayTest(conf);
 
-    frame->lp = 2;
-    frame->locals[0] = createInt(2);
-    frame->locals[1] = createInt(0);
-    frame->locals[2] = createInt(-1);
-    DataConstant array = createAddr(frame->locals, 0, 3, 3);
-    DataConstant result = sliceArr(array, 1, 3, vm, frame, &globalsExpanded, false);
+    setup.frame->lp = 2;
+    setup.frame->locals[0] = createInt(2);
+    setup.frame->locals[1] = createInt(0);
+    setup.frame->locals[2] = createInt(-1);
+    DataConstant array = createAddr(setup.frame->locals, 0, 3, 3);
+    DataConstant result = sliceArr(array, 1, 3, setup.vm, setup.frame, &setup.globalsExpanded, false);
+    
     cr_expect_neq(result.type, None);
     cr_expect_eq(result.length, 2);
     cr_expect_eq(result.size, array.size);
-    cr_expect_eq((DataConstant *) result.value.address, frame->locals);
+    cr_expect_eq((DataConstant *) result.value.address, setup.frame->locals);
     cr_expect_eq(result.offset, 3);
-    cr_expect_eq(frame->lp, 5);
-    cr_expect_eq(frame->locals[3].value.intVal, 0);
-    cr_expect_eq(frame->locals[4].value.intVal, -1);
-    cr_expect_eq(frame->locals[5].type, None);
-    cr_expect(frame->expandedLocals);
-    cr_expect_not(globalsExpanded);
-    cr_expect_eq(vm->state, success);
+    cr_expect_eq(setup.frame->lp, 5);
+    
+    cr_expect_eq(setup.frame->locals[3].value.intVal, 0);
+    cr_expect_eq(setup.frame->locals[4].value.intVal, -1);
+    cr_expect_eq(setup.frame->locals[5].type, None);
+    
+    cr_expect(setup.frame->expandedLocals);
+    cr_expect_not(setup.globalsExpanded);
+    cr_expect_eq(setup.vm->state, success);
 }
 
 Test(impl_builtin, sliceArr_useGlobals) {
-    JumpPoint** jumps = {(JumpPoint* [0]) {}};
-    SourceCode* src = createSource((char* [1]) {"_entry"}, (char* [1]) {"HALT"}, (int[1]) {0}, jumps, 1);
     VMConfig conf = getDefaultConfig();
     conf.dynamicResourceExpansionEnabled = false;
     conf.localsHardMax = BASE_BYTES * 4;
-    VM* vm = init(src, conf);
-    Frame* frame = loadFrame(createStringVector(), *jumps, 0, 320, conf.localsHardMax, 0, 0, NULL);
-    bool globalsExpanded = false;
+    
+    TestArraySetup setup = setupArrayTest(conf);
 
-    frame->lp = 2;
-    frame->locals[0] = createInt(2);
-    frame->locals[1] = createInt(0);
-    frame->locals[2] = createInt(-1);
-    DataConstant array = createAddr(frame->locals, 0, 3, 3);
-    DataConstant result = sliceArr(array, 1, 3, vm, frame, &globalsExpanded, false);
+    setup.frame->lp = 2;
+    setup.frame->locals[0] = createInt(2);
+    setup.frame->locals[1] = createInt(0);
+    setup.frame->locals[2] = createInt(-1);
+    DataConstant array = createAddr(setup.frame->locals, 0, 3, 3);
+    DataConstant result = sliceArr(array, 1, 3, setup.vm, setup.frame, &setup.globalsExpanded, false);
+    
     cr_expect_neq(result.type, None);
     cr_expect_eq(result.length, 2);
     cr_expect_eq(result.size, array.size);
-    cr_expect_eq((DataConstant *) result.value.address, vm->globals);
+    cr_expect_eq((DataConstant *) result.value.address, setup.vm->globals);
     cr_expect_eq(result.offset, 0);
-    cr_expect_eq(frame->lp, 2);
-    cr_expect_eq(vm->gp, 2);
-    cr_expect_eq(vm->globals[0].value.intVal, 0);
-    cr_expect_eq(vm->globals[1].value.intVal, -1);
-    cr_expect_eq(vm->globals[2].type, None);
-    cr_expect_not(frame->expandedLocals);
-    cr_expect_not(globalsExpanded);
-    cr_expect_eq(vm->state, success);
+
+    cr_expect_eq(setup.frame->lp, 2);
+    cr_expect_eq(setup.vm->gp, 2);
+    
+    cr_expect_eq(setup.vm->globals[0].value.intVal, 0);
+    cr_expect_eq(setup.vm->globals[1].value.intVal, -1);
+    cr_expect_eq(setup.vm->globals[2].type, None);
+    
+    cr_expect_not(setup.frame->expandedLocals);
+    cr_expect_not(setup.globalsExpanded);
+    cr_expect_eq(setup.vm->state, success);
 }
 
 Test(impl_builtin, sliceArr_expandGlobals) {
-    JumpPoint** jumps = {(JumpPoint* [0]) {}};
-    SourceCode* src = createSource((char* [1]) {"_entry"}, (char* [1]) {"HALT"}, (int[1]) {0}, jumps, 1);
     VMConfig conf = getDefaultConfig();
     conf.localsSoftMax = BASE_BYTES * 3;
     conf.localsHardMax = BASE_BYTES * 3;
     conf.globalsSoftMax = BASE_BYTES * 4;
     conf.globalsHardMax = BASE_BYTES * 10;
-    VM* vm = init(src, conf);
-    Frame* frame = loadFrame(createStringVector(), *jumps, 0, 320, conf.localsSoftMax, 0, 0, NULL);
-    bool globalsExpanded = false;
 
-    frame->lp = 2;
-    frame->locals[0] = createInt(2);
-    frame->locals[1] = createInt(0);
-    frame->locals[2] = createInt(-1);
-    DataConstant array = createAddr(frame->locals, 0, 3, 3);
-    DataConstant result = sliceArr(array, 1, 3, vm, frame, &globalsExpanded, false);
+    TestArraySetup setup = setupArrayTest(conf);
+
+    setup.frame->lp = 2;
+    setup.frame->locals[0] = createInt(2);
+    setup.frame->locals[1] = createInt(0);
+    setup.frame->locals[2] = createInt(-1);
+    DataConstant array = createAddr(setup.frame->locals, 0, 3, 3);
+    DataConstant result = sliceArr(array, 1, 3, setup.vm, setup.frame, &setup.globalsExpanded, false);
+    
     cr_expect_neq(result.type, None);
     cr_expect_eq(result.length, 2);
     cr_expect_eq(result.size, array.size);
-    cr_expect_eq((DataConstant *) result.value.address, vm->globals);
+    cr_expect_eq((DataConstant *) result.value.address, setup.vm->globals);
     cr_expect_eq(result.offset, 0);
-    cr_expect_eq(frame->lp, 2);
-    cr_expect_eq(vm->gp, 2);
-    cr_expect_eq(vm->globals[0].value.intVal, 0);
-    cr_expect_eq(vm->globals[1].value.intVal, -1);
-    cr_expect_eq(vm->globals[2].type, None);
-    cr_expect_not(frame->expandedLocals);
-    cr_expect(globalsExpanded);
-    cr_expect_eq(vm->state, success);
+    cr_expect_eq(setup.frame->lp, 2);
+    cr_expect_eq(setup.vm->gp, 2);
+    
+    cr_expect_eq(setup.vm->globals[0].value.intVal, 0);
+    cr_expect_eq(setup.vm->globals[1].value.intVal, -1);
+    cr_expect_eq(setup.vm->globals[2].type, None);
+    
+    cr_expect_not(setup.frame->expandedLocals);
+    cr_expect(setup.globalsExpanded);
+    cr_expect_eq(setup.vm->state, success);
 }
 
 Test(impl_builtin, sliceArr_localsError, .init = cr_redirect_stderr) {
-    JumpPoint** jumps = {(JumpPoint* [0]) {}};
-    SourceCode* src = createSource((char* [1]) {"_entry"}, (char* [1]) {"HALT"}, (int[1]) {0}, jumps, 1);
     VMConfig conf = getDefaultConfig();
     conf.dynamicResourceExpansionEnabled = false;
     conf.useHeapStorageBackup = false;
     conf.localsHardMax = BASE_BYTES * 4;
-    VM* vm = init(src, conf);
-    Frame* frame = loadFrame(createStringVector(), *jumps, 0, 320, conf.localsHardMax, 0, 0, NULL);
-    bool globalsExpanded = false;
 
-    frame->lp = 2;
-    frame->locals[0] = createInt(2);
-    frame->locals[1] = createInt(0);
-    frame->locals[2] = createInt(-1);
-    DataConstant array = createAddr(frame->locals, 0, 3, 3);
-    DataConstant result = sliceArr(array, 1, 3, vm, frame, &globalsExpanded, false);
+    TestArraySetup setup = setupArrayTest(conf);
+
+    setup.frame->lp = 2;
+    setup.frame->locals[0] = createInt(2);
+    setup.frame->locals[1] = createInt(0);
+    setup.frame->locals[2] = createInt(-1);
+    DataConstant array = createAddr(setup.frame->locals, 0, 3, 3);
+    DataConstant result = sliceArr(array, 1, 3, setup.vm, setup.frame, &setup.globalsExpanded, false);
+    
     cr_expect_eq(result.type, None);
-    cr_expect_eq(vm->state, memory_err);
+    cr_expect_eq(setup.vm->state, memory_err);
     cr_expect_stderr_eq_str("StackOverflow: Exceeded local storage maximum of 4\n");
 }
 
 Test(impl_builtin, sliceArr_globalsError, .init = cr_redirect_stderr) {
-    JumpPoint** jumps = {(JumpPoint* [0]) {}};
-    SourceCode* src = createSource((char* [1]) {"_entry"}, (char* [1]) {"HALT"}, (int[1]) {0}, jumps, 1);
     VMConfig conf = getDefaultConfig();
     conf.dynamicResourceExpansionEnabled = false;
     conf.useHeapStorageBackup = true;
     conf.localsHardMax = BASE_BYTES * 3;
     conf.globalsHardMax = BASE_BYTES * 2;
-    VM* vm = init(src, conf);
-    Frame* frame = loadFrame(createStringVector(), *jumps, 0, 320, conf.localsHardMax, 0, 0, NULL);
-    bool globalsExpanded = false;
 
-    frame->lp = 2;
-    frame->locals[0] = createInt(2);
-    frame->locals[1] = createInt(0);
-    frame->locals[2] = createInt(-1);
-    DataConstant array = createAddr(frame->locals, 0, 3, 3);
-    DataConstant result = sliceArr(array, 1, 3, vm, frame, &globalsExpanded, false);
+    TestArraySetup setup = setupArrayTest(conf);
+
+    setup.frame->lp = 2;
+    setup.frame->locals[0] = createInt(2);
+    setup.frame->locals[1] = createInt(0);
+    setup.frame->locals[2] = createInt(-1);
+    DataConstant array = createAddr(setup.frame->locals, 0, 3, 3);
+    DataConstant result = sliceArr(array, 1, 3, setup.vm, setup.frame, &setup.globalsExpanded, false);
+    
     cr_expect_eq(result.type, None);
-    cr_expect_eq(vm->state, memory_err);
+    cr_expect_eq(setup.vm->state, memory_err);
     cr_expect_stderr_eq_str("HeapOverflow: Exceeded local storage maximum of 3 and global storage maximum of 2\n");
 }
 
