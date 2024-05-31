@@ -616,27 +616,13 @@ ExitCode run(VM* vm, bool verbose) {
         }
         else if (strcmp(opcode, "SELECT") == 0) {
             if (pop(vm).value.boolVal) {
-                next = getNext(vm);
-                stepOver(vm);
+                value = pop(vm); // save the first value to push it back onto the stack
+                pop(vm); // pop the second value off the stack
+                push(vm, value, verbose);
             }
             else {
-                stepOver(vm);
-                next = getNext(vm);
+                pop(vm); // use the second value on the stack as the "return" value
             }
-            if (isInt(next))
-                value = readInt(next);
-            else if (isDouble(next))
-                value = readDouble(next);
-            else if (isBool(next))
-                value = readBoolean(next);
-            else if (startsWith(next, '"')) {
-                value = createString(removeQuotes(next));
-            }
-            else if (strcmp(next, "NULL") == 0)
-                value = createNull();
-            else if (strcmp(next, "NONE") == 0)
-                value = createNone();
-            push(vm, value, verbose);
         }
         else if (strcmp(opcode, "CALL") == 0) {
             next = getNext(vm);

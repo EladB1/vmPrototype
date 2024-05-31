@@ -74,10 +74,12 @@ sum:
 _entry:
     LOAD_CONST -5
     GSTORE
+    LOAD_CONST 4
+    LOAD_CONST 2
     GLOAD 0
     LOAD_CONST 3.14
     EQ
-    SELECT 4 2
+    SELECT
     CALL plus_one 1
     CALL test 0
     STORE

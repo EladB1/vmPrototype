@@ -810,14 +810,14 @@ Test(VM, runWithShortCircuitJump) {
 Test(VM, runSelect) {
     char* labels[1] = {"_entry"};
     char* bodies[1] = {
-        "LOAD_CONST true SELECT 1 2 LOAD_CONST false SELECT 3 4 HALT"
+        "LOAD_CONST 1 LOAD_CONST 2 LOAD_CONST true SELECT LOAD_CONST 3 LOAD_CONST 4 LOAD_CONST false SELECT HALT"
     };
     int jumpCounts[1] = {0};
     JumpPoint* jumps[1] = {(JumpPoint[]) {}};
     SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 1);
 
     VM* vm = init(src, getDefaultConfig());
-    bool verbose = false;
+    bool verbose = true;
     if (verbose)
         displayCode(src);
     ExitCode status = run(vm, verbose);
@@ -825,12 +825,12 @@ Test(VM, runSelect) {
     cr_expect_eq(status, success);
     cr_expect_eq(vm->fp, 0);
     Frame* frame = vm->callStack[0];
-    cr_expect_eq(frame->instructions->length, 11);
-    cr_expect_eq(frame->pc, 11);
+    cr_expect_eq(frame->instructions->length, 15);
+    cr_expect_eq(frame->pc, 15);
     cr_expect_eq(frame->sp, 1);
 
-    cr_expect(isEqual(frame->stack[0], createInt(1)));
-    cr_expect(isEqual(frame->stack[1], createInt(4)));
+    cr_expect(isEqual(frame->stack[0], createInt(2)));
+    cr_expect(isEqual(frame->stack[1], createInt(3)));
 
     destroy(vm);
     cr_free(src);
