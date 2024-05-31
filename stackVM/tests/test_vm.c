@@ -817,7 +817,7 @@ Test(VM, runSelect) {
     SourceCode* src = createSource(labels, bodies, jumpCounts, jumps, 1);
 
     VM* vm = init(src, getDefaultConfig());
-    bool verbose = true;
+    bool verbose = false;
     if (verbose)
         displayCode(src);
     ExitCode status = run(vm, verbose);
