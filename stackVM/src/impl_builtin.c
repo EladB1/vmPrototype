@@ -251,7 +251,7 @@ DataConstant readFile(char* filePath, VM* vm, Frame* frame, bool* globalsExpande
     lines.length = 0;
     lines.size = 0;
     int max_file_length = (1 << 20) - 1;
-    DataConstant content[max_file_length];
+    DataConstant* content = malloc(sizeof(DataConstant) * max_file_length);
     char line[DEFAULT_LINES];
     while (fgets(line, DEFAULT_LINES, fp)) {
         content[lines.length] = createString(strdup(line));
@@ -272,6 +272,7 @@ DataConstant readFile(char* filePath, VM* vm, Frame* frame, bool* globalsExpande
     for (int i = 0; i < lines.length; i++) {
         arrayTarget.target[++(*arrayTarget.targetp)] = content[i];
     }
+    free(content);
     fclose(fp);
     return lines;
 }

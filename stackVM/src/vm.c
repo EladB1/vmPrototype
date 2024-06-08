@@ -30,13 +30,13 @@ VM* init(SourceCode* src, VMConfig conf) {
     vm->framesHardMax = conf.framesHardMax;
 
     vm->globalsHardMax = conf.globalsHardMax / sizeof(DataConstant);
-    vm->globalsSoftMax = conf.dynamicResourceExpansionEnabled ? conf.globalsSoftMax / sizeof(DataConstant) : vm->globalsHardMax;
+    vm->globalsSoftMax = conf.dynamicResourceExpansionEnabled ? (long) (conf.globalsSoftMax / sizeof(DataConstant)) : vm->globalsHardMax;
 
     vm->localsHardMax = conf.localsHardMax / sizeof(DataConstant);
-    vm->localsSoftMax = conf.dynamicResourceExpansionEnabled ? conf.localsSoftMax / sizeof(DataConstant) : vm->localsHardMax;
+    vm->localsSoftMax = conf.dynamicResourceExpansionEnabled ? (long) (conf.localsSoftMax / sizeof(DataConstant)) : vm->localsHardMax;
 
     vm->stackHardMax = conf.stackSizeHardMax / sizeof(DataConstant);
-    vm->stackSoftMax = conf.dynamicResourceExpansionEnabled ? conf.stackSizeSoftMax / sizeof(DataConstant) : vm->stackHardMax;
+    vm->stackSoftMax = conf.dynamicResourceExpansionEnabled ? (long) (conf.stackSizeSoftMax / sizeof(DataConstant)) : vm->stackHardMax;
 
     vm->globals = malloc(conf.dynamicResourceExpansionEnabled || conf.globalsSoftMax == conf.globalsHardMax ? conf.globalsSoftMax : conf.globalsHardMax);
     vm->callStack = malloc(conf.dynamicResourceExpansionEnabled || conf.framesSoftMax == conf.framesHardMax ? conf.framesSoftMax : conf.framesHardMax);

@@ -9,7 +9,7 @@ TestSuite(Frame);
 
 StringVector* srcCode;
 JumpPoint* jumpPoints;
-Frame* frame;
+Frame* test_frame;
 
 void setup() {
     srcCode = createStringVector();
@@ -19,111 +19,111 @@ void setup() {
         {"add", 0, 3},
         {"_entry", 5, 9}
     };
-    frame = loadFrame(srcCode, jumpPoints, 2, 320, 640, 3, 0, NULL);
+    test_frame = loadFrame(srcCode, jumpPoints, 2, 320, 640, 3, 0, NULL);
 }
 
 void teardown() {
-    deleteFrame(frame);
+    deleteFrame(test_frame);
     freeStringVector(srcCode);
 }
 
 Test(Frame, loadFrame_noParams, .init = setup, .fini = teardown) {
-    cr_expect_eq(frame->instructions, srcCode);
-    cr_expect_eq(frame->returnAddr, 3);
-    cr_expect_arr_eq(frame->jumps, jumpPoints, 2);
-    cr_expect_eq(frame->jc, 2);
-    cr_expect_eq(frame->pc, 0);
-    cr_expect_eq(frame->lp, -1);
-    cr_expect_eq(frame->sp, -1);
+    cr_expect_eq(test_frame->instructions, srcCode);
+    cr_expect_eq(test_frame->returnAddr, 3);
+    cr_expect_arr_eq(test_frame->jumps, jumpPoints, 2);
+    cr_expect_eq(test_frame->jc, 2);
+    cr_expect_eq(test_frame->pc, 0);
+    cr_expect_eq(test_frame->lp, -1);
+    cr_expect_eq(test_frame->sp, -1);
 }
 
 Test(Frame, loadFrame_withParams, .init = setup, .fini = teardown) {
     DataConstant params[2] = {createInt(5), createBoolean(false)};
-    frame = loadFrame(srcCode, jumpPoints, 2, 640, 640, 3, 2, params);
-    cr_expect_eq(frame->instructions, srcCode);
-    cr_expect_eq(frame->returnAddr, 3);
-    cr_expect_arr_eq(frame->jumps, jumpPoints, 2);
-    cr_expect_eq(frame->jc, 2);
-    cr_expect_eq(frame->pc, 0);
-    cr_expect_eq(frame->lp, 1);
-    cr_expect(isEqual(frame->locals[0], params[0]));
-    cr_expect(isEqual(frame->locals[1], params[1]));
-    cr_expect_eq(frame->sp, -1);
+    test_frame = loadFrame(srcCode, jumpPoints, 2, 640, 640, 3, 2, params);
+    cr_expect_eq(test_frame->instructions, srcCode);
+    cr_expect_eq(test_frame->returnAddr, 3);
+    cr_expect_arr_eq(test_frame->jumps, jumpPoints, 2);
+    cr_expect_eq(test_frame->jc, 2);
+    cr_expect_eq(test_frame->pc, 0);
+    cr_expect_eq(test_frame->lp, 1);
+    cr_expect(isEqual(test_frame->locals[0], params[0]));
+    cr_expect(isEqual(test_frame->locals[1], params[1]));
+    cr_expect_eq(test_frame->sp, -1);
 }
 
-Test(Frame, frameBasicOperations, .init = setup, .fini = teardown) {
-    cr_expect_eq(frame->pc, 0);
-    setPC(frame, 5);
-    cr_expect_eq(frame->pc, 5);
-    incrementPC(frame);
-    cr_expect_eq(frame->pc, 6);
+Test(Frame, test_frameBasicOperations, .init = setup, .fini = teardown) {
+    cr_expect_eq(test_frame->pc, 0);
+    setPC(test_frame, 5);
+    cr_expect_eq(test_frame->pc, 5);
+    incrementPC(test_frame);
+    cr_expect_eq(test_frame->pc, 6);
 
-    cr_expect_eq(frame->lp, -1);
-    cr_expect_eq(frame->sp, -1);
-    cr_expect(stackIsEmpty(frame));
+    cr_expect_eq(test_frame->lp, -1);
+    cr_expect_eq(test_frame->sp, -1);
+    cr_expect(stackIsEmpty(test_frame));
     DataConstant data = createBoolean(true);
-    framePush(frame, data);
-    cr_expect_eq(frame->sp, 0);
-    cr_expect(!stackIsEmpty(frame));
+    framePush(test_frame, data);
+    cr_expect_eq(test_frame->sp, 0);
+    cr_expect(!stackIsEmpty(test_frame));
 
-    DataConstant topValue = frameTop(frame);
-    cr_expect(isEqual(topValue, frame->stack[0]));
-    DataConstant poppedValue = framePop(frame);
-    cr_expect_eq(frame->sp, -1);
+    DataConstant topValue = frameTop(test_frame);
+    cr_expect(isEqual(topValue, test_frame->stack[0]));
+    DataConstant poppedValue = framePop(test_frame);
+    cr_expect_eq(test_frame->sp, -1);
     cr_expect(isEqual(poppedValue, data));
 
-    storeLocal(frame, data);
-    cr_expect_eq(frame->lp, 0);
-    DataConstant localVal = loadLocal(frame, 0);
-    cr_expect(isEqual(frame->locals[0], localVal));
+    storeLocal(test_frame, data);
+    cr_expect_eq(test_frame->lp, 0);
+    DataConstant localVal = loadLocal(test_frame, 0);
+    cr_expect(isEqual(test_frame->locals[0], localVal));
     DataConstant newLocalVal = createBoolean(false);
-    storeLocalAtAddr(frame, newLocalVal, 0);
-    cr_expect_eq(frame->locals[0].value.boolVal, false);
+    storeLocalAtAddr(test_frame, newLocalVal, 0);
+    cr_expect_eq(test_frame->locals[0].value.boolVal, false);
 }
 
-Test(Frame, frameWithInstructions, .init = setup, .fini = teardown) {
-    cr_expect_eq(frame->pc, 0);
-    cr_expect_str_eq(peekNextInstruction(frame), "_entry:");
-    cr_expect_eq(frame->pc, 0);
-    cr_expect_str_eq(getNextInstruction(frame), "_entry:");
-    cr_expect_eq(frame->pc, 1);
+Test(Frame, test_frameWithInstructions, .init = setup, .fini = teardown) {
+    cr_expect_eq(test_frame->pc, 0);
+    cr_expect_str_eq(peekNextInstruction(test_frame), "_entry:");
+    cr_expect_eq(test_frame->pc, 0);
+    cr_expect_str_eq(getNextInstruction(test_frame), "_entry:");
+    cr_expect_eq(test_frame->pc, 1);
 }
 
-Test(Frame, frameWithJumps, .init = setup, .fini = teardown) {
-    int start = getJumpStart(frame, "_entry");
+Test(Frame, test_frameWithJumps, .init = setup, .fini = teardown) {
+    int start = getJumpStart(test_frame, "_entry");
     cr_expect_eq(start, 5);
-    int end = getJumpEnd(frame, "_entry");
+    int end = getJumpEnd(test_frame, "_entry");
     cr_expect_eq(end, 9);
-    start = getJumpStart(frame, "notFound");
+    start = getJumpStart(test_frame, "notFound");
     cr_expect_eq(start, -1);
-    end = getJumpEnd(frame, "notFound");
+    end = getJumpEnd(test_frame, "notFound");
     cr_expect_eq(end, -1);
 }
 
-Test(Frame, framePrintArray_empty, .init = cr_redirect_stdout) {
+Test(Frame, test_framePrintArray_empty, .init = cr_redirect_stdout) {
     srcCode = createStringVector();
     jumpPoints = NULL;
-    frame = loadFrame(srcCode, jumpPoints, 0, 32, 32, 0, 0, NULL);
+    test_frame = loadFrame(srcCode, jumpPoints, 0, 32, 32, 0, 0, NULL);
 
-    print_array("stack", frame->stack, -1);
+    print_array("stack", test_frame->stack, -1);
     fflush(stdout);
     cr_expect_stdout_eq_str("stack: []\n");
 
-    deleteFrame(frame);
+    deleteFrame(test_frame);
     freeStringVector(srcCode);
 }
 
-Test(Frame, framePrintArray_nonEmpty, .init = cr_redirect_stdout) {
+Test(Frame, test_framePrintArray_nonEmpty, .init = cr_redirect_stdout) {
     srcCode = createStringVector();
     jumpPoints = NULL;
-    frame = loadFrame(srcCode, jumpPoints, 0, 64, 64, 0, 0, NULL);
+    test_frame = loadFrame(srcCode, jumpPoints, 0, 64, 64, 0, 0, NULL);
 
-    framePush(frame, createInt(5));
-    framePush(frame, createInt(21));
-    print_array("stack", frame->stack, 1);
+    framePush(test_frame, createInt(5));
+    framePush(test_frame, createInt(21));
+    print_array("stack", test_frame->stack, 1);
     fflush(stdout);
     cr_expect_stdout_eq_str("stack: [5, 21]\n");
 
-    deleteFrame(frame);
+    deleteFrame(test_frame);
     freeStringVector(srcCode);
 }

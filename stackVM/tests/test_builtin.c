@@ -70,7 +70,7 @@ Test(builtin, slice_string_three_params) {
 }
 
 Test(builtin, slice_array_two_params) {
-    JumpPoint** jumps = {(JumpPoint* [0]) {}};
+    JumpPoint** jumps = {(JumpPoint* [1]) {}};
     SourceCode* src = createSource((char* [1]) {"_entry"}, (char* [1]) {"HALT"}, (int[1]) {0}, jumps, 1);
     vm = init(src, getDefaultConfig());
     frame = loadFrame(createStringVector(), *jumps, 0, 320, 640, 0, 0, NULL);
@@ -89,7 +89,7 @@ Test(builtin, slice_array_two_params) {
 }
 
 Test(builtin, slice_array_three_params) {
-    JumpPoint** jumps = {(JumpPoint* [0]) {}};
+    JumpPoint** jumps = {(JumpPoint* [1]) {}};
     SourceCode* src = createSource((char* [1]) {"_entry"}, (char* [1]) {"HALT"}, (int[1]) {0}, jumps, 1);
     vm = init(src, getDefaultConfig());
     frame = loadFrame(createStringVector(), *jumps, 0, 320, 640, 0, 0, NULL);
@@ -110,7 +110,7 @@ Test(builtin, slice_array_three_params) {
 
 // split
 Test(builtin, split_one_param) {
-    JumpPoint** jumps = {(JumpPoint* [0]) {}};
+    JumpPoint** jumps = {(JumpPoint* [1]) {}};
     SourceCode* src = createSource((char* [1]) {"_entry"}, (char* [1]) {"HALT"}, (int[1]) {0}, jumps, 1);
     vm = init(src, getDefaultConfig());
     frame = loadFrame(createStringVector(), *jumps, 0, 320, 640, 0, 0, NULL);
@@ -132,7 +132,7 @@ Test(builtin, split_one_param) {
 }
 
 Test(builtin, split_two_params) {
-    JumpPoint** jumps = {(JumpPoint* [0]) {}};
+    JumpPoint** jumps = {(JumpPoint* [1]) {}};
     SourceCode* src = createSource((char* [1]) {"_entry"}, (char* [1]) {"HALT"}, (int[1]) {0}, jumps, 1);
     vm = init(src, getDefaultConfig());
     frame = loadFrame(createStringVector(), *jumps, 0, 320, 640, 0, 0, NULL);

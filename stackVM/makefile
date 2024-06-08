@@ -7,19 +7,22 @@ else
 	STANDARD=c11
 endif
 
+BUILDDIR=build
+
 CFLAGS=-Wall -Wextra -std=$(STANDARD) -lm
 SOURCES=src/*.c
 TESTS=tests/*.c
-TARGET=build/bolt
+TARGET=$(BUILDDIR)/bolt
 TEST_SOURCES=src/[!app]*.c
 TESTBUILD=tests/bolt-tests
 
 DEFAULT_CONFIG=default-config.yml
-CONFIG=build/.bolt_vm_config.yml
+CONFIG=$(BUILDDIR)/.bolt_vm_config.yml
 
 default: clean $(TARGET)
 
 $(TARGET): $(SOURCES-.c=.o)
+	if [[ ! -d $(BUILDDIR) ]]; then mkdir ${BUILDDIR}; fi
 	if [[ ! -f ${CONFIG} ]]; then cp ${DEFAULT_CONFIG} ${CONFIG}; fi
 	$(CC) $(CFLAGS) -o $(TARGET) $(SOURCES)
 	

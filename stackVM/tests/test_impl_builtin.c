@@ -5,7 +5,7 @@
 #include "utils.h"
 #include "../src/impl_builtin.h"
 
-#define TESTFILE ".temporary_testing_file.txt"
+#define NON_EXISTANT_TEST_FILE ".tempfile_fake.txt"
 #define BASE_BYTES sizeof(DataConstant)
 
 TestSuite(impl_builtin);
@@ -18,7 +18,7 @@ typedef struct {
 
 TestArraySetup setupArrayTest(VMConfig conf) { // reduce repetition in test setup
     TestArraySetup setup;
-    JumpPoint** jumps = {(JumpPoint* [0]) {}};
+    JumpPoint** jumps = {(JumpPoint* [1]) {}};
     SourceCode* src = createSource((char* [1]) {"_entry"}, (char* [1]) {"HALT"}, (int[1]) {0}, jumps, 1);
     setup.vm = init(src, conf);
     setup.frame = loadFrame(createStringVector(), *jumps, 0, conf.dynamicResourceExpansionEnabled ? conf.stackSizeSoftMax : conf.stackSizeHardMax, conf.dynamicResourceExpansionEnabled ? conf.localsHardMax : conf.localsHardMax, 0, 0, NULL);
@@ -414,44 +414,47 @@ Test(impl_builtin, splitString_containsDelim_globalsError, .init = cr_redirect_s
 }
 
 // File System functions
-
 Test(impl_builtin, createAndDeleteFile, .init = cr_redirect_stderr) {
+    char* filename = ".tempfile_empty.txt";
     ExitCode vmState = success;
-    cr_expect_not(fileExists(TESTFILE));
-    createFile(TESTFILE, &vmState);
+    
+    cr_expect_not(fileExists(filename));
+    createFile(filename, &vmState);
     cr_expect_eq(vmState, success);
-    cr_expect(fileExists(TESTFILE));
-    createFile(TESTFILE, &vmState);
-    cr_expect_stderr_eq_str("FileError: Cannot create file '.temporary_testing_file.txt' because it already exists\n");
+    cr_expect(fileExists(filename));
+    
+    createFile(filename, &vmState);
+    cr_expect_stderr_eq_str("FileError: Cannot create file '.tempfile_empty.txt' because it already exists\n");
     cr_expect_eq(vmState, success);
-    deleteFile(TESTFILE, &vmState);
-    cr_expect_not(fileExists(TESTFILE));
+    
+    deleteFile(filename, &vmState);
+    cr_expect_not(fileExists(filename));
     cr_expect_eq(vmState, success);
 }
 
 Test(impl_builtin, deleteFile_nonExistant, .init = cr_redirect_stderr) {
     ExitCode vmState = success;
-    cr_expect_not(fileExists(TESTFILE));
-    deleteFile(TESTFILE, &vmState);
-    cr_expect_stderr_eq_str("FileError: Cannot delete file '.temporary_testing_file.txt' because it does not exist\n");
+    cr_expect_not(fileExists(NON_EXISTANT_TEST_FILE));
+    deleteFile(NON_EXISTANT_TEST_FILE, &vmState);
+    cr_expect_stderr_eq_str("FileError: Cannot delete file '.tempfile_fake.txt' because it does not exist\n");
     cr_expect_eq(vmState, file_err);
 }
 
 Test(impl_builtin, renameFile_nonExistant, .init = cr_redirect_stderr) {
     ExitCode vmState = success;
-    cr_expect_not(fileExists(TESTFILE));
-    renameFile(TESTFILE, ".new_name.txt", &vmState);
-    cr_expect_stderr_eq_str("FileError: Cannot rename file '.temporary_testing_file.txt' because it does not exist\n");
+    cr_expect_not(fileExists(NON_EXISTANT_TEST_FILE));
+    renameFile(NON_EXISTANT_TEST_FILE, ".new_name.txt", &vmState);
+    cr_expect_stderr_eq_str("FileError: Cannot rename file '.tempfile_fake.txt' because it does not exist\n");
     cr_expect_eq(vmState, file_err);
 }
 
 Test(impl_builtin, readFile_nonExistant, .init = cr_redirect_stderr) {
     TestArraySetup setup = setupArrayTest(getDefaultConfig());
 
-    cr_expect_not(fileExists(TESTFILE));
-    DataConstant read = readFile(TESTFILE, setup.vm, setup.frame, &setup.globalsExpanded, false);
+    cr_expect_not(fileExists(NON_EXISTANT_TEST_FILE));
+    DataConstant read = readFile(NON_EXISTANT_TEST_FILE, setup.vm, setup.frame, &setup.globalsExpanded, false);
     cr_expect_eq(read.type, None);
-    cr_expect_stderr_eq_str("FileError: Cannot read file '.temporary_testing_file.txt' because it does not exist\n");
+    cr_expect_stderr_eq_str("FileError: Cannot read file '.tempfile_fake.txt' because it does not exist\n");
     cr_expect_eq(setup.vm->state, file_err);
 }
 
@@ -462,23 +465,26 @@ Test(impl_builtin, writeAppendReadDeleteFile) {
     Frame* frame = setup.frame;
     bool globalsExpanded = setup.globalsExpanded;
 
+    char* filename = ".tempfile.txt";
+
     ExitCode vmState = success;
-    cr_expect_not(fileExists(TESTFILE));
+    cr_expect_not(fileExists(filename));
     
-    writeToFile(TESTFILE, "hello", "w", &vmState);
+    writeToFile(filename, "hello", "w", &vmState);
     cr_expect_eq(vmState, success);
-    cr_expect(fileExists(TESTFILE));
-    DataConstant read1 = readFile(TESTFILE, vm, frame, &globalsExpanded, false);
+    cr_expect(fileExists(filename));
+    
+    DataConstant read1 = readFile(filename, vm, frame, &globalsExpanded, true);
     cr_expect_eq(vm->state, success);
     cr_expect_eq(read1.length, 1);
     cr_expect_eq(read1.value.address, frame->locals);
     cr_expect_eq(read1.offset, 0);
     cr_expect_eq(frame->lp, 0);
     cr_expect_str_eq(frame->locals[0].value.strVal, "hello\n");
-    
-    writeToFile(TESTFILE, "hello", "w", &vmState); // should overwrite file contents
+
+    writeToFile(filename, "hello", "w", &vmState); // should overwrite file contents
     cr_expect_eq(vmState, success);
-    DataConstant read2 = readFile(TESTFILE, vm, frame, &globalsExpanded, false);
+    DataConstant read2 = readFile(filename, vm, frame, &globalsExpanded, false);
     cr_expect_eq(vm->state, success);
     cr_expect_eq(read2.length, 1);
     cr_expect_eq(read2.value.address, frame->locals);
@@ -486,9 +492,9 @@ Test(impl_builtin, writeAppendReadDeleteFile) {
     cr_expect_eq(frame->lp, 1);
     cr_expect_str_eq(frame->locals[1].value.strVal, "hello\n");
     
-    writeToFile(TESTFILE, "world", "a", &vmState); // should not overwrite file contents
+    writeToFile(filename, "world", "a", &vmState); // should not overwrite file contents
     cr_expect_eq(vmState, success);
-    DataConstant read3 = readFile(TESTFILE, vm, frame, &globalsExpanded, false);
+    DataConstant read3 = readFile(filename, vm, frame, &globalsExpanded, false);
     cr_expect_eq(vm->state, success);
     cr_expect_eq(read3.length, 2);
     cr_expect_eq(read3.value.address, frame->locals);
@@ -496,10 +502,10 @@ Test(impl_builtin, writeAppendReadDeleteFile) {
     cr_expect_eq(frame->lp, 3);
     cr_expect_str_eq(frame->locals[2].value.strVal, "hello\n");
     cr_expect_str_eq(frame->locals[3].value.strVal, "world\n");
-    
-    deleteFile(TESTFILE, &vmState);
+
+    deleteFile(filename, &vmState);
     cr_expect_eq(vmState, success);
-    cr_expect_not(fileExists(TESTFILE));
+    cr_expect_not(fileExists(filename));
 }
 
 Test(impl_builtin, writeAppendReadDeleteFile_expandLocals) {
@@ -734,16 +740,17 @@ Test(impl_builtin, writeAppendReadDeleteFile_globalsError, .init = cr_redirect_s
 
 Test(impl_builtin, createRenameDeleteFile) {
     ExitCode vmState = success;
-    char* newName = ".temp_test_file.2.txt";
-    cr_expect_not(fileExists(TESTFILE));
+    char* originalName = ".tempfile.1.txt";
+    char* newName = ".tempfile.2.txt";
+    cr_expect_not(fileExists(originalName));
     cr_expect_not(fileExists(newName));
-    createFile(TESTFILE, &vmState);
+    createFile(originalName, &vmState);
     cr_expect_eq(vmState, success);
-    cr_expect(fileExists(TESTFILE));
+    cr_expect(fileExists(originalName));
     cr_expect_not(fileExists(newName));
-    renameFile(TESTFILE, newName, &vmState);
+    renameFile(originalName, newName, &vmState);
     cr_expect_eq(vmState, success);
-    cr_expect_not(fileExists(TESTFILE));
+    cr_expect_not(fileExists(originalName));
     cr_expect(fileExists(newName));
     deleteFile(newName, &vmState);
     cr_expect_eq(vmState, success);
@@ -751,7 +758,6 @@ Test(impl_builtin, createRenameDeleteFile) {
 }
 
 // Array functions
-
 Test(impl_builtin, reverseArr) {
     DataConstant* locals = (DataConstant[]) {createInt(2), createInt(0), createInt(-1)};
     DataConstant array = createAddr(locals, 0, 3, 3);

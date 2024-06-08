@@ -4,7 +4,7 @@
 #include <stdbool.h>
 
 #include "vm.h"
-#include "frame.h"
+//#include "frame.h"
 #include "dataconstant.h"
 #include "exitcode.h"
 
