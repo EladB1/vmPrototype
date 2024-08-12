@@ -12,12 +12,12 @@ BUILDDIR=build
 CFLAGS=-Wall -Wextra -std=$(STANDARD) -lm
 SOURCES=src/*.c
 TESTS=tests/*.c
-TARGET=$(BUILDDIR)/bolt
+TARGET=$(BUILDDIR)/swerve
 TEST_SOURCES=src/[!app]*.c
-TESTBUILD=tests/bolt-tests
+TESTBUILD=tests/swerve-tests
 
 DEFAULT_CONFIG=default-config.yml
-CONFIG=$(BUILDDIR)/.bolt_vm_config.yml
+CONFIG=$(BUILDDIR)/.swerve_vm_config.yml
 
 default: clean $(TARGET)
 

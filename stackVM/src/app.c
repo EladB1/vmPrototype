@@ -7,7 +7,7 @@
 #include "config.h"
 #include "vm.h"
 
-#define CONFIG_FILE "build/.bolt_vm_config.yml"
+#define CONFIG_FILE "build/.swerve_vm_config.yml"
 
 char* getUsage(char* prog_name) {
     char* verbose = "\t-v, --verbose:\tDisplay the internal VM state at each execution cycle\n";

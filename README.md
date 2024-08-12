@@ -2,7 +2,7 @@ This repo is a prototype of a VM for the backend of a compiler/interpreter
 
 ### Vitrual Machine Internals
 
-This is a stack based VM which takes some inspiration from the JVM and CPython VM. It is written in C and designed to be the backend for [this compiler](https://github.com/EladB1/boltc).
+This is a stack based VM which takes some inspiration from the JVM and CPython VM. It is written in C and designed to be the backend for [this compiler](https://github.com/EladB1/swervec).
 
 > May eventually merge this repo into the compiler repo
 
@@ -29,7 +29,7 @@ Arrays are references to a list of values (either some frame's locals or VM glob
 
 By default, arrays are stored in the local frame. When the frame returns, all values in the locals are deallocated anyway, so the array memory gets cleaned up. Frames that return arrays, copy the memory to the caller frame then get deallocated. When you store an array reference globally, its values get copied to the VM globals, the pointer gets changed to point to the globals, and the offset changes to the value of `gp`. 
 
-There is a configuration file `.bolt_vm_config.yml` that lets you adjust the behavior of arrays. There is a setting `DynamicResourceExpansion` which gives you the option of using less memory upfront and expanding as needed; this is on by default. If `DynamicResourceExpansion` is off, the soft maximums will be ignored. The `HeapStorageBackup` setting gives you the option of storing the array values in globals if the array is too big for locals; on by default. You can adjust the number of frames, size of the VM globals, frame locals, and frame stack in this file.
+There is a configuration file `.swerve_vm_config.yml` that lets you adjust the behavior of arrays. There is a setting `DynamicResourceExpansion` which gives you the option of using less memory upfront and expanding as needed; this is on by default. If `DynamicResourceExpansion` is off, the soft maximums will be ignored. The `HeapStorageBackup` setting gives you the option of storing the array values in globals if the array is too big for locals; on by default. You can adjust the number of frames, size of the VM globals, frame locals, and frame stack in this file.
 
 > The `HeapStorageBackup` setting is only for array values, local variables cannot be backed up by the heap
 
@@ -119,13 +119,13 @@ Any line that starts with a dot and ends with a colon will be used as a jump poi
 
 valid start commands:
 
- - `bolt`: Display usage and exit
- - `bolt -h`: Display usage and exit
- - `bolt -m`: Diplay the amount of memory allocated and exit
- - `bolt [input_file]`: Run the VM on the bytecode from the file
- - `bolt [input_file] -v`: Run the VM on the bytecode from the file with verbose output
- - `bolt [input_file] -c [config_file]`: Use your configuration file and run the VM on the bytecode from the input_file 
- - `bolt -m -c [config_file]`: Will use your configuration file, diplay the amount of memory allocated and exit
- - `bolt -c [config_file] -m`: Will use your configuration file, diplay the amount of memory allocated and exit
- - `bolt [input_file] -c [config_file] -v`: Use your configuration file and run the VM on the bytecode from the input_file with verbose output
- - `bolt [input_file] -v -c [config_file]`: Use your configuration file and run the VM on the bytecode from the input_file with verbose output
+ - `swerve`: Display usage and exit
+ - `swerve -h`: Display usage and exit
+ - `swerve -m`: Diplay the amount of memory allocated and exit
+ - `swerve [input_file]`: Run the VM on the bytecode from the file
+ - `swerve [input_file] -v`: Run the VM on the bytecode from the file with verbose output
+ - `swerve [input_file] -c [config_file]`: Use your configuration file and run the VM on the bytecode from the input_file 
+ - `swerve -m -c [config_file]`: Will use your configuration file, diplay the amount of memory allocated and exit
+ - `swerve -c [config_file] -m`: Will use your configuration file, diplay the amount of memory allocated and exit
+ - `swerve [input_file] -c [config_file] -v`: Use your configuration file and run the VM on the bytecode from the input_file with verbose output
+ - `swerve [input_file] -v -c [config_file]`: Use your configuration file and run the VM on the bytecode from the input_file with verbose output
